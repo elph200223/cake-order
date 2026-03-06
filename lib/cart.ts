@@ -120,12 +120,26 @@ export function addCartItem(input: AddCartItemInput): CartState {
   return nextCart;
 }
 
-export function clearCart() {
+export function removeCartItem(itemId: string): CartState {
+  const cart = readCart();
+
+  const nextCart: CartState = {
+    items: cart.items.filter((item) => item.id !== itemId),
+  };
+
+  writeCart(nextCart);
+  return nextCart;
+}
+
+export function clearCart(): CartState {
+  const nextCart: CartState = { items: [] };
+
   if (!isBrowser()) {
-    return;
+    return nextCart;
   }
 
   window.localStorage.removeItem(CART_STORAGE_KEY);
+  return nextCart;
 }
 
 export function getCartItemCount(cart: CartState) {
