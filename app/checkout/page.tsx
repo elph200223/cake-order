@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import CheckoutCartItems from "./CheckoutCartItems";
+import CheckoutCustomerForm from "./CheckoutCustomerForm";
 import CheckoutSummary from "./CheckoutSummary";
 import {
   clearCart,
@@ -38,7 +39,7 @@ export default function CheckoutPage() {
 
   if (!hydrated) {
     return (
-      <main className="mx-auto max-w-5xl px-6 py-10">
+      <main className="mx-auto max-w-6xl px-6 py-10">
         <h1 className="text-3xl font-bold tracking-tight text-neutral-950">結帳</h1>
         <p className="mt-4 text-sm text-neutral-500">載入購物車中…</p>
       </main>
@@ -46,7 +47,7 @@ export default function CheckoutPage() {
   }
 
   return (
-    <main className="mx-auto max-w-5xl px-6 py-10">
+    <main className="mx-auto max-w-6xl px-6 py-10">
       <div className="mb-6">
         <Link href="/cakes" className="text-sm text-neutral-500 hover:text-neutral-900">
           ← 返回蛋糕列表
@@ -56,7 +57,7 @@ export default function CheckoutPage() {
       <header className="mb-8">
         <h1 className="text-3xl font-bold tracking-tight text-neutral-950">結帳</h1>
         <p className="mt-2 text-sm text-neutral-600">
-          先確認商品、規格與金額，下一步再接顧客資料與建立訂單。
+          先確認商品、規格與金額，再填寫顧客資料。下一步才接建立訂單。
         </p>
       </header>
 
@@ -77,11 +78,18 @@ export default function CheckoutPage() {
           </div>
         </section>
       ) : (
-        <section className="grid grid-cols-1 gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-          <CheckoutCartItems
-            items={cart.items}
-            onRemove={handleRemoveItem}
-          />
+        <section className="grid grid-cols-1 gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+          <div className="space-y-6">
+            <CheckoutCartItems
+              items={cart.items}
+              onRemove={handleRemoveItem}
+            />
+
+            <CheckoutCustomerForm
+              cart={cart}
+              totalAmount={totalAmount}
+            />
+          </div>
 
           <CheckoutSummary
             itemCount={itemCount}
