@@ -1,0 +1,95 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum OrderStatus {
+  PENDING_PAYMENT
+  PAID
+  CANCELLED
+}
+
+model Order {
+  id          Int         @id @default(autoincrement())
+  orderNo     String      @unique
+  customer    String
+  phone       String
+  pickupDate  String
+  pickupTime  String
+  note        String      @default("")
+  status      OrderStatus @default(PENDING_PAYMENT)
+  totalAmount Int
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  items OrderItem[]
+}
+
+model OrderItem {
+  id       Int    @id @default(autoincrement())
+  order    Order  @relation(fields: [orderId], references: [id])
+  orderId  Int
+  name     String
+  price    Int
+  quantity Int
+}
+
+model Product {
+  id        Int      @id @default(autoincrement())
+  name      String
+  slug      String   @unique
+  basePrice Int
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  optionGroups ProductOptionGroup[]
+}
+
+model OptionGroup {
+  id        Int     @id @default(autoincrement())
+  name      String
+  required  Boolean @default(false)
+  minSelect Int     @default(0)
+  maxSelect Int     @default(1)
+
+  sort      Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  options  Option[]
+  products ProductOptionGroup[]
+}
+
+model Option {
+  id            Int         @id @default(autoincrement())
+  name          String
+  priceDelta    Int         @default(0)
+  optionGroup   OptionGroup @relation(fields: [optionGroupId], references: [id])
+  optionGroupId Int
+
+  sort      Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([optionGroupId])
+}
+
+model ProductOptionGroup {
+  id            Int         @id @default(autoincrement())
+  product       Product     @relation(fields: [productId], references: [id])
+  productId     Int
+  optionGroup   OptionGroup @relation(fields: [optionGroupId], references: [id])
+  optionGroupId Int
+
+  sort Int @default(0)
+
+  @@unique([productId, optionGroupId])
+  @@index([optionGroupId])
+}

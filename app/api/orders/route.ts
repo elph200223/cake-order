@@ -124,6 +124,9 @@ export async function POST(req: NextRequest) {
         orderNo,
         customer: payload.customerName,
         phone: payload.phone,
+        pickupDate: payload.pickupDate,
+        pickupTime: payload.pickupTime,
+        note: payload.note,
         totalAmount: payload.totalAmount,
         items: {
           create: payload.items.map((item) => ({
@@ -145,14 +148,12 @@ export async function POST(req: NextRequest) {
         orderNo: order.orderNo,
         customer: order.customer,
         phone: order.phone,
+        pickupDate: order.pickupDate,
+        pickupTime: order.pickupTime,
+        note: order.note,
         totalAmount: order.totalAmount,
         status: order.status,
         items: order.items,
-      },
-      pickup: {
-        pickupDate: payload.pickupDate,
-        pickupTime: payload.pickupTime,
-        note: payload.note,
       },
     });
   } catch (error) {
