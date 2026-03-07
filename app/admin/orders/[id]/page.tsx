@@ -1,6 +1,33 @@
+"use client";
+
 import Link from "next/link";
-import { notFound } from "next/navigation";
-import { prisma } from "@/lib/prisma";
+import { useEffect, useState } from "react";
+
+type OrderItem = {
+  id: number;
+  name: string;
+  price: number;
+  quantity: number;
+};
+
+type OrderDetail = {
+  id: number;
+  orderNo: string;
+  customer: string;
+  phone: string;
+  pickupDate: string;
+  pickupTime: string;
+  note: string;
+  status: "PENDING_PAYMENT" | "PAID" | "CANCELLED";
+  totalAmount: number;
+  createdAt: string;
+  updatedAt: string;
+  items: OrderItem[];
+};
+
+type Props = {
+  params: Promise<{ id: string }>;
+};
 
 function formatMoney(price: number) {
   return `NT$ ${price.toLocaleString("zh-TW")}`;
@@ -18,29 +45,142 @@ function parseOrderId(raw: string) {
   return Number.isInteger(n) && n > 0 ? n : null;
 }
 
-export default async function AdminOrderDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
-  const orderId = parseOrderId(id);
+async function fetchOrder(orderId: number): Promise<OrderDetail> {
+  const res = await fetch(`/api/orders/get?orderId=${orderId}`, {
+    cache: "no-store",
+  });
+  const data = await res.json();
 
-  if (!orderId) {
-    notFound();
+  if (!res.ok || !data?.ok || !data?.order) {
+    throw new Error(data?.error || "ORDER_FETCH_FAILED");
   }
 
-  const order = await prisma.order.findUnique({
-    where: { id: orderId },
-    include: {
-      items: {
-        orderBy: [{ id: "asc" }],
-      },
-    },
+  return data.order as OrderDetail;
+}
+
+export default function AdminOrderDetailPage({ params }: Props) {
+  const [orderId, setOrderId] = useState<number | null>(null);
+  const [order, setOrder] = useState<OrderDetail | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [status, setStatus] = useState<OrderDetail["status"] | "">("");
+  const [submitState, setSubmitState] = useState<{
+    status: "idle" | "submitting" | "success" | "error";
+    message: string;
+  }>({
+    status: "idle",
+    message: "",
   });
 
+  useEffect(() => {
+    let mounted = true;
+
+    async function run() {
+      try {
+        const { id } = await params;
+        const parsed = parseOrderId(id);
+
+        if (!parsed) {
+          throw new Error("ORDER_ID_INVALID");
+        }
+
+        if (!mounted) return;
+        setOrderId(parsed);
+
+        const detail = await fetchOrder(parsed);
+        if (!mounted) return;
+
+        setOrder(detail);
+        setStatus(detail.status);
+      } catch (error: any) {
+        if (!mounted) return;
+        setSubmitState({
+          status: "error",
+          message: error?.message ? String(error.message) : "讀取訂單失敗",
+        });
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    }
+
+    run();
+
+    return () => {
+      mounted = false;
+    };
+  }, [params]);
+
+  async function handleUpdateStatus() {
+    if (!orderId || !status) {
+      setSubmitState({
+        status: "error",
+        message: "訂單狀態資料不完整",
+      });
+      return;
+    }
+
+    setSubmitState({
+      status: "submitting",
+      message: "更新狀態中…",
+    });
+
+    try {
+      const res = await fetch(`/api/orders/${orderId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ status }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data?.ok) {
+        throw new Error(data?.error || "UPDATE_ORDER_STATUS_FAILED");
+      }
+
+      const detail = await fetchOrder(orderId);
+      setOrder(detail);
+      setStatus(detail.status);
+
+      setSubmitState({
+        status: "success",
+        message: "訂單狀態已更新。",
+      });
+    } catch (error: any) {
+      setSubmitState({
+        status: "error",
+        message: error?.message ? String(error.message) : "更新狀態失敗。",
+      });
+    }
+  }
+
+  if (loading) {
+    return (
+      <main className="mx-auto max-w-5xl px-6 py-10">
+        <p className="text-sm text-neutral-500">讀取訂單中…</p>
+      </main>
+    );
+  }
+
   if (!order) {
-    notFound();
+    return (
+      <main className="mx-auto max-w-5xl px-6 py-10">
+        <div className="mb-6">
+          <Link
+            href="/admin/orders"
+            className="text-sm font-medium text-neutral-500 hover:text-neutral-900"
+          >
+            ← 回訂單列表
+          </Link>
+        </div>
+
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-5 text-sm text-red-700">
+          {submitState.message || "找不到訂單"}
+        </div>
+      </main>
+    );
   }
 
   return (
@@ -64,13 +204,48 @@ export default async function AdminOrderDetailPage({
           </div>
 
           <div className="rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3">
-            <p className="text-sm text-neutral-500">狀態</p>
+            <p className="text-sm text-neutral-500">目前狀態</p>
             <p className="mt-1 text-base font-semibold text-neutral-900">
               {formatStatus(order.status)}
             </p>
           </div>
         </div>
       </header>
+
+      <section className="mb-6 rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
+        <h2 className="text-lg font-semibold text-neutral-900">狀態更新</h2>
+
+        <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+          <select
+            value={status}
+            onChange={(e) =>
+              setStatus(e.target.value as OrderDetail["status"])
+            }
+            className="rounded-xl border border-neutral-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-neutral-900"
+          >
+            <option value="PENDING_PAYMENT">待付款</option>
+            <option value="PAID">已付款</option>
+            <option value="CANCELLED">已取消</option>
+          </select>
+
+          <button
+            type="button"
+            onClick={handleUpdateStatus}
+            disabled={submitState.status === "submitting"}
+            className="rounded-xl bg-neutral-900 px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {submitState.status === "submitting" ? "更新中…" : "更新狀態"}
+          </button>
+        </div>
+
+        {submitState.status === "error" ? (
+          <p className="mt-3 text-sm text-red-600">{submitState.message}</p>
+        ) : null}
+
+        {submitState.status === "success" ? (
+          <p className="mt-3 text-sm text-green-700">{submitState.message}</p>
+        ) : null}
+      </section>
 
       <section className="grid grid-cols-1 gap-6 lg:grid-cols-[0.95fr_1.05fr]">
         <div className="space-y-6">
