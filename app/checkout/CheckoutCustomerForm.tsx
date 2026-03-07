@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   buildCheckoutOrderPayload,
   validateCheckoutCustomerInput,
@@ -28,7 +29,6 @@ const PICKUP_TIME_OPTIONS = [
 type SubmitState =
   | { status: "idle"; message: string }
   | { status: "submitting"; message: string }
-  | { status: "success"; message: string; orderNo: string }
   | { status: "error"; message: string };
 
 function formatMoney(price: number) {
@@ -44,6 +44,8 @@ function getTodayString() {
 }
 
 export default function CheckoutCustomerForm({ cart, totalAmount }: Props) {
+  const router = useRouter();
+
   const [form, setForm] = useState<CheckoutCustomerInput>({
     customerName: "",
     phone: "",
@@ -117,12 +119,9 @@ export default function CheckoutCustomerForm({ cart, totalAmount }: Props) {
     }
 
     clearCart();
-
-    setSubmitState({
-      status: "success",
-      message: "訂單已建立成功。",
-      orderNo: result.orderNo,
-    });
+    router.push(
+      `/checkout/success?orderNo=${encodeURIComponent(result.orderNo || "")}`
+    );
   }
 
   return (
@@ -267,20 +266,6 @@ export default function CheckoutCustomerForm({ cart, totalAmount }: Props) {
 
         {submitState.status === "error" ? (
           <p className="mt-3 text-sm text-red-600">{submitState.message}</p>
-        ) : null}
-
-        {submitState.status === "success" ? (
-          <div className="mt-3 rounded-xl border border-green-200 bg-green-50 p-3">
-            <p className="text-sm font-medium text-green-700">
-              {submitState.message}
-            </p>
-            <p className="mt-1 text-sm text-green-700">
-              訂單編號：{submitState.orderNo || "—"}
-            </p>
-            <p className="mt-1 text-sm text-green-700">
-              購物車已清空，重新整理後會顯示空購物車狀態。
-            </p>
-          </div>
         ) : null}
 
         {submitState.status === "idle" && !isFormValid ? (
