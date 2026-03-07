@@ -7,6 +7,7 @@ import {
   type CheckoutCustomerInput,
 } from "@/lib/checkout";
 import { clearCart, type CartState } from "@/lib/cart";
+import { submitOrder } from "@/lib/order-submit";
 
 type Props = {
   cart: CartState;
@@ -105,34 +106,23 @@ export default function CheckoutCustomerForm({ cart, totalAmount }: Props) {
       message: "建立訂單中…",
     });
 
-    try {
-      const res = await fetch("/api/orders", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(orderPayload),
-      });
+    const result = await submitOrder(orderPayload);
 
-      const data = await res.json();
-
-      if (!res.ok || !data?.ok) {
-        throw new Error(data?.error || "CREATE_ORDER_FAILED");
-      }
-
-      clearCart();
-
-      setSubmitState({
-        status: "success",
-        message: "訂單已建立成功。",
-        orderNo: data.order?.orderNo ?? "",
-      });
-    } catch (error: any) {
+    if (!result.ok) {
       setSubmitState({
         status: "error",
-        message: error?.message ? String(error.message) : "建立訂單失敗。",
+        message: result.error || "建立訂單失敗。",
       });
+      return;
     }
+
+    clearCart();
+
+    setSubmitState({
+      status: "success",
+      message: "訂單已建立成功。",
+      orderNo: result.orderNo,
+    });
   }
 
   return (
