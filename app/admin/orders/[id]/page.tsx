@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { fetchOrderDetail, updateOrderStatus } from "@/lib/order-api";
 import { formatOrderDateTime, formatOrderMoney } from "@/lib/order-format";
 import {
   ORDER_STATUS_OPTIONS,
@@ -17,19 +18,6 @@ type Props = {
 function parseOrderId(raw: string) {
   const n = Number(raw);
   return Number.isInteger(n) && n > 0 ? n : null;
-}
-
-async function fetchOrder(orderId: number): Promise<OrderDetail> {
-  const res = await fetch(`/api/orders/get?orderId=${orderId}`, {
-    cache: "no-store",
-  });
-  const data = await res.json();
-
-  if (!res.ok || !data?.ok || !data?.order) {
-    throw new Error(data?.error || "ORDER_FETCH_FAILED");
-  }
-
-  return data.order as OrderDetail;
 }
 
 export default function AdminOrderDetailPage({ params }: Props) {
@@ -60,7 +48,7 @@ export default function AdminOrderDetailPage({ params }: Props) {
         if (!mounted) return;
         setOrderId(parsed);
 
-        const detail = await fetchOrder(parsed);
+        const detail = await fetchOrderDetail(parsed);
         if (!mounted) return;
 
         setOrder(detail);
@@ -100,21 +88,9 @@ export default function AdminOrderDetailPage({ params }: Props) {
     });
 
     try {
-      const res = await fetch(`/api/orders/${orderId}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ status }),
-      });
+      await updateOrderStatus(orderId, status);
 
-      const data = await res.json();
-
-      if (!res.ok || !data?.ok) {
-        throw new Error(data?.error || "UPDATE_ORDER_STATUS_FAILED");
-      }
-
-      const detail = await fetchOrder(orderId);
+      const detail = await fetchOrderDetail(orderId);
       setOrder(detail);
       setStatus(detail.status);
 
