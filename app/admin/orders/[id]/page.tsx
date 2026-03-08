@@ -2,12 +2,21 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import {
+  formatOrderDateTime,
+  formatOrderMoney,
+} from "@/lib/order-format";
+import {
+  ORDER_STATUS_OPTIONS,
+  OrderStatusValue,
+  getOrderStatusLabel,
+} from "@/lib/order-status";
 
 type OrderItem = {
   id: number;
   name: string;
   price: number;
-  quantity: number;
+  qty: number;
 };
 
 type OrderDetail = {
@@ -18,7 +27,7 @@ type OrderDetail = {
   pickupDate: string;
   pickupTime: string;
   note: string;
-  status: "PENDING_PAYMENT" | "PAID" | "CANCELLED";
+  status: OrderStatusValue;
   totalAmount: number;
   createdAt: string;
   updatedAt: string;
@@ -28,17 +37,6 @@ type OrderDetail = {
 type Props = {
   params: Promise<{ id: string }>;
 };
-
-function formatMoney(price: number) {
-  return `NT$ ${price.toLocaleString("zh-TW")}`;
-}
-
-function formatStatus(status: string) {
-  if (status === "PENDING_PAYMENT") return "待付款";
-  if (status === "PAID") return "已付款";
-  if (status === "CANCELLED") return "已取消";
-  return status;
-}
 
 function parseOrderId(raw: string) {
   const n = Number(raw);
@@ -62,7 +60,7 @@ export default function AdminOrderDetailPage({ params }: Props) {
   const [orderId, setOrderId] = useState<number | null>(null);
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [loading, setLoading] = useState(true);
-  const [status, setStatus] = useState<OrderDetail["status"] | "">("");
+  const [status, setStatus] = useState<OrderStatusValue | "">("");
   const [submitState, setSubmitState] = useState<{
     status: "idle" | "submitting" | "success" | "error";
     message: string;
@@ -206,7 +204,7 @@ export default function AdminOrderDetailPage({ params }: Props) {
           <div className="rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3">
             <p className="text-sm text-neutral-500">目前狀態</p>
             <p className="mt-1 text-base font-semibold text-neutral-900">
-              {formatStatus(order.status)}
+              {getOrderStatusLabel(order.status)}
             </p>
           </div>
         </div>
@@ -218,14 +216,14 @@ export default function AdminOrderDetailPage({ params }: Props) {
         <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
           <select
             value={status}
-            onChange={(e) =>
-              setStatus(e.target.value as OrderDetail["status"])
-            }
+            onChange={(e) => setStatus(e.target.value as OrderStatusValue)}
             className="rounded-xl border border-neutral-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-neutral-900"
           >
-            <option value="PENDING_PAYMENT">待付款</option>
-            <option value="PAID">已付款</option>
-            <option value="CANCELLED">已取消</option>
+            {ORDER_STATUS_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
           </select>
 
           <button
@@ -293,14 +291,14 @@ export default function AdminOrderDetailPage({ params }: Props) {
               <div className="flex items-start justify-between gap-4 border-b border-neutral-100 pb-3">
                 <span className="text-neutral-500">建立時間</span>
                 <span className="font-medium text-neutral-900">
-                  {new Date(order.createdAt).toLocaleString("zh-TW")}
+                  {formatOrderDateTime(order.createdAt)}
                 </span>
               </div>
 
               <div className="flex items-start justify-between gap-4 border-b border-neutral-100 pb-3">
                 <span className="text-neutral-500">更新時間</span>
                 <span className="font-medium text-neutral-900">
-                  {new Date(order.updatedAt).toLocaleString("zh-TW")}
+                  {formatOrderDateTime(order.updatedAt)}
                 </span>
               </div>
 
@@ -314,7 +312,7 @@ export default function AdminOrderDetailPage({ params }: Props) {
               <div className="flex items-start justify-between gap-4">
                 <span className="text-neutral-500">總金額</span>
                 <span className="text-base font-semibold text-neutral-950">
-                  {formatMoney(order.totalAmount)}
+                  {formatOrderMoney(order.totalAmount)}
                 </span>
               </div>
             </div>
@@ -339,14 +337,14 @@ export default function AdminOrderDetailPage({ params }: Props) {
                         {item.name}
                       </h3>
                       <p className="mt-2 text-sm text-neutral-500">
-                        單項金額 {formatMoney(item.price)}
+                        單項金額 {formatOrderMoney(item.price)}
                       </p>
                     </div>
 
                     <div className="text-right">
                       <p className="text-sm text-neutral-500">數量</p>
                       <p className="mt-1 text-sm font-semibold text-neutral-900">
-                        {item.quantity}
+                        {item.qty}
                       </p>
                     </div>
                   </div>
