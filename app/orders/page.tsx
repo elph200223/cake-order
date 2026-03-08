@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import { fetchOrderDetail } from "@/lib/order-api";
 import {
   formatOrderDate,
   formatOrderDateTime,
@@ -14,6 +15,29 @@ type QueryState =
   | { status: "loading"; message: string }
   | { status: "error"; message: string }
   | { status: "success"; message: string };
+
+async function fetchOrderByOrderNoAndPhone(
+  orderNo: string,
+  phone: string
+): Promise<OrderDetail> {
+  const params = new URLSearchParams({
+    orderNo,
+    phone,
+  });
+
+  const res = await fetch(`/api/orders/get?${params.toString()}`, {
+    method: "GET",
+    cache: "no-store",
+  });
+
+  const data = await res.json();
+
+  if (!res.ok || !data?.ok || !data?.order) {
+    throw new Error(data?.error || "ORDER_FETCH_FAILED");
+  }
+
+  return data.order as OrderDetail;
+}
 
 export default function OrdersPage() {
   const [orderNo, setOrderNo] = useState("");
@@ -61,40 +85,26 @@ export default function OrdersPage() {
     });
 
     try {
-      const params = new URLSearchParams({
-        orderNo: trimmedOrderNo,
-        phone: trimmedPhone,
-      });
+      const detail = await fetchOrderByOrderNoAndPhone(
+        trimmedOrderNo,
+        trimmedPhone
+      );
 
-      const res = await fetch(`/api/orders/get?${params.toString()}`, {
-        method: "GET",
-        cache: "no-store",
-      });
-
-      const data = await res.json();
-
-      if (!res.ok || !data?.ok) {
-        setQueryState({
-          status: "error",
-          message:
-            data?.error === "ORDER_NOT_FOUND"
-              ? "查無此訂單，請確認訂單編號與手機號碼是否正確。"
-              : "訂單查詢失敗，請稍後再試。",
-        });
-        return;
-      }
-
-      setOrder(data.order as OrderDetail);
+      setOrder(detail);
       setQueryState({
         status: "success",
         message: "已找到訂單。",
       });
-    } catch (error) {
-      console.error("Order query failed:", error);
+    } catch (error: any) {
+      const message = String(error?.message || "");
+
       setOrder(null);
       setQueryState({
         status: "error",
-        message: "訂單查詢失敗，請稍後再試。",
+        message:
+          message === "ORDER_NOT_FOUND"
+            ? "查無此訂單，請確認訂單編號與手機號碼是否正確。"
+            : "訂單查詢失敗，請稍後再試。",
       });
     }
   }
