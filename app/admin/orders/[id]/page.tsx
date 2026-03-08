@@ -2,37 +2,13 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import {
-  formatOrderDateTime,
-  formatOrderMoney,
-} from "@/lib/order-format";
+import { formatOrderDateTime, formatOrderMoney } from "@/lib/order-format";
 import {
   ORDER_STATUS_OPTIONS,
   OrderStatusValue,
   getOrderStatusLabel,
 } from "@/lib/order-status";
-
-type OrderItem = {
-  id: number;
-  name: string;
-  price: number;
-  qty: number;
-};
-
-type OrderDetail = {
-  id: number;
-  orderNo: string;
-  customer: string;
-  phone: string;
-  pickupDate: string;
-  pickupTime: string;
-  note: string;
-  status: OrderStatusValue;
-  totalAmount: number;
-  createdAt: string;
-  updatedAt: string;
-  items: OrderItem[];
-};
+import type { OrderDetail } from "@/lib/order-types";
 
 type Props = {
   params: Promise<{ id: string }>;

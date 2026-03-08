@@ -7,28 +7,7 @@ import {
   formatOrderMoney,
 } from "@/lib/order-format";
 import { getOrderStatusLabel } from "@/lib/order-status";
-
-type OrderItem = {
-  id: number;
-  name: string;
-  qty: number;
-  price: number;
-};
-
-type OrderDetail = {
-  id: number;
-  orderNo: string;
-  customer: string;
-  phone: string;
-  pickupDate: string;
-  pickupTime: string;
-  note: string;
-  status: "PENDING_PAYMENT" | "PAID" | "CANCELLED" | string;
-  totalAmount: number;
-  createdAt: string;
-  updatedAt: string;
-  items: OrderItem[];
-};
+import type { OrderDetail } from "@/lib/order-types";
 
 type QueryState =
   | { status: "idle"; message: "" }
