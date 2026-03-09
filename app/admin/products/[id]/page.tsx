@@ -1,0 +1,519 @@
+"use client";
+
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+
+type Product = {
+  id: number;
+  name: string;
+  slug: string;
+  basePrice: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+type OptionGroup = {
+  id: number;
+  name: string;
+  required: boolean;
+  minSelect: number;
+  maxSelect: number;
+  sort: number;
+  isActive: boolean;
+};
+
+type Binding = {
+  id: number;
+  productId: number;
+  optionGroupId: number;
+  sort: number;
+  optionGroup: OptionGroup;
+};
+
+function parseId(raw: string | string[] | undefined): number | null {
+  if (!raw) return null;
+  const v = Array.isArray(raw) ? raw[0] : raw;
+  const n = Number(v);
+  return Number.isInteger(n) ? n : null;
+}
+
+export default function AdminEditProductPage() {
+  const router = useRouter();
+  const params = useParams();
+  const id = parseId((params as any)?.id);
+
+  const [loading, setLoading] = useState(true);
+  const [msg, setMsg] = useState("");
+
+  const [product, setProduct] = useState<Product | null>(null);
+
+  // product form
+  const [name, setName] = useState("");
+  const [slug, setSlug] = useState("");
+  const [basePrice, setBasePrice] = useState("0");
+  const [isActive, setIsActive] = useState(true);
+
+  const [savingProduct, setSavingProduct] = useState(false);
+  const [deletingProduct, setDeletingProduct] = useState(false);
+
+  // groups + bindings
+  const [allGroups, setAllGroups] = useState<OptionGroup[]>([]);
+  const [bindings, setBindings] = useState<Binding[]>([]);
+  const [bindingBusy, setBindingBusy] = useState(false);
+  const [addGroupId, setAddGroupId] = useState<string>("");
+
+  const inputStyle = useMemo<React.CSSProperties>(
+    () => ({
+      width: "100%",
+      padding: 10,
+      border: "1px solid #ddd",
+      borderRadius: 12,
+      fontSize: 14,
+    }),
+    []
+  );
+
+  async function loadAll() {
+    setMsg("");
+    setLoading(true);
+    try {
+      if (id == null) throw new Error("ID 不正確");
+
+      // 1) product
+      const resP = await fetch(`/api/admin/products/${id}`, { cache: "no-store" });
+      const dataP = await resP.json();
+      if (!dataP?.ok) throw new Error(dataP?.error || "LOAD_PRODUCT_FAILED");
+
+      const p: Product = dataP.product;
+      setProduct(p);
+      setName(p.name ?? "");
+      setSlug(p.slug ?? "");
+      setBasePrice(String(p.basePrice ?? 0));
+      setIsActive(Boolean(p.isActive));
+
+      // 2) groups
+      const resG = await fetch(`/api/admin/option-groups`, { cache: "no-store" });
+      const dataG = await resG.json();
+      if (!dataG?.ok) throw new Error(dataG?.error || "LOAD_GROUPS_FAILED");
+      setAllGroups(dataG.groups || []);
+
+      // 3) bindings
+      const resB = await fetch(`/api/admin/product-option-groups?productId=${id}`, {
+        cache: "no-store",
+      });
+      const dataB = await resB.json();
+      if (!dataB?.ok) throw new Error(dataB?.error || "LOAD_BINDINGS_FAILED");
+      setBindings(dataB.bindings || []);
+    } catch (e: any) {
+      setProduct(null);
+      setMsg(e?.message ? String(e.message) : "讀取失敗");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    loadAll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
+  async function saveProduct() {
+    setMsg("");
+    setSavingProduct(true);
+    try {
+      if (id == null) throw new Error("ID 不正確");
+
+      const n = name.trim();
+      const s = slug.trim();
+      const price = Number(basePrice);
+
+      if (!n) throw new Error("請輸入商品名稱");
+      if (!s) throw new Error("請輸入 slug（網址用）");
+      if (!Number.isFinite(price) || price < 0) throw new Error("basePrice 金額不正確");
+
+      const res = await fetch(`/api/admin/products/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: n,
+          slug: s,
+          basePrice: Math.trunc(price),
+          isActive,
+        }),
+      });
+
+      const data = await res.json();
+      if (!data?.ok) throw new Error(data?.detail || data?.error || "UPDATE_FAILED");
+
+      await loadAll();
+      setMsg("✅ 已儲存商品");
+    } catch (e: any) {
+      setMsg(e?.message ? String(e.message) : "儲存失敗");
+    } finally {
+      setSavingProduct(false);
+    }
+  }
+
+  async function deleteProduct() {
+    setMsg("");
+    setDeletingProduct(true);
+    try {
+      if (id == null) throw new Error("ID 不正確");
+      if (!confirm("確定要刪除這個商品？（不可復原）")) return;
+
+      const res = await fetch(`/api/admin/products/${id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!data?.ok) throw new Error(data?.detail || data?.error || "DELETE_FAILED");
+
+      router.push("/admin/products");
+      router.refresh();
+    } catch (e: any) {
+      setMsg(e?.message ? String(e.message) : "刪除失敗");
+    } finally {
+      setDeletingProduct(false);
+    }
+  }
+
+  async function addBinding() {
+    setMsg("");
+    setBindingBusy(true);
+    try {
+      if (id == null) throw new Error("ID 不正確");
+      const ogid = Number(addGroupId);
+      if (!Number.isInteger(ogid)) throw new Error("請先選擇要綁定的群組");
+
+      const res = await fetch(`/api/admin/product-option-groups`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ productId: id, optionGroupId: ogid, sort: 0 }),
+      });
+
+      const data = await res.json();
+      if (!data?.ok) throw new Error(data?.detail || data?.error || "BIND_FAILED");
+
+      setAddGroupId("");
+      await loadAll();
+      setMsg("✅ 已綁定群組");
+    } catch (e: any) {
+      setMsg(e?.message ? String(e.message) : "綁定失敗");
+    } finally {
+      setBindingBusy(false);
+    }
+  }
+
+  async function removeBinding(bindingId: number) {
+    setMsg("");
+    if (!confirm("確定解除綁定這個群組？")) return;
+
+    setBindingBusy(true);
+    try {
+      const res = await fetch(`/api/admin/product-option-groups/${bindingId}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (!data?.ok) throw new Error(data?.detail || data?.error || "UNBIND_FAILED");
+
+      await loadAll();
+      setMsg("✅ 已解除綁定");
+    } catch (e: any) {
+      setMsg(e?.message ? String(e.message) : "解除綁定失敗");
+    } finally {
+      setBindingBusy(false);
+    }
+  }
+
+  async function updateBindingSort(bindingId: number, sort: number) {
+    setMsg("");
+    setBindingBusy(true);
+    try {
+      const res = await fetch(`/api/admin/product-option-groups/${bindingId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sort }),
+      });
+      const data = await res.json();
+      if (!data?.ok) throw new Error(data?.detail || data?.error || "SORT_UPDATE_FAILED");
+
+      await loadAll();
+      setMsg("✅ 已更新排序");
+    } catch (e: any) {
+      setMsg(e?.message ? String(e.message) : "更新排序失敗");
+    } finally {
+      setBindingBusy(false);
+    }
+  }
+
+  const boundIds = new Set(bindings.map((b) => b.optionGroupId));
+  const availableGroups = allGroups.filter((g) => !boundIds.has(g.id));
+
+  if (loading) {
+    return (
+      <main style={{ padding: 16, maxWidth: 980, margin: "0 auto" }}>
+        <div style={{ opacity: 0.75 }}>Loading…</div>
+      </main>
+    );
+  }
+
+  if (!product) {
+    return (
+      <main style={{ padding: 16, maxWidth: 980, margin: "0 auto" }}>
+        <Link href="/admin/products" style={{ textDecoration: "underline", fontWeight: 700 }}>
+          ← 回商品列表
+        </Link>
+        <div style={{ marginTop: 12, color: "#b00020", whiteSpace: "pre-wrap" }}>
+          {msg || "找不到商品"}
+        </div>
+      </main>
+    );
+  }
+
+  return (
+    <main style={{ padding: 16, maxWidth: 980, margin: "0 auto" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "end", gap: 12 }}>
+        <div>
+          <Link href="/admin/products" style={{ textDecoration: "underline", fontWeight: 700 }}>
+            ← 回商品列表
+          </Link>
+          <h1 style={{ marginTop: 10, fontSize: 20, fontWeight: 900 }}>
+            編輯商品：{product.name} (ID {product.id})
+          </h1>
+          <div style={{ marginTop: 6, fontSize: 13, opacity: 0.75 }}>
+            前台網址：/cakes/{slug || product.slug}
+          </div>
+        </div>
+
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          <button
+            type="button"
+            onClick={saveProduct}
+            disabled={savingProduct}
+            style={{
+              padding: "10px 12px",
+              borderRadius: 12,
+              border: "1px solid #222",
+              background: "#fff",
+              fontWeight: 900,
+              cursor: savingProduct ? "not-allowed" : "pointer",
+            }}
+          >
+            {savingProduct ? "儲存中…" : "儲存商品"}
+          </button>
+
+          <button
+            type="button"
+            onClick={deleteProduct}
+            disabled={deletingProduct}
+            style={{
+              padding: "10px 12px",
+              borderRadius: 12,
+              border: "1px solid #d33",
+              color: "#d33",
+              background: "#fff",
+              fontWeight: 900,
+              cursor: deletingProduct ? "not-allowed" : "pointer",
+            }}
+          >
+            {deletingProduct ? "刪除中…" : "刪除商品"}
+          </button>
+        </div>
+      </div>
+
+      <section style={{ marginTop: 14, border: "1px solid #e5e5e5", borderRadius: 14, padding: 14 }}>
+        <div style={{ fontWeight: 900, marginBottom: 10 }}>商品基本資料</div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 220px", gap: 10 }}>
+          <div>
+            <label style={{ display: "block", marginBottom: 6, fontSize: 13 }}>名稱</label>
+            <input value={name} onChange={(e) => setName(e.target.value)} style={inputStyle} />
+          </div>
+
+          <div>
+            <label style={{ display: "block", marginBottom: 6, fontSize: 13 }}>basePrice</label>
+            <input
+              value={basePrice}
+              onChange={(e) => setBasePrice(e.target.value)}
+              style={inputStyle}
+              inputMode="numeric"
+            />
+          </div>
+
+          <div style={{ gridColumn: "1 / -1" }}>
+            <label style={{ display: "block", marginBottom: 6, fontSize: 13 }}>slug（網址用，必須唯一）</label>
+            <input value={slug} onChange={(e) => setSlug(e.target.value)} style={inputStyle} />
+          </div>
+
+          <div style={{ gridColumn: "1 / -1", display: "flex", gap: 14, alignItems: "center" }}>
+            <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} />
+              上架（isActive）
+            </label>
+
+            <Link
+              href={`/cakes/${slug || product.slug}`}
+              style={{ textDecoration: "underline", fontWeight: 800 }}
+              target="_blank"
+            >
+              打開前台商品頁
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      <section style={{ marginTop: 14, border: "1px solid #e5e5e5", borderRadius: 14, padding: 14 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "end", gap: 12 }}>
+          <div>
+            <div style={{ fontWeight: 900 }}>綁定選項群組（OptionGroup）</div>
+            <div style={{ marginTop: 6, opacity: 0.75, fontSize: 13 }}>
+              綁定後，前台會用這些群組讓客人選尺寸/口味/加購…
+            </div>
+          </div>
+
+          <Link href="/admin/options" style={{ textDecoration: "underline", fontWeight: 800 }}>
+            去管理群組/選項
+          </Link>
+        </div>
+
+        <div style={{ marginTop: 10, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+          <select
+            value={addGroupId}
+            onChange={(e) => setAddGroupId(e.target.value)}
+            style={{
+              padding: 10,
+              border: "1px solid #ddd",
+              borderRadius: 12,
+              fontSize: 14,
+              minWidth: 260,
+            }}
+          >
+            <option value="">選擇要綁定的群組…</option>
+            {availableGroups.map((g) => (
+              <option key={g.id} value={String(g.id)}>
+                {g.name} (ID {g.id})
+              </option>
+            ))}
+          </select>
+
+          <button
+            type="button"
+            onClick={addBinding}
+            disabled={bindingBusy}
+            style={{
+              padding: "10px 12px",
+              borderRadius: 12,
+              border: "1px solid #222",
+              background: "#fff",
+              fontWeight: 900,
+              cursor: bindingBusy ? "not-allowed" : "pointer",
+            }}
+          >
+            綁定
+          </button>
+        </div>
+
+        <div style={{ marginTop: 12 }}>
+          {bindings.length === 0 ? (
+            <div style={{ opacity: 0.75 }}>尚未綁定任何群組</div>
+          ) : (
+            <div style={{ border: "1px solid #eee", borderRadius: 14, overflow: "hidden" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
+                <thead>
+                  <tr style={{ background: "#fafafa", textAlign: "left" }}>
+                    <th style={{ padding: 12, borderBottom: "1px solid #eee", width: 70 }}>ID</th>
+                    <th style={{ padding: 12, borderBottom: "1px solid #eee" }}>群組</th>
+                    <th style={{ padding: 12, borderBottom: "1px solid #eee", width: 110 }}>sort</th>
+                    <th style={{ padding: 12, borderBottom: "1px solid #eee", width: 180 }}>操作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {bindings.map((b) => (
+                    <BindingRow
+                      key={b.id}
+                      binding={b}
+                      busy={bindingBusy}
+                      onSort={(sort) => updateBindingSort(b.id, sort)}
+                      onRemove={() => removeBinding(b.id)}
+                    />
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {msg ? <div style={{ marginTop: 12, whiteSpace: "pre-wrap", color: "#b00020" }}>{msg}</div> : null}
+    </main>
+  );
+}
+
+function BindingRow({
+  binding,
+  busy,
+  onSort,
+  onRemove,
+}: {
+  binding: Binding;
+  busy: boolean;
+  onSort: (sort: number) => Promise<void>;
+  onRemove: () => Promise<void>;
+}) {
+  const [sort, setSort] = useState(String(binding.sort));
+  const [rowBusy, setRowBusy] = useState(false);
+
+  const inputStyle: React.CSSProperties = {
+    width: "100%",
+    padding: 8,
+    border: "1px solid #ddd",
+    borderRadius: 10,
+    fontSize: 14,
+  };
+
+  return (
+    <tr>
+      <td style={{ padding: 12, borderBottom: "1px solid #f1f1f1" }}>{binding.id}</td>
+      <td style={{ padding: 12, borderBottom: "1px solid #f1f1f1", fontWeight: 900 }}>
+        {binding.optionGroup?.name ?? `OptionGroup ${binding.optionGroupId}`}
+      </td>
+      <td style={{ padding: 12, borderBottom: "1px solid #f1f1f1" }}>
+        <input value={sort} onChange={(e) => setSort(e.target.value)} style={inputStyle} inputMode="numeric" />
+      </td>
+      <td style={{ padding: 12, borderBottom: "1px solid #f1f1f1" }}>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          <button
+            type="button"
+            disabled={busy || rowBusy}
+            onClick={async () => {
+              setRowBusy(true);
+              try {
+                await onSort(Number(sort));
+              } finally {
+                setRowBusy(false);
+              }
+            }}
+            style={{ border: "1px solid #222", borderRadius: 10, padding: "6px 10px", background: "#fff", fontWeight: 800 }}
+          >
+            更新 sort
+          </button>
+
+          <button
+            type="button"
+            disabled={busy || rowBusy}
+            onClick={async () => {
+              setRowBusy(true);
+              try {
+                await onRemove();
+              } finally {
+                setRowBusy(false);
+              }
+            }}
+            style={{ border: "1px solid #d33", color: "#d33", borderRadius: 10, padding: "6px 10px", background: "#fff", fontWeight: 800 }}
+          >
+            解除綁定
+          </button>
+        </div>
+      </td>
+    </tr>
+  );
+}

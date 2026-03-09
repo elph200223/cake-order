@@ -1,0 +1,151 @@
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+
+/**
+ * GET /api/admin/products
+ */
+export async function GET() {
+  try {
+    const products = await prisma.product.findMany({
+      orderBy: { createdAt: "desc" },
+    });
+
+    return NextResponse.json({ ok: true, products });
+  } catch (e: any) {
+    return NextResponse.json(
+      { ok: false, error: "LIST_FAILED", detail: String(e?.message ?? e) },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * POST /api/admin/products
+ * body: { name, slug, basePrice, isActive }
+ */
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json();
+
+    const name = String(body?.name ?? "").trim();
+    const slug = String(body?.slug ?? "").trim();
+    const basePrice = Number(body?.basePrice);
+
+    if (!name) {
+      return NextResponse.json(
+        { ok: false, error: "NAME_REQUIRED" },
+        { status: 400 }
+      );
+    }
+
+    if (!slug) {
+      return NextResponse.json(
+        { ok: false, error: "SLUG_REQUIRED" },
+        { status: 400 }
+      );
+    }
+
+    if (!Number.isFinite(basePrice)) {
+      return NextResponse.json(
+        { ok: false, error: "BASEPRICE_INVALID" },
+        { status: 400 }
+      );
+    }
+
+    const product = await prisma.product.create({
+      data: {
+        name,
+        slug,
+        basePrice,
+        isActive: body?.isActive ?? true,
+      },
+    });
+
+    return NextResponse.json({ ok: true, product });
+  } catch (e: any) {
+    return NextResponse.json(
+      { ok: false, error: "CREATE_FAILED", detail: String(e?.message ?? e) },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * PATCH /api/admin/products?id=123
+ */
+export async function PATCH(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const idStr = searchParams.get("id");
+    const id = Number(idStr);
+
+    if (!Number.isInteger(id)) {
+      return NextResponse.json(
+        { ok: false, error: "ID_INVALID" },
+        { status: 400 }
+      );
+    }
+
+    const body = await req.json();
+    const data: any = {};
+
+    if (body?.name != null) data.name = String(body.name).trim();
+    if (body?.slug != null) data.slug = String(body.slug).trim();
+
+    if (body?.basePrice != null) {
+      const p = Number(body.basePrice);
+      if (!Number.isFinite(p)) {
+        return NextResponse.json(
+          { ok: false, error: "BASEPRICE_INVALID" },
+          { status: 400 }
+        );
+      }
+      data.basePrice = p;
+    }
+
+    if (body?.isActive != null) {
+      data.isActive = Boolean(body.isActive);
+    }
+
+    const product = await prisma.product.update({
+      where: { id },
+      data,
+    });
+
+    return NextResponse.json({ ok: true, product });
+  } catch (e: any) {
+    return NextResponse.json(
+      { ok: false, error: "UPDATE_FAILED", detail: String(e?.message ?? e) },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * DELETE /api/admin/products?id=123
+ */
+export async function DELETE(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const idStr = searchParams.get("id");
+    const id = Number(idStr);
+
+    if (!Number.isInteger(id)) {
+      return NextResponse.json(
+        { ok: false, error: "ID_INVALID" },
+        { status: 400 }
+      );
+    }
+
+    await prisma.product.delete({
+      where: { id },
+    });
+
+    return NextResponse.json({ ok: true });
+  } catch (e: any) {
+    return NextResponse.json(
+      { ok: false, error: "DELETE_FAILED", detail: String(e?.message ?? e) },
+      { status: 500 }
+    );
+  }
+}
