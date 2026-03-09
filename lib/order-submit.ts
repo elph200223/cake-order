@@ -1,8 +1,11 @@
 import type { CheckoutOrderPayload } from "@/lib/checkout";
+import type { OrderStatusValue } from "@/lib/order-status";
 
 export type SubmitOrderSuccess = {
   ok: true;
+  orderId: number;
   orderNo: string;
+  status: OrderStatusValue;
 };
 
 export type SubmitOrderFailure = {
@@ -26,7 +29,7 @@ export async function submitOrder(
 
     const data = await res.json();
 
-    if (!res.ok || !data?.ok) {
+    if (!res.ok || !data?.ok || !data?.order) {
       return {
         ok: false,
         error: data?.error || "CREATE_ORDER_FAILED",
@@ -35,7 +38,9 @@ export async function submitOrder(
 
     return {
       ok: true,
-      orderNo: data?.order?.orderNo ?? "",
+      orderId: Number(data.order.id),
+      orderNo: String(data.order.orderNo ?? ""),
+      status: data.order.status,
     };
   } catch (error: any) {
     return {

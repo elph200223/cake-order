@@ -3,6 +3,7 @@ import type { CartItem, CartState } from "@/lib/cart";
 export type CheckoutCustomerInput = {
   customerName: string;
   phone: string;
+  email: string;
   pickupDate: string;
   pickupTime: string;
   note: string;
@@ -26,6 +27,7 @@ export type CheckoutOrderItemPayload = {
 export type CheckoutOrderPayload = {
   customerName: string;
   phone: string;
+  email: string;
   pickupDate: string;
   pickupTime: string;
   note: string;
@@ -37,9 +39,14 @@ function normalizeString(value: string) {
   return value.trim();
 }
 
+function isValidEmail(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
 export function validateCheckoutCustomerInput(input: CheckoutCustomerInput) {
   const customerName = normalizeString(input.customerName);
   const phone = normalizeString(input.phone);
+  const email = normalizeString(input.email);
   const pickupDate = normalizeString(input.pickupDate);
   const pickupTime = normalizeString(input.pickupTime);
   const note = input.note.trim();
@@ -47,12 +54,18 @@ export function validateCheckoutCustomerInput(input: CheckoutCustomerInput) {
   return {
     customerName,
     phone,
+    email,
     pickupDate,
     pickupTime,
     note,
     errors: {
       customerName: customerName ? "" : "請輸入姓名",
       phone: phone ? "" : "請輸入電話",
+      email: !email
+        ? "請輸入 Email"
+        : !isValidEmail(email)
+          ? "Email 格式不正確"
+          : "",
       pickupDate: pickupDate ? "" : "請選擇取貨日期",
       pickupTime: pickupTime ? "" : "請選擇取貨時間",
     },
@@ -65,6 +78,7 @@ export function isCheckoutCustomerInputValid(input: CheckoutCustomerInput) {
   return (
     !result.errors.customerName &&
     !result.errors.phone &&
+    !result.errors.email &&
     !result.errors.pickupDate &&
     !result.errors.pickupTime
   );
@@ -96,6 +110,7 @@ export function buildCheckoutOrderPayload(
   return {
     customerName: normalized.customerName,
     phone: normalized.phone,
+    email: normalized.email,
     pickupDate: normalized.pickupDate,
     pickupTime: normalized.pickupTime,
     note: normalized.note,

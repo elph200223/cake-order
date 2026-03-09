@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import {
   buildCheckoutOrderPayload,
   validateCheckoutCustomerInput,
@@ -31,6 +30,20 @@ type SubmitState =
   | { status: "submitting"; message: string }
   | { status: "error"; message: string };
 
+type PayNowCreateSuccess = {
+  ok: true;
+  orderId: string;
+  dbOrderId?: string;
+  action: string;
+  fields: Record<string, string>;
+  returnUrl?: string;
+};
+
+type PayNowCreateFailure = {
+  ok: false;
+  error: string;
+};
+
 function formatMoney(price: number) {
   return `NT$ ${price.toLocaleString("zh-TW")}`;
 }
@@ -43,12 +56,98 @@ function getTodayString() {
   return `${year}-${month}-${day}`;
 }
 
-export default function CheckoutCustomerForm({ cart, totalAmount }: Props) {
-  const router = useRouter();
+function buildPayNowItemDesc(cart: CartState) {
+  const names = cart.items.map((item) => item.productName).filter(Boolean);
 
+  if (names.length === 0) {
+    return "Cake Order";
+  }
+
+  const summary = names.slice(0, 3).join("、");
+  return names.length > 3 ? `${summary} 等商品` : summary;
+}
+
+async function createPayNowPayment(input: {
+  orderNo: string;
+  dbOrderId: number;
+  amount: number;
+  customerName: string;
+  phone: string;
+  email: string;
+  note: string;
+  items: CartState["items"];
+}): Promise<PayNowCreateSuccess | PayNowCreateFailure> {
+  try {
+    const res = await fetch("/api/paynow/create", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        orderId: input.orderNo,
+        dbOrderId: input.dbOrderId,
+        amount: input.amount,
+        itemDesc: buildPayNowItemDesc({ items: input.items }),
+        customer: {
+          name: input.customerName,
+          phone: input.phone,
+          email: input.email,
+        },
+        items: input.items,
+        note: input.note,
+      }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok || !data?.ok || !data?.action || !data?.fields) {
+      return {
+        ok: false,
+        error: data?.error || "CREATE_PAYNOW_PAYMENT_FAILED",
+      };
+    }
+
+    return {
+      ok: true,
+      orderId: String(data.orderId ?? ""),
+      dbOrderId: data?.dbOrderId ? String(data.dbOrderId) : undefined,
+      action: String(data.action),
+      fields: data.fields as Record<string, string>,
+      returnUrl: data?.returnUrl ? String(data.returnUrl) : undefined,
+    };
+  } catch (error: any) {
+    return {
+      ok: false,
+      error: error?.message
+        ? String(error.message)
+        : "CREATE_PAYNOW_PAYMENT_FAILED",
+    };
+  }
+}
+
+function submitPostForm(action: string, fields: Record<string, string>) {
+  const form = document.createElement("form");
+  form.method = "POST";
+  form.action = action;
+  form.style.display = "none";
+
+  Object.entries(fields).forEach(([key, value]) => {
+    const input = document.createElement("input");
+    input.type = "hidden";
+    input.name = key;
+    input.value = value ?? "";
+    form.appendChild(input);
+  });
+
+  document.body.appendChild(form);
+  form.submit();
+}
+
+export default function CheckoutCustomerForm({ cart, totalAmount }: Props) {
   const [form, setForm] = useState<CheckoutCustomerInput>({
     customerName: "",
     phone: "",
+    email: "",
     pickupDate: "",
     pickupTime: "",
     note: "",
@@ -66,6 +165,7 @@ export default function CheckoutCustomerForm({ cart, totalAmount }: Props) {
     return (
       !validation.errors.customerName &&
       !validation.errors.phone &&
+      !validation.errors.email &&
       !validation.errors.pickupDate &&
       !validation.errors.pickupTime
     );
@@ -90,7 +190,7 @@ export default function CheckoutCustomerForm({ cart, totalAmount }: Props) {
     if (!isFormValid) {
       setSubmitState({
         status: "error",
-        message: "請先完成姓名、電話、取貨日期與取貨時間。",
+        message: "請先完成姓名、電話、Email、取貨日期與取貨時間。",
       });
       return;
     }
@@ -118,10 +218,32 @@ export default function CheckoutCustomerForm({ cart, totalAmount }: Props) {
       return;
     }
 
+    setSubmitState({
+      status: "submitting",
+      message: "前往付款頁…",
+    });
+
+    const payNowResult = await createPayNowPayment({
+      orderNo: result.orderNo,
+      dbOrderId: result.orderId,
+      amount: totalAmount,
+      customerName: form.customerName.trim(),
+      phone: form.phone.trim(),
+      email: form.email.trim(),
+      note: form.note.trim(),
+      items: cart.items,
+    });
+
+    if (!payNowResult.ok) {
+      setSubmitState({
+        status: "error",
+        message: payNowResult.error || "建立付款失敗。",
+      });
+      return;
+    }
+
     clearCart();
-    router.push(
-      `/checkout/success?orderNo=${encodeURIComponent(result.orderNo || "")}`
-    );
+    submitPostForm(payNowResult.action, payNowResult.fields);
   }
 
   return (
@@ -173,6 +295,26 @@ export default function CheckoutCustomerForm({ cart, totalAmount }: Props) {
           />
           {validation.errors.phone ? (
             <p className="mt-2 text-sm text-red-600">{validation.errors.phone}</p>
+          ) : null}
+        </div>
+
+        <div className="md:col-span-2">
+          <label
+            htmlFor="email"
+            className="mb-2 block text-sm font-medium text-neutral-700"
+          >
+            Email
+          </label>
+          <input
+            id="email"
+            type="email"
+            value={form.email}
+            onChange={(e) => updateField("email", e.target.value)}
+            className="w-full rounded-xl border border-neutral-300 px-4 py-3 text-sm outline-none transition focus:border-neutral-900"
+            placeholder="請輸入 Email"
+          />
+          {validation.errors.email ? (
+            <p className="mt-2 text-sm text-red-600">{validation.errors.email}</p>
           ) : null}
         </div>
 
@@ -261,7 +403,7 @@ export default function CheckoutCustomerForm({ cart, totalAmount }: Props) {
           className="w-full rounded-xl bg-neutral-900 px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
           disabled={!isFormValid || submitState.status === "submitting"}
         >
-          {submitState.status === "submitting" ? "建立訂單中…" : "建立訂單"}
+          {submitState.status === "submitting" ? "處理中…" : "前往付款"}
         </button>
 
         {submitState.status === "error" ? (
@@ -270,13 +412,13 @@ export default function CheckoutCustomerForm({ cart, totalAmount }: Props) {
 
         {submitState.status === "idle" && !isFormValid ? (
           <p className="mt-3 text-sm text-red-600">
-            請先完成姓名、電話、取貨日期與取貨時間。
+            請先完成姓名、電話、Email、取貨日期與取貨時間。
           </p>
         ) : null}
 
         {submitState.status === "idle" && isFormValid ? (
           <p className="mt-3 text-sm text-green-700">
-            顧客資料已完成，可建立訂單。
+            顧客資料已完成，可前往付款。
           </p>
         ) : null}
       </div>
