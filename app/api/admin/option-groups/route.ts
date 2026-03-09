@@ -1,6 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+type OptionGroupPostBody = {
+  name?: unknown;
+  required?: unknown;
+  minSelect?: unknown;
+  maxSelect?: unknown;
+  sort?: unknown;
+  isActive?: unknown;
+};
+
+function isOptionGroupPostBody(value: unknown): value is OptionGroupPostBody {
+  return typeof value === "object" && value !== null;
+}
+
 /**
  * GET /api/admin/option-groups
  */
@@ -11,9 +24,13 @@ export async function GET() {
     });
 
     return NextResponse.json({ ok: true, groups });
-  } catch (e: any) {
+  } catch (error: unknown) {
     return NextResponse.json(
-      { ok: false, error: "LIST_FAILED", detail: String(e?.message ?? e) },
+      {
+        ok: false,
+        error: "LIST_FAILED",
+        detail: error instanceof Error ? error.message : String(error),
+      },
       { status: 500 }
     );
   }
@@ -25,9 +42,10 @@ export async function GET() {
  */
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
+    const raw: unknown = await req.json().catch(() => ({}));
+    const body: OptionGroupPostBody = isOptionGroupPostBody(raw) ? raw : {};
 
-    const name = String(body?.name ?? "").trim();
+    const name = String(body.name ?? "").trim();
     if (!name) {
       return NextResponse.json(
         { ok: false, error: "NAME_REQUIRED" },
@@ -35,11 +53,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const required = Boolean(body?.required ?? false);
-    const minSelect = Number(body?.minSelect ?? 0);
-    const maxSelect = Number(body?.maxSelect ?? 1);
-    const sort = Number(body?.sort ?? 0);
-    const isActive = Boolean(body?.isActive ?? true);
+    const required = Boolean(body.required ?? false);
+    const minSelect = Number(body.minSelect ?? 0);
+    const maxSelect = Number(body.maxSelect ?? 1);
+    const sort = Number(body.sort ?? 0);
+    const isActive = Boolean(body.isActive ?? true);
 
     if (!Number.isInteger(minSelect) || minSelect < 0) {
       return NextResponse.json(
@@ -74,9 +92,13 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({ ok: true, group });
-  } catch (e: any) {
+  } catch (error: unknown) {
     return NextResponse.json(
-      { ok: false, error: "CREATE_FAILED", detail: String(e?.message ?? e) },
+      {
+        ok: false,
+        error: "CREATE_FAILED",
+        detail: error instanceof Error ? error.message : String(error),
+      },
       { status: 500 }
     );
   }

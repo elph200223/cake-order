@@ -1,7 +1,14 @@
 import { NextResponse } from "next/server";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
+
+type OrderWithItems = Prisma.OrderGetPayload<{
+  include: {
+    items: true;
+  };
+}>;
 
 function parseOrderId(raw: string) {
   const n = Number(raw);
@@ -31,7 +38,7 @@ export async function GET(req: Request) {
     const orderId = parseOrderId(rawOrderId);
     const normalizedPhone = normalizePhone(rawPhone);
 
-    let order = null;
+    let order: OrderWithItems | null = null;
 
     if (orderId) {
       order = await prisma.order.findUnique({
@@ -102,9 +109,12 @@ export async function GET(req: Request) {
       },
       { status: 200 }
     );
-  } catch (e: any) {
+  } catch (error: unknown) {
     return NextResponse.json(
-      { ok: false, error: e?.message ?? String(e) },
+      {
+        ok: false,
+        error: error instanceof Error ? error.message : String(error),
+      },
       { status: 500 }
     );
   }

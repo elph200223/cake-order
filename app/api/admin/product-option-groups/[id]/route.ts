@@ -1,9 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+type ProductOptionGroupPatchBody = {
+  sort?: unknown;
+};
+
 function parseId(raw: string) {
   const n = Number(raw);
   return Number.isInteger(n) ? n : null;
+}
+
+function isProductOptionGroupPatchBody(
+  value: unknown
+): value is ProductOptionGroupPatchBody {
+  return typeof value === "object" && value !== null;
 }
 
 /**
@@ -22,8 +32,11 @@ export async function PATCH(
       return NextResponse.json({ ok: false, error: "ID_INVALID" }, { status: 400 });
     }
 
-    const body = await req.json();
-    const sort = Number(body?.sort ?? 0);
+    const raw: unknown = await req.json().catch(() => ({}));
+    const body: ProductOptionGroupPatchBody = isProductOptionGroupPatchBody(raw)
+      ? raw
+      : {};
+    const sort = Number(body.sort ?? 0);
 
     const binding = await prisma.productOptionGroup.update({
       where: { id: bid },
@@ -31,9 +44,13 @@ export async function PATCH(
     });
 
     return NextResponse.json({ ok: true, binding });
-  } catch (e: any) {
+  } catch (error: unknown) {
     return NextResponse.json(
-      { ok: false, error: "UPDATE_FAILED", detail: String(e?.message ?? e) },
+      {
+        ok: false,
+        error: "UPDATE_FAILED",
+        detail: error instanceof Error ? error.message : String(error),
+      },
       { status: 500 }
     );
   }
@@ -59,9 +76,13 @@ export async function DELETE(
     });
 
     return NextResponse.json({ ok: true });
-  } catch (e: any) {
+  } catch (error: unknown) {
     return NextResponse.json(
-      { ok: false, error: "DELETE_FAILED", detail: String(e?.message ?? e) },
+      {
+        ok: false,
+        error: "DELETE_FAILED",
+        detail: error instanceof Error ? error.message : String(error),
+      },
       { status: 500 }
     );
   }

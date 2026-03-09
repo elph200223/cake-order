@@ -1,6 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+type ProductMutationBody = {
+  name?: unknown;
+  slug?: unknown;
+  basePrice?: unknown;
+  isActive?: unknown;
+};
+
+function isProductMutationBody(value: unknown): value is ProductMutationBody {
+  return typeof value === "object" && value !== null;
+}
+
 /**
  * GET /api/admin/products
  */
@@ -11,9 +22,13 @@ export async function GET() {
     });
 
     return NextResponse.json({ ok: true, products });
-  } catch (e: any) {
+  } catch (error: unknown) {
     return NextResponse.json(
-      { ok: false, error: "LIST_FAILED", detail: String(e?.message ?? e) },
+      {
+        ok: false,
+        error: "LIST_FAILED",
+        detail: error instanceof Error ? error.message : String(error),
+      },
       { status: 500 }
     );
   }
@@ -25,11 +40,12 @@ export async function GET() {
  */
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
+    const raw: unknown = await req.json().catch(() => ({}));
+    const body: ProductMutationBody = isProductMutationBody(raw) ? raw : {};
 
-    const name = String(body?.name ?? "").trim();
-    const slug = String(body?.slug ?? "").trim();
-    const basePrice = Number(body?.basePrice);
+    const name = String(body.name ?? "").trim();
+    const slug = String(body.slug ?? "").trim();
+    const basePrice = Number(body.basePrice);
 
     if (!name) {
       return NextResponse.json(
@@ -57,14 +73,18 @@ export async function POST(req: NextRequest) {
         name,
         slug,
         basePrice,
-        isActive: body?.isActive ?? true,
+        isActive: body.isActive == null ? true : Boolean(body.isActive),
       },
     });
 
     return NextResponse.json({ ok: true, product });
-  } catch (e: any) {
+  } catch (error: unknown) {
     return NextResponse.json(
-      { ok: false, error: "CREATE_FAILED", detail: String(e?.message ?? e) },
+      {
+        ok: false,
+        error: "CREATE_FAILED",
+        detail: error instanceof Error ? error.message : String(error),
+      },
       { status: 500 }
     );
   }
@@ -86,13 +106,19 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
-    const body = await req.json();
-    const data: any = {};
+    const raw: unknown = await req.json().catch(() => ({}));
+    const body: ProductMutationBody = isProductMutationBody(raw) ? raw : {};
+    const data: {
+      name?: string;
+      slug?: string;
+      basePrice?: number;
+      isActive?: boolean;
+    } = {};
 
-    if (body?.name != null) data.name = String(body.name).trim();
-    if (body?.slug != null) data.slug = String(body.slug).trim();
+    if (body.name != null) data.name = String(body.name).trim();
+    if (body.slug != null) data.slug = String(body.slug).trim();
 
-    if (body?.basePrice != null) {
+    if (body.basePrice != null) {
       const p = Number(body.basePrice);
       if (!Number.isFinite(p)) {
         return NextResponse.json(
@@ -103,7 +129,7 @@ export async function PATCH(req: NextRequest) {
       data.basePrice = p;
     }
 
-    if (body?.isActive != null) {
+    if (body.isActive != null) {
       data.isActive = Boolean(body.isActive);
     }
 
@@ -113,9 +139,13 @@ export async function PATCH(req: NextRequest) {
     });
 
     return NextResponse.json({ ok: true, product });
-  } catch (e: any) {
+  } catch (error: unknown) {
     return NextResponse.json(
-      { ok: false, error: "UPDATE_FAILED", detail: String(e?.message ?? e) },
+      {
+        ok: false,
+        error: "UPDATE_FAILED",
+        detail: error instanceof Error ? error.message : String(error),
+      },
       { status: 500 }
     );
   }
@@ -142,9 +172,13 @@ export async function DELETE(req: NextRequest) {
     });
 
     return NextResponse.json({ ok: true });
-  } catch (e: any) {
+  } catch (error: unknown) {
     return NextResponse.json(
-      { ok: false, error: "DELETE_FAILED", detail: String(e?.message ?? e) },
+      {
+        ok: false,
+        error: "DELETE_FAILED",
+        detail: error instanceof Error ? error.message : String(error),
+      },
       { status: 500 }
     );
   }

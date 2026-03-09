@@ -1,7 +1,7 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
-import { fetchOrderDetail } from "@/lib/order-api";
+import { FormEvent, Suspense, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   formatOrderDate,
   formatOrderDateTime,
@@ -15,6 +15,15 @@ type QueryState =
   | { status: "loading"; message: string }
   | { status: "error"; message: string }
   | { status: "success"; message: string };
+
+type OrderGetResponse =
+  | { ok: true; order: OrderDetail }
+  | { ok: false; error?: string };
+
+function isOrderGetResponse(value: unknown): value is OrderGetResponse {
+  if (typeof value !== "object" || value === null) return false;
+  return "ok" in value;
+}
 
 async function fetchOrderByOrderNoAndPhone(
   orderNo: string,
@@ -30,32 +39,33 @@ async function fetchOrderByOrderNoAndPhone(
     cache: "no-store",
   });
 
-  const data = await res.json();
+  const raw: unknown = await res.json().catch(() => null);
 
-  if (!res.ok || !data?.ok || !data?.order) {
-    throw new Error(data?.error || "ORDER_FETCH_FAILED");
+  if (!isOrderGetResponse(raw) || !res.ok || raw.ok !== true || !raw.order) {
+    const errorMessage =
+      isOrderGetResponse(raw) && raw.ok === false
+        ? String(raw.error ?? "ORDER_FETCH_FAILED")
+        : "ORDER_FETCH_FAILED";
+    throw new Error(errorMessage);
   }
 
-  return data.order as OrderDetail;
+  return raw.order;
 }
 
-export default function OrdersPage() {
-  const [orderNo, setOrderNo] = useState("");
+function OrdersPageContent() {
+  const searchParams = useSearchParams();
+  const initialOrderNo = useMemo(
+    () => String(searchParams.get("orderNo") ?? "").trim(),
+    [searchParams]
+  );
+
+  const [orderNo, setOrderNo] = useState(initialOrderNo);
   const [phone, setPhone] = useState("");
   const [queryState, setQueryState] = useState<QueryState>({
     status: "idle",
     message: "",
   });
   const [order, setOrder] = useState<OrderDetail | null>(null);
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const initialOrderNo = (params.get("orderNo") || "").trim();
-
-    if (initialOrderNo) {
-      setOrderNo(initialOrderNo);
-    }
-  }, []);
 
   const isSubmitting = queryState.status === "loading";
 
@@ -95,8 +105,8 @@ export default function OrdersPage() {
         status: "success",
         message: "已找到訂單。",
       });
-    } catch (error: any) {
-      const message = String(error?.message || "");
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
 
       setOrder(null);
       setQueryState({
@@ -270,5 +280,19 @@ export default function OrdersPage() {
         </section>
       ) : null}
     </main>
+  );
+}
+
+export default function OrdersPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="mx-auto max-w-3xl px-4 py-10">
+          <p className="text-sm text-neutral-500">載入中…</p>
+        </main>
+      }
+    >
+      <OrdersPageContent />
+    </Suspense>
   );
 }

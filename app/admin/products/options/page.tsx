@@ -21,6 +21,49 @@ type Binding = {
   sort: number;
 };
 
+type ProductsResponse = {
+  ok?: boolean;
+  products?: Product[];
+  error?: unknown;
+  detail?: unknown;
+};
+
+type GroupsResponse = {
+  ok?: boolean;
+  groups?: OptionGroup[];
+  error?: unknown;
+  detail?: unknown;
+};
+
+type BindingsResponse = {
+  ok?: boolean;
+  bindings?: Binding[];
+  error?: unknown;
+  detail?: unknown;
+};
+
+type MutationResponse = {
+  ok?: boolean;
+  error?: unknown;
+  detail?: unknown;
+};
+
+function isProductsResponse(value: unknown): value is ProductsResponse {
+  return typeof value === "object" && value !== null;
+}
+
+function isGroupsResponse(value: unknown): value is GroupsResponse {
+  return typeof value === "object" && value !== null;
+}
+
+function isBindingsResponse(value: unknown): value is BindingsResponse {
+  return typeof value === "object" && value !== null;
+}
+
+function isMutationResponse(value: unknown): value is MutationResponse {
+  return typeof value === "object" && value !== null;
+}
+
 export default function AdminProductOptionsMatrixPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [groups, setGroups] = useState<OptionGroup[]>([]);
@@ -32,20 +75,33 @@ export default function AdminProductOptionsMatrixPage() {
   async function load() {
     setLoading(true);
     setMsg("");
+
     try {
       const [resProducts, resGroups] = await Promise.all([
         fetch("/api/admin/products", { cache: "no-store" }),
         fetch("/api/admin/option-groups", { cache: "no-store" }),
       ]);
 
-      const productsData = await resProducts.json();
-      const groupsData = await resGroups.json();
+      const rawProducts: unknown = await resProducts.json().catch(() => null);
+      const rawGroups: unknown = await resGroups.json().catch(() => null);
 
-      if (!productsData?.ok) throw new Error(productsData?.detail || productsData?.error || "LOAD_PRODUCTS_FAILED");
-      if (!groupsData?.ok) throw new Error(groupsData?.detail || groupsData?.error || "LOAD_GROUPS_FAILED");
+      const productsData = isProductsResponse(rawProducts) ? rawProducts : null;
+      const groupsData = isGroupsResponse(rawGroups) ? rawGroups : null;
 
-      const ps: Product[] = productsData.products || [];
-      const gs: OptionGroup[] = groupsData.groups || [];
+      if (!productsData || productsData.ok !== true) {
+        throw new Error(
+          String(productsData?.detail ?? productsData?.error ?? "LOAD_PRODUCTS_FAILED")
+        );
+      }
+
+      if (!groupsData || groupsData.ok !== true) {
+        throw new Error(
+          String(groupsData?.detail ?? groupsData?.error ?? "LOAD_GROUPS_FAILED")
+        );
+      }
+
+      const ps = Array.isArray(productsData.products) ? productsData.products : [];
+      const gs = Array.isArray(groupsData.groups) ? groupsData.groups : [];
 
       setProducts(ps);
       setGroups(gs);
@@ -55,22 +111,30 @@ export default function AdminProductOptionsMatrixPage() {
           const res = await fetch(`/api/admin/product-option-groups?productId=${p.id}`, {
             cache: "no-store",
           });
-          const data = await res.json();
-          if (!data?.ok) throw new Error(data?.detail || data?.error || "LOAD_BINDINGS_FAILED");
-          return (data.bindings || []) as Binding[];
+
+          const raw: unknown = await res.json().catch(() => null);
+          const data = isBindingsResponse(raw) ? raw : null;
+
+          if (!data || data.ok !== true) {
+            throw new Error(
+              String(data?.detail ?? data?.error ?? "LOAD_BINDINGS_FAILED")
+            );
+          }
+
+          return Array.isArray(data.bindings) ? data.bindings : [];
         })
       );
 
       setBindings(allBindingsArrays.flat());
-    } catch (e: any) {
-      setMsg(e?.message ? String(e.message) : "讀取失敗");
+    } catch (error: unknown) {
+      setMsg(error instanceof Error ? error.message : "讀取失敗");
     } finally {
       setLoading(false);
     }
   }
 
   useEffect(() => {
-    load();
+    void load();
   }, []);
 
   function findBinding(productId: number, optionGroupId: number) {
@@ -98,8 +162,12 @@ export default function AdminProductOptionsMatrixPage() {
           }),
         });
 
-        const data = await res.json();
-        if (!data?.ok) throw new Error(data?.detail || data?.error || "BIND_FAILED");
+        const raw: unknown = await res.json().catch(() => null);
+        const data = isMutationResponse(raw) ? raw : null;
+
+        if (!data || data.ok !== true) {
+          throw new Error(String(data?.detail ?? data?.error ?? "BIND_FAILED"));
+        }
       } else {
         if (!existing) return;
 
@@ -107,13 +175,17 @@ export default function AdminProductOptionsMatrixPage() {
           method: "DELETE",
         });
 
-        const data = await res.json();
-        if (!data?.ok) throw new Error(data?.detail || data?.error || "UNBIND_FAILED");
+        const raw: unknown = await res.json().catch(() => null);
+        const data = isMutationResponse(raw) ? raw : null;
+
+        if (!data || data.ok !== true) {
+          throw new Error(String(data?.detail ?? data?.error ?? "UNBIND_FAILED"));
+        }
       }
 
       await load();
-    } catch (e: any) {
-      setMsg(e?.message ? String(e.message) : "更新失敗");
+    } catch (error: unknown) {
+      setMsg(error instanceof Error ? error.message : "更新失敗");
     } finally {
       setBusyKey("");
     }

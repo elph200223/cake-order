@@ -23,6 +23,27 @@ type OptionGroup = {
   options: Option[];
 };
 
+type OptionGroupResponse = {
+  ok?: boolean;
+  group?: OptionGroup;
+  error?: unknown;
+  detail?: unknown;
+};
+
+type OptionMutationResponse = {
+  ok?: boolean;
+  error?: unknown;
+  detail?: unknown;
+};
+
+function isOptionGroupResponse(value: unknown): value is OptionGroupResponse {
+  return typeof value === "object" && value !== null;
+}
+
+function isOptionMutationResponse(value: unknown): value is OptionMutationResponse {
+  return typeof value === "object" && value !== null;
+}
+
 export default function AdminOptionGroupDetailPage({
   params,
 }: {
@@ -35,7 +56,6 @@ export default function AdminOptionGroupDetailPage({
   const [msg, setMsg] = useState("");
   const [group, setGroup] = useState<OptionGroup | null>(null);
 
-  // group form
   const [groupName, setGroupName] = useState("");
   const [required, setRequired] = useState(false);
   const [minSelect, setMinSelect] = useState("0");
@@ -45,7 +65,6 @@ export default function AdminOptionGroupDetailPage({
   const [savingGroup, setSavingGroup] = useState(false);
   const [deletingGroup, setDeletingGroup] = useState(false);
 
-  // create option form
   const [newName, setNewName] = useState("");
   const [newPriceDelta, setNewPriceDelta] = useState("0");
   const [newSort, setNewSort] = useState("0");
@@ -75,10 +94,14 @@ export default function AdminOptionGroupDetailPage({
         cache: "no-store",
       });
 
-      const data = await res.json();
-      if (!data?.ok) throw new Error(data?.detail || data?.error || "LOAD_FAILED");
+      const raw: unknown = await res.json().catch(() => null);
+      const data = isOptionGroupResponse(raw) ? raw : null;
 
-      const g: OptionGroup = data.group;
+      if (!data || data.ok !== true || !data.group) {
+        throw new Error(String(data?.detail ?? data?.error ?? "LOAD_FAILED"));
+      }
+
+      const g = data.group;
       setGroup(g);
 
       setGroupName(g.name);
@@ -87,17 +110,16 @@ export default function AdminOptionGroupDetailPage({
       setMaxSelect(String(g.maxSelect));
       setGroupSort(String(g.sort));
       setGroupActive(Boolean(g.isActive));
-    } catch (e: any) {
+    } catch (error: unknown) {
       setGroup(null);
-      setMsg(e?.message ? String(e.message) : "讀取失敗");
+      setMsg(error instanceof Error ? error.message : "讀取失敗");
     } finally {
       setLoading(false);
     }
   }
 
   useEffect(() => {
-    load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    void load();
   }, [groupId]);
 
   async function saveGroup() {
@@ -132,13 +154,17 @@ export default function AdminOptionGroupDetailPage({
         }),
       });
 
-      const data = await res.json();
-      if (!data?.ok) throw new Error(data?.detail || data?.error || "UPDATE_FAILED");
+      const raw: unknown = await res.json().catch(() => null);
+      const data = isOptionMutationResponse(raw) ? raw : null;
+
+      if (!data || data.ok !== true) {
+        throw new Error(String(data?.detail ?? data?.error ?? "UPDATE_FAILED"));
+      }
 
       await load();
       setMsg("✅ 已儲存群組");
-    } catch (e: any) {
-      setMsg(e?.message ? String(e.message) : "儲存群組失敗");
+    } catch (error: unknown) {
+      setMsg(error instanceof Error ? error.message : "儲存群組失敗");
     } finally {
       setSavingGroup(false);
     }
@@ -156,12 +182,16 @@ export default function AdminOptionGroupDetailPage({
         method: "DELETE",
       });
 
-      const data = await res.json();
-      if (!data?.ok) throw new Error(data?.detail || data?.error || "DELETE_FAILED");
+      const raw: unknown = await res.json().catch(() => null);
+      const data = isOptionMutationResponse(raw) ? raw : null;
+
+      if (!data || data.ok !== true) {
+        throw new Error(String(data?.detail ?? data?.error ?? "DELETE_FAILED"));
+      }
 
       window.location.href = "/admin/options";
-    } catch (e: any) {
-      setMsg(e?.message ? String(e.message) : "刪除群組失敗");
+    } catch (error: unknown) {
+      setMsg(error instanceof Error ? error.message : "刪除群組失敗");
     } finally {
       setDeletingGroup(false);
     }
@@ -195,8 +225,12 @@ export default function AdminOptionGroupDetailPage({
         }),
       });
 
-      const data = await res.json();
-      if (!data?.ok) throw new Error(data?.detail || data?.error || "CREATE_FAILED");
+      const raw: unknown = await res.json().catch(() => null);
+      const data = isOptionMutationResponse(raw) ? raw : null;
+
+      if (!data || data.ok !== true) {
+        throw new Error(String(data?.detail ?? data?.error ?? "CREATE_FAILED"));
+      }
 
       setNewName("");
       setNewPriceDelta("0");
@@ -205,8 +239,8 @@ export default function AdminOptionGroupDetailPage({
 
       await load();
       setMsg("✅ 已新增選項");
-    } catch (e: any) {
-      setMsg(e?.message ? String(e.message) : "新增選項失敗");
+    } catch (error: unknown) {
+      setMsg(error instanceof Error ? error.message : "新增選項失敗");
     } finally {
       setCreatingOption(false);
     }
@@ -524,13 +558,17 @@ function OptionRow({
         }),
       });
 
-      const data = await res.json();
-      if (!data?.ok) throw new Error(data?.detail || data?.error || "UPDATE_FAILED");
+      const raw: unknown = await res.json().catch(() => null);
+      const data = isOptionMutationResponse(raw) ? raw : null;
+
+      if (!data || data.ok !== true) {
+        throw new Error(String(data?.detail ?? data?.error ?? "UPDATE_FAILED"));
+      }
 
       await onChanged();
       setMsg("✅ 已儲存選項");
-    } catch (e: any) {
-      setMsg(e?.message ? String(e.message) : "儲存選項失敗");
+    } catch (error: unknown) {
+      setMsg(error instanceof Error ? error.message : "儲存選項失敗");
     } finally {
       setBusy(false);
     }
@@ -547,13 +585,17 @@ function OptionRow({
         method: "DELETE",
       });
 
-      const data = await res.json();
-      if (!data?.ok) throw new Error(data?.detail || data?.error || "DELETE_FAILED");
+      const raw: unknown = await res.json().catch(() => null);
+      const data = isOptionMutationResponse(raw) ? raw : null;
+
+      if (!data || data.ok !== true) {
+        throw new Error(String(data?.detail ?? data?.error ?? "DELETE_FAILED"));
+      }
 
       await onChanged();
       setMsg("✅ 已刪除選項");
-    } catch (e: any) {
-      setMsg(e?.message ? String(e.message) : "刪除選項失敗");
+    } catch (error: unknown) {
+      setMsg(error instanceof Error ? error.message : "刪除選項失敗");
     } finally {
       setBusy(false);
     }

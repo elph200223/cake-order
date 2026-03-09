@@ -1,25 +1,31 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
 type ViewState = "LOADING" | "PAID" | "FAILED" | "PENDING" | "UNKNOWN" | "ERROR";
 
+type OrderStatusResponse = {
+  ok?: boolean;
+  status?: string;
+  error?: string;
+  [key: string]: unknown;
+};
 
-export default function PayResultPage() {
+function isOrderStatusResponse(value: unknown): value is OrderStatusResponse {
+  return typeof value === "object" && value !== null;
+}
+
+function PayResultContent() {
   const sp = useSearchParams();
   const orderId = useMemo(() => String(sp.get("orderId") ?? "").trim(), [sp]);
 
-  const [state, setState] = useState<ViewState>("LOADING");
-  const [detail, setDetail] = useState<any>(null);
-  const [err, setErr] = useState<string | null>(null);
+  const [state, setState] = useState<ViewState>(orderId ? "LOADING" : "ERROR");
+  const [detail, setDetail] = useState<OrderStatusResponse | null>(null);
+  const [err, setErr] = useState<string | null>(orderId ? null : "Missing orderId");
 
   useEffect(() => {
-    if (!orderId) {
-      setState("ERROR");
-      setErr("Missing orderId");
-      return;
-    }
+    if (!orderId) return;
 
     let alive = true;
 
@@ -29,37 +35,43 @@ export default function PayResultPage() {
           `/api/orders/get?orderId=${encodeURIComponent(orderId)}`,
           { cache: "no-store" }
         );
-        const j = await res.json().catch(() => null);
 
+        const raw: unknown = await res.json().catch(() => null);
         if (!alive) return;
 
-        setDetail(j);
+        const data = isOrderStatusResponse(raw) ? raw : null;
+        setDetail(data);
 
-if (!j || j.ok !== true) {
-  setState("ERROR");
-  setErr(String(j?.error || "Failed to get status"));
-  return;
-}
+        if (!data || data.ok !== true) {
+          setState("ERROR");
+          setErr(String(data?.error ?? "Failed to get status"));
+          return;
+        }
 
-const status = String(j.status || "UNKNOWN").toUpperCase();
+        const status = String(data.status ?? "UNKNOWN").toUpperCase();
 
-if (status === "PAID") setState("PAID");
-else if (status === "FAILED") setState("FAILED");
-else if (status === "PENDING") setState("PENDING");
-else setState("UNKNOWN");
+        if (status === "PAID") setState("PAID");
+        else if (status === "FAILED") setState("FAILED");
+        else if (status === "PENDING") setState("PENDING");
+        else setState("UNKNOWN");
 
-      } catch (e: any) {
+        setErr(null);
+      } catch (error: unknown) {
         if (!alive) return;
+
         setState("ERROR");
-        setErr(e?.message ?? String(e));
+        setErr(error instanceof Error ? error.message : String(error));
       }
     }
 
-    poll();
-    const t = setInterval(poll, 2000);
+    void poll();
+    const timer = setInterval(() => {
+      void poll();
+    }, 2000);
+
     return () => {
       alive = false;
-      clearInterval(t);
+      clearInterval(timer);
     };
   }, [orderId]);
 
@@ -74,6 +86,7 @@ else setState("UNKNOWN");
       {state === "LOADING" && <p>Loading...</p>}
       {state === "PAID" && <p style={{ color: "green" }}>PAID</p>}
       {state === "FAILED" && <p style={{ color: "crimson" }}>FAILED</p>}
+      {state === "PENDING" && <p>PENDING</p>}
       {state === "UNKNOWN" && <p>UNKNOWN (still processing?)</p>}
       {state === "ERROR" && <p style={{ color: "crimson" }}>ERROR: {err}</p>}
 
@@ -84,5 +97,19 @@ else setState("UNKNOWN");
         </pre>
       </details>
     </main>
+  );
+}
+
+export default function PayResultPage() {
+  return (
+    <Suspense
+      fallback={
+        <main style={{ maxWidth: 520, margin: "40px auto", padding: 16, fontFamily: "system-ui" }}>
+          <p>Loading...</p>
+        </main>
+      }
+    >
+      <PayResultContent />
+    </Suspense>
   );
 }

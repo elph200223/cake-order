@@ -1,6 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+type OptionPostBody = {
+  optionGroupId?: unknown;
+  name?: unknown;
+  priceDelta?: unknown;
+  sort?: unknown;
+  isActive?: unknown;
+};
+
+function isOptionPostBody(value: unknown): value is OptionPostBody {
+  return typeof value === "object" && value !== null;
+}
+
 /**
  * GET /api/admin/options?optionGroupId=123
  * - 若有 optionGroupId：回傳該群組的 options（依 sort, id）
@@ -21,15 +33,20 @@ export async function GET(req: NextRequest) {
 
     const options = await prisma.option.findMany({
       where: ogid != null ? { optionGroupId: ogid } : undefined,
-      orderBy: ogid != null
-        ? [{ sort: "asc" }, { id: "asc" }]
-        : [{ optionGroupId: "asc" }, { sort: "asc" }, { id: "asc" }],
+      orderBy:
+        ogid != null
+          ? [{ sort: "asc" }, { id: "asc" }]
+          : [{ optionGroupId: "asc" }, { sort: "asc" }, { id: "asc" }],
     });
 
     return NextResponse.json({ ok: true, options });
-  } catch (e: any) {
+  } catch (error: unknown) {
     return NextResponse.json(
-      { ok: false, error: "LIST_FAILED", detail: String(e?.message ?? e) },
+      {
+        ok: false,
+        error: "LIST_FAILED",
+        detail: error instanceof Error ? error.message : String(error),
+      },
       { status: 500 }
     );
   }
@@ -41,13 +58,14 @@ export async function GET(req: NextRequest) {
  */
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
+    const raw: unknown = await req.json().catch(() => ({}));
+    const body: OptionPostBody = isOptionPostBody(raw) ? raw : {};
 
-    const optionGroupId = Number(body?.optionGroupId);
-    const name = String(body?.name ?? "").trim();
-    const priceDelta = Number(body?.priceDelta ?? 0);
-    const sort = Number(body?.sort ?? 0);
-    const isActive = Boolean(body?.isActive ?? true);
+    const optionGroupId = Number(body.optionGroupId);
+    const name = String(body.name ?? "").trim();
+    const priceDelta = Number(body.priceDelta ?? 0);
+    const sort = Number(body.sort ?? 0);
+    const isActive = Boolean(body.isActive ?? true);
 
     if (!Number.isInteger(optionGroupId)) {
       return NextResponse.json(
@@ -74,6 +92,7 @@ export async function POST(req: NextRequest) {
       where: { id: optionGroupId },
       select: { id: true },
     });
+
     if (!group) {
       return NextResponse.json(
         { ok: false, error: "OPTION_GROUP_NOT_FOUND" },
@@ -92,9 +111,13 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({ ok: true, option });
-  } catch (e: any) {
+  } catch (error: unknown) {
     return NextResponse.json(
-      { ok: false, error: "CREATE_FAILED", detail: String(e?.message ?? e) },
+      {
+        ok: false,
+        error: "CREATE_FAILED",
+        detail: error instanceof Error ? error.message : String(error),
+      },
       { status: 500 }
     );
   }

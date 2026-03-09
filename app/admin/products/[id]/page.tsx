@@ -32,6 +32,49 @@ type Binding = {
   optionGroup: OptionGroup;
 };
 
+type ProductResponse = {
+  ok?: boolean;
+  product?: Product;
+  error?: unknown;
+  detail?: unknown;
+};
+
+type GroupsResponse = {
+  ok?: boolean;
+  groups?: OptionGroup[];
+  error?: unknown;
+  detail?: unknown;
+};
+
+type BindingsResponse = {
+  ok?: boolean;
+  bindings?: Binding[];
+  error?: unknown;
+  detail?: unknown;
+};
+
+type MutationResponse = {
+  ok?: boolean;
+  error?: unknown;
+  detail?: unknown;
+};
+
+function isProductResponse(value: unknown): value is ProductResponse {
+  return typeof value === "object" && value !== null;
+}
+
+function isGroupsResponse(value: unknown): value is GroupsResponse {
+  return typeof value === "object" && value !== null;
+}
+
+function isBindingsResponse(value: unknown): value is BindingsResponse {
+  return typeof value === "object" && value !== null;
+}
+
+function isMutationResponse(value: unknown): value is MutationResponse {
+  return typeof value === "object" && value !== null;
+}
+
 function parseId(raw: string | string[] | undefined): number | null {
   if (!raw) return null;
   const v = Array.isArray(raw) ? raw[0] : raw;
@@ -41,15 +84,14 @@ function parseId(raw: string | string[] | undefined): number | null {
 
 export default function AdminEditProductPage() {
   const router = useRouter();
-  const params = useParams();
-  const id = parseId((params as any)?.id);
+  const params = useParams<{ id?: string | string[] }>();
+  const id = parseId(params?.id);
 
   const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState("");
 
   const [product, setProduct] = useState<Product | null>(null);
 
-  // product form
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [basePrice, setBasePrice] = useState("0");
@@ -58,7 +100,6 @@ export default function AdminEditProductPage() {
   const [savingProduct, setSavingProduct] = useState(false);
   const [deletingProduct, setDeletingProduct] = useState(false);
 
-  // groups + bindings
   const [allGroups, setAllGroups] = useState<OptionGroup[]>([]);
   const [bindings, setBindings] = useState<Binding[]>([]);
   const [bindingBusy, setBindingBusy] = useState(false);
@@ -78,50 +119,57 @@ export default function AdminEditProductPage() {
   async function loadAll() {
     setMsg("");
     setLoading(true);
+
     try {
       if (id == null) throw new Error("ID 不正確");
 
-      // 1) product
       const resP = await fetch(`/api/admin/products/${id}`, { cache: "no-store" });
-      const dataP = await resP.json();
-      if (!dataP?.ok) throw new Error(dataP?.error || "LOAD_PRODUCT_FAILED");
+      const rawP: unknown = await resP.json().catch(() => null);
+      const dataP = isProductResponse(rawP) ? rawP : null;
+      if (!dataP || dataP.ok !== true || !dataP.product) {
+        throw new Error(String(dataP?.detail ?? dataP?.error ?? "LOAD_PRODUCT_FAILED"));
+      }
 
-      const p: Product = dataP.product;
+      const p = dataP.product;
       setProduct(p);
       setName(p.name ?? "");
       setSlug(p.slug ?? "");
       setBasePrice(String(p.basePrice ?? 0));
       setIsActive(Boolean(p.isActive));
 
-      // 2) groups
       const resG = await fetch(`/api/admin/option-groups`, { cache: "no-store" });
-      const dataG = await resG.json();
-      if (!dataG?.ok) throw new Error(dataG?.error || "LOAD_GROUPS_FAILED");
-      setAllGroups(dataG.groups || []);
+      const rawG: unknown = await resG.json().catch(() => null);
+      const dataG = isGroupsResponse(rawG) ? rawG : null;
+      if (!dataG || dataG.ok !== true) {
+        throw new Error(String(dataG?.detail ?? dataG?.error ?? "LOAD_GROUPS_FAILED"));
+      }
+      setAllGroups(Array.isArray(dataG.groups) ? dataG.groups : []);
 
-      // 3) bindings
       const resB = await fetch(`/api/admin/product-option-groups?productId=${id}`, {
         cache: "no-store",
       });
-      const dataB = await resB.json();
-      if (!dataB?.ok) throw new Error(dataB?.error || "LOAD_BINDINGS_FAILED");
-      setBindings(dataB.bindings || []);
-    } catch (e: any) {
+      const rawB: unknown = await resB.json().catch(() => null);
+      const dataB = isBindingsResponse(rawB) ? rawB : null;
+      if (!dataB || dataB.ok !== true) {
+        throw new Error(String(dataB?.detail ?? dataB?.error ?? "LOAD_BINDINGS_FAILED"));
+      }
+      setBindings(Array.isArray(dataB.bindings) ? dataB.bindings : []);
+    } catch (error: unknown) {
       setProduct(null);
-      setMsg(e?.message ? String(e.message) : "讀取失敗");
+      setMsg(error instanceof Error ? error.message : "讀取失敗");
     } finally {
       setLoading(false);
     }
   }
 
   useEffect(() => {
-    loadAll();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    void loadAll();
   }, [id]);
 
   async function saveProduct() {
     setMsg("");
     setSavingProduct(true);
+
     try {
       if (id == null) throw new Error("ID 不正確");
 
@@ -144,13 +192,16 @@ export default function AdminEditProductPage() {
         }),
       });
 
-      const data = await res.json();
-      if (!data?.ok) throw new Error(data?.detail || data?.error || "UPDATE_FAILED");
+      const raw: unknown = await res.json().catch(() => null);
+      const data = isMutationResponse(raw) ? raw : null;
+      if (!data || data.ok !== true) {
+        throw new Error(String(data?.detail ?? data?.error ?? "UPDATE_FAILED"));
+      }
 
       await loadAll();
       setMsg("✅ 已儲存商品");
-    } catch (e: any) {
-      setMsg(e?.message ? String(e.message) : "儲存失敗");
+    } catch (error: unknown) {
+      setMsg(error instanceof Error ? error.message : "儲存失敗");
     } finally {
       setSavingProduct(false);
     }
@@ -159,18 +210,22 @@ export default function AdminEditProductPage() {
   async function deleteProduct() {
     setMsg("");
     setDeletingProduct(true);
+
     try {
       if (id == null) throw new Error("ID 不正確");
       if (!confirm("確定要刪除這個商品？（不可復原）")) return;
 
       const res = await fetch(`/api/admin/products/${id}`, { method: "DELETE" });
-      const data = await res.json();
-      if (!data?.ok) throw new Error(data?.detail || data?.error || "DELETE_FAILED");
+      const raw: unknown = await res.json().catch(() => null);
+      const data = isMutationResponse(raw) ? raw : null;
+      if (!data || data.ok !== true) {
+        throw new Error(String(data?.detail ?? data?.error ?? "DELETE_FAILED"));
+      }
 
       router.push("/admin/products");
       router.refresh();
-    } catch (e: any) {
-      setMsg(e?.message ? String(e.message) : "刪除失敗");
+    } catch (error: unknown) {
+      setMsg(error instanceof Error ? error.message : "刪除失敗");
     } finally {
       setDeletingProduct(false);
     }
@@ -179,6 +234,7 @@ export default function AdminEditProductPage() {
   async function addBinding() {
     setMsg("");
     setBindingBusy(true);
+
     try {
       if (id == null) throw new Error("ID 不正確");
       const ogid = Number(addGroupId);
@@ -190,14 +246,17 @@ export default function AdminEditProductPage() {
         body: JSON.stringify({ productId: id, optionGroupId: ogid, sort: 0 }),
       });
 
-      const data = await res.json();
-      if (!data?.ok) throw new Error(data?.detail || data?.error || "BIND_FAILED");
+      const raw: unknown = await res.json().catch(() => null);
+      const data = isMutationResponse(raw) ? raw : null;
+      if (!data || data.ok !== true) {
+        throw new Error(String(data?.detail ?? data?.error ?? "BIND_FAILED"));
+      }
 
       setAddGroupId("");
       await loadAll();
       setMsg("✅ 已綁定群組");
-    } catch (e: any) {
-      setMsg(e?.message ? String(e.message) : "綁定失敗");
+    } catch (error: unknown) {
+      setMsg(error instanceof Error ? error.message : "綁定失敗");
     } finally {
       setBindingBusy(false);
     }
@@ -212,13 +271,16 @@ export default function AdminEditProductPage() {
       const res = await fetch(`/api/admin/product-option-groups/${bindingId}`, {
         method: "DELETE",
       });
-      const data = await res.json();
-      if (!data?.ok) throw new Error(data?.detail || data?.error || "UNBIND_FAILED");
+      const raw: unknown = await res.json().catch(() => null);
+      const data = isMutationResponse(raw) ? raw : null;
+      if (!data || data.ok !== true) {
+        throw new Error(String(data?.detail ?? data?.error ?? "UNBIND_FAILED"));
+      }
 
       await loadAll();
       setMsg("✅ 已解除綁定");
-    } catch (e: any) {
-      setMsg(e?.message ? String(e.message) : "解除綁定失敗");
+    } catch (error: unknown) {
+      setMsg(error instanceof Error ? error.message : "解除綁定失敗");
     } finally {
       setBindingBusy(false);
     }
@@ -227,19 +289,23 @@ export default function AdminEditProductPage() {
   async function updateBindingSort(bindingId: number, sort: number) {
     setMsg("");
     setBindingBusy(true);
+
     try {
       const res = await fetch(`/api/admin/product-option-groups/${bindingId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ sort }),
       });
-      const data = await res.json();
-      if (!data?.ok) throw new Error(data?.detail || data?.error || "SORT_UPDATE_FAILED");
+      const raw: unknown = await res.json().catch(() => null);
+      const data = isMutationResponse(raw) ? raw : null;
+      if (!data || data.ok !== true) {
+        throw new Error(String(data?.detail ?? data?.error ?? "SORT_UPDATE_FAILED"));
+      }
 
       await loadAll();
       setMsg("✅ 已更新排序");
-    } catch (e: any) {
-      setMsg(e?.message ? String(e.message) : "更新排序失敗");
+    } catch (error: unknown) {
+      setMsg(error instanceof Error ? error.message : "更新排序失敗");
     } finally {
       setBindingBusy(false);
     }

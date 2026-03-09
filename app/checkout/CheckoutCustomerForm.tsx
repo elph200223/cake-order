@@ -44,6 +44,23 @@ type PayNowCreateFailure = {
   error: string;
 };
 
+type PayNowCreateResponse = PayNowCreateSuccess | PayNowCreateFailure;
+
+type PayNowCreateApiResponse = {
+  ok?: boolean;
+  orderId?: unknown;
+  dbOrderId?: unknown;
+  action?: unknown;
+  fields?: unknown;
+  returnUrl?: unknown;
+  error?: unknown;
+};
+
+function isRecordOfStrings(value: unknown): value is Record<string, string> {
+  if (typeof value !== "object" || value === null) return false;
+  return Object.values(value).every((item) => typeof item === "string");
+}
+
 function formatMoney(price: number) {
   return `NT$ ${price.toLocaleString("zh-TW")}`;
 }
@@ -76,7 +93,7 @@ async function createPayNowPayment(input: {
   email: string;
   note: string;
   items: CartState["items"];
-}): Promise<PayNowCreateSuccess | PayNowCreateFailure> {
+}): Promise<PayNowCreateResponse> {
   try {
     const res = await fetch("/api/paynow/create", {
       method: "POST",
@@ -98,29 +115,42 @@ async function createPayNowPayment(input: {
       }),
     });
 
-    const data = await res.json();
+    const raw: unknown = await res.json().catch(() => null);
+    const data: PayNowCreateApiResponse =
+      typeof raw === "object" && raw !== null ? (raw as PayNowCreateApiResponse) : {};
 
-    if (!res.ok || !data?.ok || !data?.action || !data?.fields) {
+    if (
+      !res.ok ||
+      data.ok !== true ||
+      typeof data.action !== "string" ||
+      !isRecordOfStrings(data.fields)
+    ) {
       return {
         ok: false,
-        error: data?.error || "CREATE_PAYNOW_PAYMENT_FAILED",
+        error:
+          typeof data.error === "string"
+            ? data.error
+            : "CREATE_PAYNOW_PAYMENT_FAILED",
       };
     }
 
     return {
       ok: true,
-      orderId: String(data.orderId ?? ""),
-      dbOrderId: data?.dbOrderId ? String(data.dbOrderId) : undefined,
-      action: String(data.action),
-      fields: data.fields as Record<string, string>,
-      returnUrl: data?.returnUrl ? String(data.returnUrl) : undefined,
+      orderId: typeof data.orderId === "string" ? data.orderId : "",
+      dbOrderId:
+        typeof data.dbOrderId === "string" ? data.dbOrderId : undefined,
+      action: data.action,
+      fields: data.fields,
+      returnUrl:
+        typeof data.returnUrl === "string" ? data.returnUrl : undefined,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     return {
       ok: false,
-      error: error?.message
-        ? String(error.message)
-        : "CREATE_PAYNOW_PAYMENT_FAILED",
+      error:
+        error instanceof Error
+          ? error.message
+          : "CREATE_PAYNOW_PAYMENT_FAILED",
     };
   }
 }
@@ -250,9 +280,7 @@ export default function CheckoutCustomerForm({ cart, totalAmount }: Props) {
     <section className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
       <div className="border-b border-neutral-100 pb-4">
         <h2 className="text-lg font-semibold text-neutral-900">顧客資料</h2>
-        <p className="mt-1 text-sm text-neutral-500">
-          請填寫取貨資訊並送出訂單。
-        </p>
+        <p className="mt-1 text-sm text-neutral-500">請填寫取貨資訊並送出訂單。</p>
       </div>
 
       <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">

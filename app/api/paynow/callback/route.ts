@@ -4,11 +4,36 @@ import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
+type VerifyPassCodeResult =
+  | {
+      ok: true;
+      expectedA: string;
+      expectedB: string;
+      got: string;
+      orderNo: string;
+      tranStatus: string;
+    }
+  | {
+      ok: false;
+    };
+
+type PrismaOrderUpdateResult = {
+  ok: boolean;
+  status?: string;
+  error?: string;
+};
+
+type GasResponse = {
+  ok?: boolean;
+  error?: unknown;
+  [key: string]: unknown;
+};
+
 function sha1HexUpper(input: string) {
   return crypto.createHash("sha1").update(input, "utf8").digest("hex").toUpperCase();
 }
 
-function verifyPassCode(p: Record<string, string>) {
+function verifyPassCode(p: Record<string, string>): VerifyPassCodeResult {
   const webNo = (process.env.PAYNOW_WEBNO || process.env.PAYNOW_WEB_NO || "").trim();
   const secret = (process.env.PAYNOW_SECRET || process.env.PAYNOW_MEM_CHECKPW || "").trim();
 
@@ -18,7 +43,7 @@ function verifyPassCode(p: Record<string, string>) {
   const got = (p.PassCode || "").trim().toUpperCase();
 
   if (!webNo || !secret || !orderNo || !totalPrice || !got) {
-    return { ok: false as const };
+    return { ok: false };
   }
 
   const expectedA = sha1HexUpper(webNo + orderNo + totalPrice + secret + tranStatus);
@@ -34,33 +59,45 @@ function verifyPassCode(p: Record<string, string>) {
   };
 }
 
+function parseCallbackPayload(raw: string, contentType: string): Record<string, string> {
+  const payload: Record<string, string> = {};
+
+  if (contentType.includes("application/x-www-form-urlencoded")) {
+    const sp = new URLSearchParams(raw);
+    sp.forEach((v, k) => {
+      payload[k] = v;
+    });
+    return payload;
+  }
+
+  try {
+    const parsed: unknown = JSON.parse(raw);
+
+    if (typeof parsed === "object" && parsed !== null) {
+      Object.entries(parsed as Record<string, unknown>).forEach(([key, value]) => {
+        payload[key] = String(value ?? "");
+      });
+      return payload;
+    }
+  } catch {
+    // fall through to URLSearchParams parsing
+  }
+
+  const sp = new URLSearchParams(raw);
+  sp.forEach((v, k) => {
+    payload[k] = v;
+  });
+
+  return payload;
+}
+
 export async function POST(req: Request) {
   console.log("[paynow-callback] HIT AT", new Date().toISOString());
 
   try {
     const contentType = req.headers.get("content-type") || "";
     const raw = await req.text();
-
-    const p: Record<string, string> = {};
-
-    if (contentType.includes("application/x-www-form-urlencoded")) {
-      const sp = new URLSearchParams(raw);
-      sp.forEach((v, k) => {
-        p[k] = v;
-      });
-    } else {
-      try {
-        const j = JSON.parse(raw);
-        Object.keys(j || {}).forEach((k) => {
-          p[k] = String((j as Record<string, unknown>)[k] ?? "");
-        });
-      } catch {
-        const sp = new URLSearchParams(raw);
-        sp.forEach((v, k) => {
-          p[k] = v;
-        });
-      }
-    }
+    const p = parseCallbackPayload(raw, contentType);
 
     console.log("[paynow-callback] contentType=", contentType);
     console.log("[paynow-callback] raw=", raw);
@@ -78,11 +115,7 @@ export async function POST(req: Request) {
     const orderNo = sig.orderNo;
     const paymentStatus = sig.tranStatus === "S" ? "PAID" : "FAILED";
 
-    let prismaOrderUpdate: {
-      ok: boolean;
-      status?: string;
-      error?: string;
-    } | null = null;
+    let prismaOrderUpdate: PrismaOrderUpdateResult | null = null;
 
     if (sig.tranStatus === "S") {
       try {
@@ -100,10 +133,10 @@ export async function POST(req: Request) {
           ok: true,
           status: updated.status,
         };
-      } catch (e: any) {
+      } catch (error: unknown) {
         prismaOrderUpdate = {
           ok: false,
-          error: e?.message || String(e),
+          error: error instanceof Error ? error.message : String(error),
         };
       }
     } else {
@@ -147,10 +180,15 @@ export async function POST(req: Request) {
 
     const text = await r.text();
 
-    let gasJson: any = null;
+    let gasBody: GasResponse | string = text;
     try {
-      gasJson = JSON.parse(text);
-    } catch {}
+      const parsed: unknown = JSON.parse(text);
+      if (typeof parsed === "object" && parsed !== null) {
+        gasBody = parsed as GasResponse;
+      }
+    } catch {
+      gasBody = text;
+    }
 
     return NextResponse.json(
       {
@@ -159,14 +197,14 @@ export async function POST(req: Request) {
         paymentStatus,
         prismaOrderUpdate,
         gasStatus: r.status,
-        gasBody: gasJson ?? text,
+        gasBody,
       },
       { status: 200 }
     );
-  } catch (e: any) {
-    console.log("[paynow-callback] ERROR", e);
+  } catch (error: unknown) {
+    console.log("[paynow-callback] ERROR", error);
     return NextResponse.json(
-      { ok: false, error: e?.message || String(e) },
+      { ok: false, error: error instanceof Error ? error.message : String(error) },
       { status: 500 }
     );
   }

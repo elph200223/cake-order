@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 import { fetchOrderDetail, updateOrderStatus } from "@/lib/order-api";
 import { formatOrderDateTime, formatOrderMoney } from "@/lib/order-format";
 import {
@@ -21,7 +21,9 @@ function parseOrderId(raw: string) {
 }
 
 export default function AdminOrderDetailPage({ params }: Props) {
-  const [orderId, setOrderId] = useState<number | null>(null);
+  const { id } = use(params);
+  const parsedOrderId = parseOrderId(id);
+
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState<OrderStatusValue | "">("");
@@ -38,26 +40,20 @@ export default function AdminOrderDetailPage({ params }: Props) {
 
     async function run() {
       try {
-        const { id } = await params;
-        const parsed = parseOrderId(id);
-
-        if (!parsed) {
+        if (!parsedOrderId) {
           throw new Error("ORDER_ID_INVALID");
         }
 
-        if (!mounted) return;
-        setOrderId(parsed);
-
-        const detail = await fetchOrderDetail(parsed);
+        const detail = await fetchOrderDetail(parsedOrderId);
         if (!mounted) return;
 
         setOrder(detail);
         setStatus(detail.status);
-      } catch (error: any) {
+      } catch (error: unknown) {
         if (!mounted) return;
         setSubmitState({
           status: "error",
-          message: error?.message ? String(error.message) : "讀取訂單失敗",
+          message: error instanceof Error ? error.message : "讀取訂單失敗",
         });
       } finally {
         if (mounted) {
@@ -66,15 +62,15 @@ export default function AdminOrderDetailPage({ params }: Props) {
       }
     }
 
-    run();
+    void run();
 
     return () => {
       mounted = false;
     };
-  }, [params]);
+  }, [parsedOrderId]);
 
   async function handleUpdateStatus() {
-    if (!orderId || !status) {
+    if (!parsedOrderId || !status) {
       setSubmitState({
         status: "error",
         message: "訂單狀態資料不完整",
@@ -88,9 +84,9 @@ export default function AdminOrderDetailPage({ params }: Props) {
     });
 
     try {
-      await updateOrderStatus(orderId, status);
+      await updateOrderStatus(parsedOrderId, status);
 
-      const detail = await fetchOrderDetail(orderId);
+      const detail = await fetchOrderDetail(parsedOrderId);
       setOrder(detail);
       setStatus(detail.status);
 
@@ -98,10 +94,10 @@ export default function AdminOrderDetailPage({ params }: Props) {
         status: "success",
         message: "訂單狀態已更新。",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       setSubmitState({
         status: "error",
-        message: error?.message ? String(error.message) : "更新狀態失敗。",
+        message: error instanceof Error ? error.message : "更新狀態失敗。",
       });
     }
   }

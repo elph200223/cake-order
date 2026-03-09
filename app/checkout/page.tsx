@@ -19,9 +19,15 @@ export default function CheckoutPage() {
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    const nextCart = readCart();
-    setCart(nextCart);
-    setHydrated(true);
+    const timer = window.setTimeout(() => {
+      const nextCart = readCart();
+      setCart(nextCart);
+      setHydrated(true);
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
   }, []);
 
   const itemCount = useMemo(() => getCartItemCount(cart), [cart]);
@@ -64,9 +70,7 @@ export default function CheckoutPage() {
       {cart.items.length === 0 ? (
         <section className="rounded-2xl border border-neutral-200 bg-white p-8 text-center shadow-sm">
           <h2 className="text-lg font-semibold text-neutral-900">購物車目前是空的</h2>
-          <p className="mt-2 text-sm text-neutral-500">
-            請先到商品頁加入蛋糕與規格選項。
-          </p>
+          <p className="mt-2 text-sm text-neutral-500">請先到商品頁加入蛋糕與規格選項。</p>
 
           <div className="mt-6">
             <Link
@@ -80,15 +84,9 @@ export default function CheckoutPage() {
       ) : (
         <section className="grid grid-cols-1 gap-6 xl:grid-cols-[1.2fr_0.8fr]">
           <div className="space-y-6">
-            <CheckoutCartItems
-              items={cart.items}
-              onRemove={handleRemoveItem}
-            />
+            <CheckoutCartItems items={cart.items} onRemove={handleRemoveItem} />
 
-            <CheckoutCustomerForm
-              cart={cart}
-              totalAmount={totalAmount}
-            />
+            <CheckoutCustomerForm cart={cart} totalAmount={totalAmount} />
           </div>
 
           <CheckoutSummary

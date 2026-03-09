@@ -3,6 +3,15 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
+type ProductCreateResponse = {
+  ok?: boolean;
+  error?: unknown;
+};
+
+function isProductCreateResponse(value: unknown): value is ProductCreateResponse {
+  return typeof value === "object" && value !== null;
+}
+
 function slugify(input: string) {
   return input
     .trim()
@@ -38,6 +47,7 @@ export default function NewProductPage() {
   async function onSave() {
     setMsg("");
     setLoading(true);
+
     try {
       const n = name.trim();
       if (!n) throw new Error("請輸入名稱");
@@ -54,13 +64,17 @@ export default function NewProductPage() {
         body: JSON.stringify({ name: n, slug: s, basePrice: p, isActive }),
       });
 
-      const data = await res.json();
-      if (!data?.ok) throw new Error(data?.error || "CREATE_FAILED");
+      const raw: unknown = await res.json().catch(() => null);
+      const data = isProductCreateResponse(raw) ? raw : null;
+
+      if (!data || data.ok !== true) {
+        throw new Error(String(data?.error ?? "CREATE_FAILED"));
+      }
 
       router.push("/admin/products");
       router.refresh();
-    } catch (e: any) {
-      setMsg(e?.message ? String(e.message) : "儲存失敗");
+    } catch (error: unknown) {
+      setMsg(error instanceof Error ? error.message : "儲存失敗");
     } finally {
       setLoading(false);
     }
@@ -91,7 +105,9 @@ export default function NewProductPage() {
       </div>
 
       <div style={{ marginTop: 12 }}>
-        <label style={{ display: "block", marginBottom: 6, fontSize: 13 }}>基本價格（basePrice）</label>
+        <label style={{ display: "block", marginBottom: 6, fontSize: 13 }}>
+          基本價格（basePrice）
+        </label>
         <input
           value={basePrice}
           onChange={(e) => setBasePrice(e.target.value)}

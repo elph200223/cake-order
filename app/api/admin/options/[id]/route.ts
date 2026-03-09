@@ -1,9 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+type OptionPatchBody = {
+  name?: unknown;
+  priceDelta?: unknown;
+  sort?: unknown;
+  isActive?: unknown;
+};
+
 function parseId(raw: string) {
   const n = Number(raw);
   return Number.isInteger(n) ? n : null;
+}
+
+function isOptionPatchBody(value: unknown): value is OptionPatchBody {
+  return typeof value === "object" && value !== null;
 }
 
 /**
@@ -47,13 +58,19 @@ export async function PATCH(
       return NextResponse.json({ ok: false, error: "ID_INVALID" }, { status: 400 });
     }
 
-    const body = await req.json();
-    const data: any = {};
+    const raw: unknown = await req.json().catch(() => ({}));
+    const body: OptionPatchBody = isOptionPatchBody(raw) ? raw : {};
+    const data: {
+      name?: string;
+      priceDelta?: number;
+      sort?: number;
+      isActive?: boolean;
+    } = {};
 
-    if (body?.name != null) data.name = String(body.name).trim();
-    if (body?.priceDelta != null) data.priceDelta = Number(body.priceDelta);
-    if (body?.sort != null) data.sort = Number(body.sort);
-    if (body?.isActive != null) data.isActive = Boolean(body.isActive);
+    if (body.name != null) data.name = String(body.name).trim();
+    if (body.priceDelta != null) data.priceDelta = Number(body.priceDelta);
+    if (body.sort != null) data.sort = Number(body.sort);
+    if (body.isActive != null) data.isActive = Boolean(body.isActive);
 
     if (data.priceDelta != null && !Number.isFinite(data.priceDelta)) {
       return NextResponse.json(
@@ -68,9 +85,13 @@ export async function PATCH(
     });
 
     return NextResponse.json({ ok: true, option });
-  } catch (e: any) {
+  } catch (error: unknown) {
     return NextResponse.json(
-      { ok: false, error: "UPDATE_FAILED", detail: String(e?.message ?? e) },
+      {
+        ok: false,
+        error: "UPDATE_FAILED",
+        detail: error instanceof Error ? error.message : String(error),
+      },
       { status: 500 }
     );
   }
@@ -96,9 +117,13 @@ export async function DELETE(
     });
 
     return NextResponse.json({ ok: true });
-  } catch (e: any) {
+  } catch (error: unknown) {
     return NextResponse.json(
-      { ok: false, error: "DELETE_FAILED", detail: String(e?.message ?? e) },
+      {
+        ok: false,
+        error: "DELETE_FAILED",
+        detail: error instanceof Error ? error.message : String(error),
+      },
       { status: 500 }
     );
   }

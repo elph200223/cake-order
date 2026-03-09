@@ -1,6 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+type ProductOptionGroupPostBody = {
+  productId?: unknown;
+  optionGroupId?: unknown;
+  sort?: unknown;
+};
+
+function isProductOptionGroupPostBody(
+  value: unknown
+): value is ProductOptionGroupPostBody {
+  return typeof value === "object" && value !== null;
+}
+
 /**
  * GET /api/admin/product-option-groups?productId=1
  * 回傳該商品綁定的所有 OptionGroup（含群組資訊）
@@ -32,10 +44,14 @@ export async function GET(req: NextRequest) {
  */
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const productId = Number(body?.productId);
-    const optionGroupId = Number(body?.optionGroupId);
-    const sort = Number(body?.sort ?? 0);
+    const raw: unknown = await req.json().catch(() => ({}));
+    const body: ProductOptionGroupPostBody = isProductOptionGroupPostBody(raw)
+      ? raw
+      : {};
+
+    const productId = Number(body.productId);
+    const optionGroupId = Number(body.optionGroupId);
+    const sort = Number(body.sort ?? 0);
 
     if (!Number.isInteger(productId) || !Number.isInteger(optionGroupId)) {
       return NextResponse.json(
@@ -53,9 +69,13 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({ ok: true, binding });
-  } catch (e: any) {
+  } catch (error: unknown) {
     return NextResponse.json(
-      { ok: false, error: "CREATE_FAILED", detail: String(e?.message ?? e) },
+      {
+        ok: false,
+        error: "CREATE_FAILED",
+        detail: error instanceof Error ? error.message : String(error),
+      },
       { status: 500 }
     );
   }

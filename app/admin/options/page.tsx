@@ -13,6 +13,17 @@ type OptionGroup = {
   isActive: boolean;
 };
 
+type OptionGroupsResponse = {
+  ok?: boolean;
+  groups?: OptionGroup[];
+  error?: unknown;
+  detail?: unknown;
+};
+
+function isOptionGroupsResponse(value: unknown): value is OptionGroupsResponse {
+  return typeof value === "object" && value !== null;
+}
+
 export default function AdminOptionsPage() {
   const [groups, setGroups] = useState<OptionGroup[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,25 +51,34 @@ export default function AdminOptionsPage() {
   async function load() {
     setMsg("");
     setLoading(true);
+
     try {
       const res = await fetch("/api/admin/option-groups", { cache: "no-store" });
-      const data = await res.json();
-      if (!data?.ok) throw new Error(data?.detail || data?.error || "LIST_FAILED");
-      setGroups(data.groups || []);
-    } catch (e: any) {
-      setMsg(e?.message ? String(e.message) : "讀取失敗");
+      const raw: unknown = await res.json().catch(() => null);
+      const data = isOptionGroupsResponse(raw) ? raw : null;
+
+      if (!data || data.ok !== true) {
+        throw new Error(
+          String(data?.detail ?? data?.error ?? "LIST_FAILED")
+        );
+      }
+
+      setGroups(Array.isArray(data.groups) ? data.groups : []);
+    } catch (error: unknown) {
+      setMsg(error instanceof Error ? error.message : "讀取失敗");
     } finally {
       setLoading(false);
     }
   }
 
   useEffect(() => {
-    load();
+    void load();
   }, []);
 
   async function onCreate() {
     setMsg("");
     setCreating(true);
+
     try {
       const n = name.trim();
       if (!n) throw new Error("請輸入群組名稱");
@@ -76,8 +96,14 @@ export default function AdminOptionsPage() {
         }),
       });
 
-      const data = await res.json();
-      if (!data?.ok) throw new Error(data?.detail || data?.error || "CREATE_FAILED");
+      const raw: unknown = await res.json().catch(() => null);
+      const data = isOptionGroupsResponse(raw) ? raw : null;
+
+      if (!data || data.ok !== true) {
+        throw new Error(
+          String(data?.detail ?? data?.error ?? "CREATE_FAILED")
+        );
+      }
 
       setName("");
       setRequired(false);
@@ -88,8 +114,8 @@ export default function AdminOptionsPage() {
 
       await load();
       setMsg("✅ 已新增群組");
-    } catch (e: any) {
-      setMsg(e?.message ? String(e.message) : "新增失敗");
+    } catch (error: unknown) {
+      setMsg(error instanceof Error ? error.message : "新增失敗");
     } finally {
       setCreating(false);
     }
