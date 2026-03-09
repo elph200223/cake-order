@@ -6,6 +6,14 @@ import { useRouter } from "next/navigation";
 type ProductCreateResponse = {
   ok?: boolean;
   error?: unknown;
+  detail?: unknown;
+  product?: {
+    id: number;
+    name: string;
+    slug: string;
+    basePrice: number;
+    isActive: boolean;
+  };
 };
 
 function isProductCreateResponse(value: unknown): value is ProductCreateResponse {
@@ -20,6 +28,14 @@ function slugify(input: string) {
     .replace(/[^a-z0-9-_]/g, "")
     .replace(/-+/g, "-")
     .replace(/^-|-$/g, "");
+}
+
+function buildFallbackSlug(name: string) {
+  const base = slugify(name);
+  if (base) return base;
+
+  const stamp = Date.now().toString(36);
+  return `product-${stamp}`;
 }
 
 export default function NewProductPage() {
@@ -52,23 +68,41 @@ export default function NewProductPage() {
       const n = name.trim();
       if (!n) throw new Error("請輸入名稱");
 
-      const s = (slug || slugify(n)).trim();
-      if (!s) throw new Error("請輸入 slug（或讓系統自動產生）");
+      const manualSlug = slug.trim();
+      const finalSlug = manualSlug || buildFallbackSlug(n);
+
+      if (!finalSlug) {
+        throw new Error("Slug 產生失敗，請手動輸入英文 slug");
+      }
 
       const p = Number(basePrice);
-      if (!Number.isFinite(p) || p < 0) throw new Error("basePrice 金額不正確");
+      if (!Number.isFinite(p) || p < 0) {
+        throw new Error("基本價格不正確");
+      }
 
       const res = await fetch("/api/admin/products", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: n, slug: s, basePrice: p, isActive }),
+        body: JSON.stringify({
+          name: n,
+          slug: finalSlug,
+          basePrice: p,
+          isActive,
+        }),
       });
 
       const raw: unknown = await res.json().catch(() => null);
       const data = isProductCreateResponse(raw) ? raw : null;
 
-      if (!data || data.ok !== true) {
-        throw new Error(String(data?.error ?? "CREATE_FAILED"));
+      if (!res.ok || !data || data.ok !== true) {
+        const errorText =
+          typeof data?.detail === "string"
+            ? data.detail
+            : typeof data?.error === "string"
+              ? data.error
+              : "CREATE_FAILED";
+
+        throw new Error(errorText);
       }
 
       router.push("/admin/products");
@@ -99,8 +133,10 @@ export default function NewProductPage() {
           placeholder="例如：strawberry-shortcake-6in"
           style={inputStyle}
         />
-        <div style={{ marginTop: 6, fontSize: 12, opacity: 0.75 }}>
-          留空會用名稱自動產生（英文/數字/連字號）。
+        <div style={{ marginTop: 6, fontSize: 12, opacity: 0.75, whiteSpace: "pre-wrap" }}>
+          留空會自動產生。
+          {"\n"}
+          如果名稱是中文，系統會改用安全的 fallback slug，不會因為自動 slug 為空而失敗。
         </div>
       </div>
 
