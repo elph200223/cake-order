@@ -16,7 +16,6 @@ const ZOOM_MIN = 50;
 const ZOOM_MAX = 250;
 const ZOOM_STEP = 10;
 const ZOOM_PRESETS = [50, 75, 100, 125, 150, 200, 250];
-const BOX_RATIO = 4 / 3;
 
 function clampPercent(value: number) {
   if (!Number.isFinite(value)) return 50;
@@ -30,6 +29,30 @@ function clampZoom(value: number) {
   if (value < ZOOM_MIN) return ZOOM_MIN;
   if (value > ZOOM_MAX) return ZOOM_MAX;
   return Math.round(value);
+}
+
+function getFrameRatio(size: { width: number; height: number } | null) {
+  if (!size || size.width <= 0 || size.height <= 0) {
+    return 4 / 5;
+  }
+
+  const ratio = size.width / size.height;
+
+  if (ratio >= 1.08) {
+    return 4 / 3;
+  }
+
+  if (ratio <= 0.92) {
+    return 4 / 5;
+  }
+
+  return 1;
+}
+
+function getFrameAspectRatioText(frameRatio: number) {
+  if (Math.abs(frameRatio - 4 / 3) < 0.001) return "4 / 3";
+  if (Math.abs(frameRatio - 4 / 5) < 0.001) return "4 / 5";
+  return "1 / 1";
 }
 
 export default function ImageFocusEditor({
@@ -91,21 +114,23 @@ export default function ImageFocusEditor({
   }
 
   const isBusy = disabled || saving;
+  const frameRatio = getFrameRatio(naturalSize);
+  const frameAspectRatio = getFrameAspectRatioText(frameRatio);
 
   const imageLayout = useMemo(() => {
-    const sourceWidth = naturalSize?.width ?? BOX_RATIO * 1000;
+    const sourceWidth = naturalSize?.width ?? 800;
     const sourceHeight = naturalSize?.height ?? 1000;
     const sourceRatio = sourceWidth / sourceHeight;
 
     let baseWidthPercent = 100;
     let baseHeightPercent = 100;
 
-    if (sourceRatio > BOX_RATIO) {
+    if (sourceRatio > frameRatio) {
       baseHeightPercent = 100;
-      baseWidthPercent = (sourceRatio / BOX_RATIO) * 100;
+      baseWidthPercent = (sourceRatio / frameRatio) * 100;
     } else {
       baseWidthPercent = 100;
-      baseHeightPercent = (BOX_RATIO / sourceRatio) * 100;
+      baseHeightPercent = (frameRatio / sourceRatio) * 100;
     }
 
     const scaledWidthPercent = baseWidthPercent * (zoom / 100);
@@ -120,7 +145,7 @@ export default function ImageFocusEditor({
       leftPercent,
       topPercent,
     };
-  }, [focusX, focusY, naturalSize, zoom]);
+  }, [focusX, focusY, frameRatio, naturalSize, zoom]);
 
   return (
     <div>
@@ -141,7 +166,7 @@ export default function ImageFocusEditor({
         style={{
           position: "relative",
           width: "100%",
-          aspectRatio: "4 / 3",
+          aspectRatio: frameAspectRatio,
           background:
             "linear-gradient(45deg, #f7f7f7 25%, #f1f1f1 25%, #f1f1f1 50%, #f7f7f7 50%, #f7f7f7 75%, #f1f1f1 75%, #f1f1f1 100%)",
           backgroundSize: "20px 20px",
@@ -223,7 +248,7 @@ export default function ImageFocusEditor({
             htmlFor={zoomInputId}
             style={{ fontSize: 12, color: "#666", fontWeight: 600 }}
           >
-            縮放：{zoom}%（固定外框，縮小時會露出更多照片範圍）
+            縮放：{zoom}%（依照片方向自動切換外框，目前 {frameAspectRatio}）
           </label>
 
           <div style={{ display: "flex", gap: 6 }}>
