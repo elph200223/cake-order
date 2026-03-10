@@ -23,6 +23,8 @@ export type CatalogProductImage = {
   alt: string;
   focusX: number;
   focusY: number;
+  zoom: number;
+  sort: number;
   isCover: boolean;
 };
 
@@ -40,8 +42,31 @@ export type CatalogProductDetail = {
   slug: string;
   basePrice: number;
   coverImage: CatalogProductImage | null;
+  images: CatalogProductImage[];
   optionGroups: CatalogOptionGroup[];
 };
+
+function mapCatalogProductImage(image: {
+  id: number;
+  url: string;
+  alt: string;
+  focusX: number;
+  focusY: number;
+  zoom: number;
+  sort: number;
+  isCover: boolean;
+}): CatalogProductImage {
+  return {
+    id: image.id,
+    url: image.url,
+    alt: image.alt,
+    focusX: image.focusX,
+    focusY: image.focusY,
+    zoom: image.zoom,
+    sort: image.sort,
+    isCover: image.isCover,
+  };
+}
 
 export async function getCatalogProducts(): Promise<CatalogProductCard[]> {
   const products = await prisma.product.findMany({
@@ -66,6 +91,8 @@ export async function getCatalogProducts(): Promise<CatalogProductCard[]> {
           alt: true,
           focusX: true,
           focusY: true,
+          zoom: true,
+          sort: true,
           isCover: true,
         },
       },
@@ -77,16 +104,7 @@ export async function getCatalogProducts(): Promise<CatalogProductCard[]> {
     name: product.name,
     slug: product.slug,
     basePrice: product.basePrice,
-    coverImage: product.images[0]
-      ? {
-          id: product.images[0].id,
-          url: product.images[0].url,
-          alt: product.images[0].alt,
-          focusX: product.images[0].focusX,
-          focusY: product.images[0].focusY,
-          isCover: product.images[0].isCover,
-        }
-      : null,
+    coverImage: product.images[0] ? mapCatalogProductImage(product.images[0]) : null,
   }));
 }
 
@@ -101,6 +119,8 @@ type ProductDetailQueryResult = {
     alt: string;
     focusX: number;
     focusY: number;
+    zoom: number;
+    sort: number;
     isCover: boolean;
   }[];
   optionGroups: {
@@ -143,13 +163,14 @@ export async function getCatalogProductBySlug(
           isActive: true,
         },
         orderBy: [{ isCover: "desc" }, { sort: "asc" }, { id: "asc" }],
-        take: 1,
         select: {
           id: true,
           url: true,
           alt: true,
           focusX: true,
           focusY: true,
+          zoom: true,
+          sort: true,
           isCover: true,
         },
       },
@@ -216,16 +237,8 @@ export async function getCatalogProductBySlug(
         })),
     }));
 
-  const coverImage = product.images[0]
-    ? {
-        id: product.images[0].id,
-        url: product.images[0].url,
-        alt: product.images[0].alt,
-        focusX: product.images[0].focusX,
-        focusY: product.images[0].focusY,
-        isCover: product.images[0].isCover,
-      }
-    : null;
+  const images = product.images.map(mapCatalogProductImage);
+  const coverImage = images.find((image) => image.isCover) ?? images[0] ?? null;
 
   return {
     id: product.id,
@@ -233,6 +246,7 @@ export async function getCatalogProductBySlug(
     slug: product.slug,
     basePrice: product.basePrice,
     coverImage,
+    images,
     optionGroups,
   };
 }

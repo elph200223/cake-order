@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import ImageFocusEditor from "./ImageFocusEditor";
 import type { ProductImageItem } from "./ProductImagesSection";
 
@@ -25,6 +25,13 @@ function formatBytes(value?: number | null) {
   return `${size.toFixed(size >= 100 ? 0 : size >= 10 ? 1 : 2)} ${units[unitIndex]}`;
 }
 
+function clampZoom(value?: number | null) {
+  if (!Number.isFinite(value)) return 100;
+  if ((value ?? 100) < 50) return 50;
+  if ((value ?? 100) > 250) return 250;
+  return Math.round(value as number);
+}
+
 export default function ProductImageCard({
   productId,
   image,
@@ -33,6 +40,10 @@ export default function ProductImageCard({
   const [busy, setBusy] = useState(false);
   const [cardMsg, setCardMsg] = useState("");
   const [sortValue, setSortValue] = useState(String(image.sort ?? 0));
+
+  useEffect(() => {
+    setSortValue(String(image.sort ?? 0));
+  }, [image.sort]);
 
   async function patchImage(payload: {
     focusX?: number;
@@ -114,6 +125,10 @@ export default function ProductImageCard({
     await patchImage({ sort: Math.trunc(sort) });
   }
 
+  const savedFocusX = image.focusX ?? 50;
+  const savedFocusY = image.focusY ?? 50;
+  const savedZoom = clampZoom(image.zoom ?? 100);
+
   return (
     <article
       style={{
@@ -127,9 +142,9 @@ export default function ProductImageCard({
         <ImageFocusEditor
           imageUrl={image.url}
           alt={image.alt || image.originalName || "商品圖片"}
-          initialFocusX={image.focusX ?? 50}
-          initialFocusY={image.focusY ?? 50}
-          initialZoom={image.zoom ?? 100}
+          initialFocusX={savedFocusX}
+          initialFocusY={savedFocusY}
+          initialZoom={savedZoom}
           disabled={busy}
           onSave={async (focusX, focusY, zoom) => {
             await patchImage({ focusX, focusY, zoom });
@@ -211,9 +226,10 @@ export default function ProductImageCard({
           <div>大小：{formatBytes(image.sizeBytes)}</div>
           <div>壓縮後：{formatBytes(image.compressedBytes)}</div>
           <div>
-            已存中心：X {image.focusX ?? 50}% / Y {image.focusY ?? 50}%
+            已存中心：X {savedFocusX}% / Y {savedFocusY}%
           </div>
-          <div>已存縮放：{image.zoom ?? 100}%</div>
+          <div>已存縮放：{savedZoom}%</div>
+          <div>縮放範圍：50% ～ 250%</div>
         </div>
 
         <div
@@ -229,7 +245,10 @@ export default function ProductImageCard({
 
           <input
             value={sortValue}
-            onChange={(event) => setSortValue(event.target.value)}
+            onChange={(event) => {
+              setSortValue(event.target.value);
+              setCardMsg("");
+            }}
             disabled={busy}
             inputMode="numeric"
             style={{

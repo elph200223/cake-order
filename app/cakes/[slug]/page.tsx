@@ -20,7 +20,14 @@ export default async function CakeDetailPage({
     notFound();
   }
 
-  const coverImage = product.coverImage;
+  const images = product.images;
+  const mainImage = product.coverImage ?? images[0] ?? null;
+  const galleryImages = mainImage
+    ? [
+        mainImage,
+        ...images.filter((image) => image.id !== mainImage.id),
+      ]
+    : images;
 
   return (
     <main className="mx-auto max-w-5xl px-6 py-10">
@@ -31,19 +38,19 @@ export default async function CakeDetailPage({
       </div>
 
       <section className="grid grid-cols-1 gap-8 lg:grid-cols-[1.1fr_0.9fr]">
-        <div>
+        <div className="space-y-4">
           <div className="overflow-hidden rounded-3xl border border-neutral-200 bg-white shadow-sm">
             <div className="relative aspect-[4/3]">
-              {coverImage ? (
+              {mainImage ? (
                 <Image
-                  src={coverImage.url}
-                  alt={coverImage.alt?.trim() || product.name}
+                  src={mainImage.url}
+                  alt={mainImage.alt?.trim() || product.name}
                   fill
                   priority
                   sizes="(max-width: 1024px) 100vw, 55vw"
                   className="object-cover"
                   style={{
-                    objectPosition: `${coverImage.focusX ?? 50}% ${coverImage.focusY ?? 50}%`,
+                    objectPosition: `${mainImage.focusX ?? 50}% ${mainImage.focusY ?? 50}%`,
                   }}
                 />
               ) : (
@@ -53,6 +60,30 @@ export default async function CakeDetailPage({
               )}
             </div>
           </div>
+
+          {galleryImages.length > 1 ? (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {galleryImages.slice(1).map((image) => (
+                <div
+                  key={image.id}
+                  className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm"
+                >
+                  <div className="relative aspect-[4/3]">
+                    <Image
+                      src={image.url}
+                      alt={image.alt?.trim() || `${product.name} 圖片 ${image.id}`}
+                      fill
+                      sizes="(max-width: 640px) 50vw, 240px"
+                      className="object-cover"
+                      style={{
+                        objectPosition: `${image.focusX ?? 50}% ${image.focusY ?? 50}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : null}
         </div>
 
         <div>

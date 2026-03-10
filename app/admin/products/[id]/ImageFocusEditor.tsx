@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 
 type Props = {
   imageUrl: string;
@@ -13,6 +13,11 @@ type Props = {
   onSave: (focusX: number, focusY: number, zoom: number) => Promise<void> | void;
 };
 
+const ZOOM_MIN = 50;
+const ZOOM_MAX = 250;
+const ZOOM_STEP = 10;
+const ZOOM_PRESETS = [50, 75, 100, 125, 150, 200, 250];
+
 function clampPercent(value: number) {
   if (!Number.isFinite(value)) return 50;
   if (value < 0) return 0;
@@ -22,8 +27,8 @@ function clampPercent(value: number) {
 
 function clampZoom(value: number) {
   if (!Number.isFinite(value)) return 100;
-  if (value < 100) return 100;
-  if (value > 250) return 250;
+  if (value < ZOOM_MIN) return ZOOM_MIN;
+  if (value > ZOOM_MAX) return ZOOM_MAX;
   return Math.round(value);
 }
 
@@ -37,16 +42,17 @@ export default function ImageFocusEditor({
   onSave,
 }: Props) {
   const boxRef = useRef<HTMLDivElement | null>(null);
+  const zoomInputId = useId();
   const [dragging, setDragging] = useState(false);
-  const [focusX, setFocusX] = useState(initialFocusX);
-  const [focusY, setFocusY] = useState(initialFocusY);
+  const [focusX, setFocusX] = useState(clampPercent(initialFocusX));
+  const [focusY, setFocusY] = useState(clampPercent(initialFocusY));
   const [zoom, setZoom] = useState(clampZoom(initialZoom));
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
 
   useEffect(() => {
-    setFocusX(initialFocusX);
-    setFocusY(initialFocusY);
+    setFocusX(clampPercent(initialFocusX));
+    setFocusY(clampPercent(initialFocusY));
     setZoom(clampZoom(initialZoom));
   }, [initialFocusX, initialFocusY, initialZoom]);
 
@@ -60,6 +66,12 @@ export default function ImageFocusEditor({
 
     setFocusX(clampPercent(x));
     setFocusY(clampPercent(y));
+    setMsg("");
+  }
+
+  function applyZoom(nextZoom: number) {
+    setZoom(clampZoom(nextZoom));
+    setMsg("");
   }
 
   async function handleSave() {
@@ -76,43 +88,34 @@ export default function ImageFocusEditor({
     }
   }
 
+  const isBusy = disabled || saving;
+
   return (
     <div>
       <div
         ref={boxRef}
-        onMouseDown={(event) => {
-          if (disabled || saving) return;
+        onPointerDown={(event) => {
+          if (isBusy) return;
+          event.currentTarget.setPointerCapture(event.pointerId);
           setDragging(true);
           updateFromPointer(event.clientX, event.clientY);
         }}
-        onMouseMove={(event) => {
-          if (!dragging || disabled || saving) return;
+        onPointerMove={(event) => {
+          if (!dragging || isBusy) return;
           updateFromPointer(event.clientX, event.clientY);
         }}
-        onMouseUp={() => setDragging(false)}
-        onMouseLeave={() => setDragging(false)}
-        onTouchStart={(event) => {
-          if (disabled || saving) return;
-          const touch = event.touches[0];
-          if (!touch) return;
-          setDragging(true);
-          updateFromPointer(touch.clientX, touch.clientY);
-        }}
-        onTouchMove={(event) => {
-          if (disabled || saving) return;
-          const touch = event.touches[0];
-          if (!touch) return;
-          updateFromPointer(touch.clientX, touch.clientY);
-        }}
-        onTouchEnd={() => setDragging(false)}
+        onPointerUp={() => setDragging(false)}
+        onPointerCancel={() => setDragging(false)}
         style={{
           position: "relative",
           width: "100%",
           aspectRatio: "4 / 3",
-          background: "#f5f5f5",
+          background:
+            "linear-gradient(45deg, #f7f7f7 25%, #f1f1f1 25%, #f1f1f1 50%, #f7f7f7 50%, #f7f7f7 75%, #f1f1f1 75%, #f1f1f1 100%)",
+          backgroundSize: "20px 20px",
           borderRadius: 12,
           overflow: "hidden",
-          cursor: disabled || saving ? "default" : "grab",
+          cursor: isBusy ? "default" : dragging ? "grabbing" : "grab",
           touchAction: "none",
           border: "1px solid #eee",
         }}
@@ -123,6 +126,7 @@ export default function ImageFocusEditor({
             inset: 0,
             transform: `scale(${zoom / 100})`,
             transformOrigin: `${focusX}% ${focusY}%`,
+            transition: dragging ? "none" : "transform 120ms ease, transform-origin 120ms ease",
           }}
         >
           <Image
@@ -167,27 +171,118 @@ export default function ImageFocusEditor({
         />
       </div>
 
-      <div style={{ marginTop: 10 }}>
-        <label
-          htmlFor={`zoom-range-${imageUrl}`}
-          style={{ display: "block", marginBottom: 6, fontSize: 12, color: "#666" }}
+      <div style={{ marginTop: 12 }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 8,
+            marginBottom: 6,
+            flexWrap: "wrap",
+          }}
         >
-          縮放：{zoom}%
-        </label>
+          <label
+            htmlFor={zoomInputId}
+            style={{ fontSize: 12, color: "#666", fontWeight: 600 }}
+          >
+            縮放：{zoom}%（可縮小到 50%，可放大到 250%）
+          </label>
+
+          <div style={{ display: "flex", gap: 6 }}>
+            <button
+              type="button"
+              disabled={isBusy}
+              onClick={() => applyZoom(zoom - ZOOM_STEP)}
+              style={{
+                border: "1px solid #ddd",
+                borderRadius: 10,
+                padding: "6px 10px",
+                background: "#fff",
+                fontWeight: 700,
+                cursor: isBusy ? "not-allowed" : "pointer",
+              }}
+            >
+              −
+            </button>
+
+            <button
+              type="button"
+              disabled={isBusy}
+              onClick={() => applyZoom(zoom + ZOOM_STEP)}
+              style={{
+                border: "1px solid #ddd",
+                borderRadius: 10,
+                padding: "6px 10px",
+                background: "#fff",
+                fontWeight: 700,
+                cursor: isBusy ? "not-allowed" : "pointer",
+              }}
+            >
+              ＋
+            </button>
+          </div>
+        </div>
+
         <input
-          id={`zoom-range-${imageUrl}`}
+          id={zoomInputId}
           type="range"
-          min={100}
-          max={250}
+          min={ZOOM_MIN}
+          max={ZOOM_MAX}
           step={1}
           value={zoom}
-          disabled={disabled || saving}
-          onChange={(event) => {
-            setZoom(clampZoom(Number(event.target.value)));
-            setMsg("");
-          }}
+          disabled={isBusy}
+          onChange={(event) => applyZoom(Number(event.target.value))}
           style={{ width: "100%" }}
         />
+
+        <div
+          style={{
+            marginTop: 6,
+            display: "flex",
+            justifyContent: "space-between",
+            fontSize: 12,
+            color: "#888",
+          }}
+        >
+          <span>{ZOOM_MIN}%</span>
+          <span>100%</span>
+          <span>{ZOOM_MAX}%</span>
+        </div>
+
+        <div
+          style={{
+            marginTop: 10,
+            display: "flex",
+            gap: 8,
+            flexWrap: "wrap",
+          }}
+        >
+          {ZOOM_PRESETS.map((preset) => {
+            const active = zoom === preset;
+
+            return (
+              <button
+                key={preset}
+                type="button"
+                disabled={isBusy}
+                onClick={() => applyZoom(preset)}
+                style={{
+                  border: active ? "1px solid #222" : "1px solid #ddd",
+                  borderRadius: 999,
+                  padding: "6px 10px",
+                  background: active ? "#222" : "#fff",
+                  color: active ? "#fff" : "#222",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: isBusy ? "not-allowed" : "pointer",
+                }}
+              >
+                {preset}%
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       <div
@@ -207,7 +302,7 @@ export default function ImageFocusEditor({
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <button
             type="button"
-            disabled={disabled || saving}
+            disabled={isBusy}
             onClick={() => {
               setFocusX(50);
               setFocusY(50);
@@ -220,7 +315,7 @@ export default function ImageFocusEditor({
               padding: "8px 10px",
               background: "#fff",
               fontWeight: 700,
-              cursor: disabled || saving ? "not-allowed" : "pointer",
+              cursor: isBusy ? "not-allowed" : "pointer",
             }}
           >
             回到預設
@@ -228,7 +323,7 @@ export default function ImageFocusEditor({
 
           <button
             type="button"
-            disabled={disabled || saving}
+            disabled={isBusy}
             onClick={() => void handleSave()}
             style={{
               border: "1px solid #222",
@@ -236,7 +331,7 @@ export default function ImageFocusEditor({
               padding: "8px 10px",
               background: "#fff",
               fontWeight: 800,
-              cursor: disabled || saving ? "not-allowed" : "pointer",
+              cursor: isBusy ? "not-allowed" : "pointer",
             }}
           >
             {saving ? "儲存中…" : "儲存中心與縮放"}
