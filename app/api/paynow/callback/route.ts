@@ -103,6 +103,7 @@ export async function POST(req: Request) {
     console.log("[paynow-callback] raw=", raw);
 
     const sig = verifyPassCode(p);
+    const origin = new URL(req.url).origin;
 
     if (!sig.ok) {
       console.log("[paynow-callback] INVALID_SIGNATURE", sig);
@@ -116,6 +117,7 @@ export async function POST(req: Request) {
     const paymentStatus = sig.tranStatus === "S" ? "PAID" : "FAILED";
 
     let prismaOrderUpdate: PrismaOrderUpdateResult | null = null;
+    let dbOrderId = "";
 
     if (sig.tranStatus === "S") {
       try {
@@ -129,6 +131,8 @@ export async function POST(req: Request) {
           },
         });
 
+        dbOrderId = String(updated.id);
+
         prismaOrderUpdate = {
           ok: true,
           status: updated.status,
@@ -140,6 +144,19 @@ export async function POST(req: Request) {
         };
       }
     } else {
+      try {
+        const found = await prisma.order.findUnique({
+          where: { orderNo },
+          select: { id: true },
+        });
+
+        if (found) {
+          dbOrderId = String(found.id);
+        }
+      } catch (error: unknown) {
+        console.log("[paynow-callback] find order error", error);
+      }
+
       prismaOrderUpdate = {
         ok: true,
         status: "SKIPPED_NON_SUCCESS",
@@ -190,17 +207,14 @@ export async function POST(req: Request) {
       gasBody = text;
     }
 
-    return NextResponse.json(
-      {
-        ok: true,
-        orderNo,
-        paymentStatus,
-        prismaOrderUpdate,
-        gasStatus: r.status,
-        gasBody,
-      },
-      { status: 200 }
-    );
+    console.log("[paynow-callback] gasStatus=", r.status);
+    console.log("[paynow-callback] gasBody=", gasBody);
+
+    const target = dbOrderId
+      ? `${origin}/pay/result?orderId=${encodeURIComponent(dbOrderId)}`
+      : `${origin}/pay/result`;
+
+    return NextResponse.redirect(target, { status: 303 });
   } catch (error: unknown) {
     console.log("[paynow-callback] ERROR", error);
     return NextResponse.json(
