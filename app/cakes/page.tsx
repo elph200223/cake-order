@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { getCatalogProducts } from "@/lib/catalog";
 
@@ -11,57 +12,98 @@ export default async function CakesPage() {
   const products = await getCatalogProducts();
 
   return (
-    <main className="mx-auto max-w-6xl px-6 py-10">
-      <header className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight">蛋糕訂購</h1>
-        <p className="mt-2 text-sm text-neutral-600">
-          請先選擇商品，下一步可查看規格與加購選項。
-        </p>
-      </header>
-
-      {products.length === 0 ? (
-        <section className="rounded-2xl border border-neutral-200 bg-white p-8 text-center">
-          <h2 className="text-lg font-semibold text-neutral-900">目前沒有可販售商品</h2>
-          <p className="mt-2 text-sm text-neutral-600">
-            請先到後台啟用商品後再返回查看。
+    <main className="min-h-screen bg-stone-50 text-stone-800">
+      <div className="mx-auto max-w-6xl px-6 py-8 sm:px-10 lg:px-12">
+        <header className="border-b border-stone-200 pb-5">
+          <p className="text-[11px] tracking-[0.28em] text-stone-500">
+            CAKE ORDER
           </p>
-        </section>
-      ) : (
-        <section className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
-          {products.map((product) => (
-            <article
-              key={product.id}
-              className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm transition hover:shadow-md"
+          <h1
+            className="mt-2 text-[24px] font-medium tracking-[0.08em] text-stone-800 sm:text-[30px]"
+            style={{
+              fontFamily:
+                '"Noto Serif TC","Iowan Old Style","Palatino Linotype","Times New Roman",serif',
+            }}
+          >
+            蛋糕訂購
+          </h1>
+          <p className="mt-3 max-w-2xl text-sm leading-7 text-stone-600">
+            請先選擇商品，下一步可查看規格與加購選項。
+          </p>
+        </header>
+
+        <div className="pt-8">
+          <div className="mb-6">
+            <Link
+              href="/"
+              className="text-sm tracking-[0.08em] text-stone-500 transition hover:text-stone-800"
             >
-              <Link href={`/cakes/${product.slug}`} className="block h-full">
-                <div className="flex aspect-[4/3] items-center justify-center bg-neutral-100 text-sm text-neutral-400">
-                  尚無圖片
-                </div>
+              ← 返回首頁
+            </Link>
+          </div>
 
-                <div className="p-5">
-                  <div className="flex items-start justify-between gap-4">
-                    <h2 className="text-xl font-semibold text-neutral-900">
-                      {product.name}
-                    </h2>
-                    <span className="shrink-0 text-sm font-semibold text-neutral-700">
-                      {formatPrice(product.basePrice)}
-                    </span>
-                  </div>
+          {products.length === 0 ? (
+            <section className="rounded-[28px] border border-stone-200 bg-white p-10 text-center shadow-sm">
+              <h2 className="text-lg font-semibold tracking-[0.06em] text-stone-900">
+                目前沒有可販售商品
+              </h2>
+              <p className="mt-3 text-sm leading-7 text-stone-600">
+                請先到後台啟用商品後再返回查看。
+              </p>
+            </section>
+          ) : (
+            <section className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
+              {products.map((product) => (
+                <article
+                  key={product.id}
+                  className="overflow-hidden rounded-[28px] border border-stone-200 bg-white shadow-sm transition hover:border-stone-300 hover:shadow-md"
+                >
+                  <Link href={`/cakes/${product.slug}`} className="block h-full">
+                    <div className="relative aspect-[4/3] bg-stone-100">
+                      {product.coverImage ? (
+                        <Image
+                          src={product.coverImage.url}
+                          alt={product.coverImage.alt?.trim() || product.name}
+                          fill
+                          sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 33vw"
+                          className="object-cover"
+                          style={{
+                            objectPosition: `${product.coverImage.focusX ?? 50}% ${product.coverImage.focusY ?? 50}%`,
+                          }}
+                        />
+                      ) : (
+                        <div className="flex h-full items-center justify-center text-sm tracking-[0.08em] text-stone-400">
+                          尚無圖片
+                        </div>
+                      )}
+                    </div>
 
-                  <p className="mt-3 text-sm leading-6 text-neutral-500">
-                    點擊查看可選規格與加購項目。
-                  </p>
+                    <div className="p-5">
+                      <div className="flex items-start justify-between gap-4">
+                        <h2 className="text-xl font-semibold tracking-[0.04em] text-stone-900">
+                          {product.name}
+                        </h2>
+                        <span className="shrink-0 text-sm font-semibold text-stone-700">
+                          {formatPrice(product.basePrice)}
+                        </span>
+                      </div>
 
-                  <div className="mt-5 inline-flex items-center text-sm font-medium text-neutral-900">
-                    查看商品詳情
-                    <span className="ml-1">→</span>
-                  </div>
-                </div>
-              </Link>
-            </article>
-          ))}
-        </section>
-      )}
+                      <p className="mt-3 text-sm leading-6 text-stone-500">
+                        點擊查看可選規格與加購項目。
+                      </p>
+
+                      <div className="mt-5 inline-flex items-center text-sm font-medium tracking-[0.08em] text-stone-800">
+                        查看商品詳情
+                        <span className="ml-1">→</span>
+                      </div>
+                    </div>
+                  </Link>
+                </article>
+              ))}
+            </section>
+          )}
+        </div>
+      </div>
     </main>
   );
 }
