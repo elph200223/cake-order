@@ -3,18 +3,18 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { upload } from "@vercel/blob/client";
 
-type SiteImageKind = "HOME_HERO";
+type SiteImageSlot = "HOME_HERO";
 
 type SiteImageItem = {
-  id: string;
-  kind: SiteImageKind | string;
+  id: number;
+  slot: SiteImageSlot | string;
   url: string;
-  alt: string | null;
+  alt: string;
   width: number | null;
   height: number | null;
   sizeBytes: number | null;
-  mimeType: string | null;
-  originalName: string | null;
+  mimeType: string;
+  originalName: string;
   createdAt?: string;
   updatedAt?: string;
 };
@@ -96,7 +96,7 @@ export default function AdminSiteImagesPage() {
   }, [loadImages]);
 
   const homeHeroImages = useMemo(
-    () => images.filter((image) => image.kind === "HOME_HERO"),
+    () => images.filter((image) => image.slot === "HOME_HERO"),
     [images]
   );
 
@@ -120,7 +120,7 @@ export default function AdminSiteImagesPage() {
         handleUploadUrl: "/api/admin/site-images/upload",
         multipart: selectedFile.size > 20 * 1024 * 1024,
         clientPayload: JSON.stringify({
-          kind: "HOME_HERO",
+          slot: "HOME_HERO",
           alt: alt.trim(),
           originalName: selectedFile.name,
         }),
@@ -328,7 +328,7 @@ export default function AdminSiteImagesPage() {
                     <div className="grid gap-4 p-5 md:grid-cols-[minmax(0,1fr)_220px]">
                       <div className="min-w-0">
                         <div className="text-sm font-semibold text-stone-900">
-                          {image.kind}
+                          {image.slot}
                         </div>
                         <div className="mt-2 break-all text-xs leading-6 text-stone-500">
                           {image.url}
