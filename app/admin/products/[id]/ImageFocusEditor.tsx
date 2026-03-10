@@ -89,6 +89,9 @@ export default function ImageFocusEditor({
   }
 
   const isBusy = disabled || saving;
+  const scale = zoom / 100;
+  const imageLeft = `${focusX * (1 - scale)}%`;
+  const imageTop = `${focusY * (1 - scale)}%`;
 
   return (
     <div>
@@ -123,10 +126,11 @@ export default function ImageFocusEditor({
         <div
           style={{
             position: "absolute",
-            inset: 0,
-            transform: `scale(${zoom / 100})`,
-            transformOrigin: `${focusX}% ${focusY}%`,
-            transition: dragging ? "none" : "transform 120ms ease, transform-origin 120ms ease",
+            left: imageLeft,
+            top: imageTop,
+            width: `${zoom}%`,
+            height: `${zoom}%`,
+            transition: dragging ? "none" : "left 120ms ease, top 120ms ease, width 120ms ease, height 120ms ease",
           }}
         >
           <Image
@@ -136,7 +140,6 @@ export default function ImageFocusEditor({
             sizes="320px"
             style={{
               objectFit: "cover",
-              objectPosition: `${focusX}% ${focusY}%`,
               userSelect: "none",
               pointerEvents: "none",
             }}
@@ -186,7 +189,7 @@ export default function ImageFocusEditor({
             htmlFor={zoomInputId}
             style={{ fontSize: 12, color: "#666", fontWeight: 600 }}
           >
-            縮放：{zoom}%（可縮小到 50%，可放大到 250%）
+            縮放：{zoom}%（固定外框，只縮放照片）
           </label>
 
           <div style={{ display: "flex", gap: 6 }}>
