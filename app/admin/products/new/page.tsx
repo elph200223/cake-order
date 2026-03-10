@@ -94,7 +94,7 @@ export default function NewProductPage() {
       const raw: unknown = await res.json().catch(() => null);
       const data = isProductCreateResponse(raw) ? raw : null;
 
-      if (!res.ok || !data || data.ok !== true) {
+      if (!res.ok || !data || data.ok !== true || !data.product?.id) {
         const errorText =
           typeof data?.detail === "string"
             ? data.detail
@@ -105,7 +105,7 @@ export default function NewProductPage() {
         throw new Error(errorText);
       }
 
-      router.push("/admin/products");
+      router.push(`/admin/products/${data.product.id}`);
       router.refresh();
     } catch (error: unknown) {
       setMsg(error instanceof Error ? error.message : "儲存失敗");
@@ -178,7 +178,7 @@ export default function NewProductPage() {
             cursor: loading ? "not-allowed" : "pointer",
           }}
         >
-          {loading ? "儲存中…" : "儲存"}
+          {loading ? "儲存中…" : "儲存並前往圖片設定"}
         </button>
 
         <button

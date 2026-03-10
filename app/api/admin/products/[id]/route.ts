@@ -29,7 +29,14 @@ export async function GET(_req: NextRequest, ctx: Ctx) {
       return NextResponse.json({ ok: false, error: "ID_INVALID" }, { status: 400 });
     }
 
-    const product = await prisma.product.findUnique({ where: { id } });
+    const product = await prisma.product.findUnique({
+      where: { id },
+      include: {
+        images: {
+          orderBy: [{ sort: "asc" }, { id: "asc" }],
+        },
+      },
+    });
 
     if (!product) {
       return NextResponse.json({ ok: false, error: "NOT_FOUND" }, { status: 404 });

@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getCatalogProductBySlug } from "@/lib/catalog";
@@ -19,6 +20,8 @@ export default async function CakeDetailPage({
     notFound();
   }
 
+  const coverImage = product.coverImage;
+
   return (
     <main className="mx-auto max-w-5xl px-6 py-10">
       <div className="mb-6">
@@ -30,8 +33,24 @@ export default async function CakeDetailPage({
       <section className="grid grid-cols-1 gap-8 lg:grid-cols-[1.1fr_0.9fr]">
         <div>
           <div className="overflow-hidden rounded-3xl border border-neutral-200 bg-white shadow-sm">
-            <div className="flex aspect-[4/3] items-center justify-center bg-neutral-100 text-sm text-neutral-400">
-              尚無圖片
+            <div className="relative aspect-[4/3]">
+              {coverImage ? (
+                <Image
+                  src={coverImage.url}
+                  alt={coverImage.alt?.trim() || product.name}
+                  fill
+                  priority
+                  sizes="(max-width: 1024px) 100vw, 55vw"
+                  className="object-cover"
+                  style={{
+                    objectPosition: `${coverImage.focusX ?? 50}% ${coverImage.focusY ?? 50}%`,
+                  }}
+                />
+              ) : (
+                <div className="flex h-full items-center justify-center bg-neutral-100 text-sm text-neutral-400">
+                  尚無圖片
+                </div>
+              )}
             </div>
           </div>
         </div>

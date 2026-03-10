@@ -1,8 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import ProductImagesSection, {
+  type ProductImageItem,
+} from "./ProductImagesSection";
 
 type Product = {
   id: number;
@@ -12,6 +15,7 @@ type Product = {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  images?: ProductImageItem[];
 };
 
 type OptionGroup = {
@@ -116,7 +120,7 @@ export default function AdminEditProductPage() {
     []
   );
 
-  async function loadAll() {
+  const loadAll = useCallback(async () => {
     setMsg("");
     setLoading(true);
 
@@ -160,11 +164,11 @@ export default function AdminEditProductPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [id]);
 
   useEffect(() => {
     void loadAll();
-  }, [id]);
+  }, [loadAll]);
 
   async function saveProduct() {
     setMsg("");
@@ -426,6 +430,12 @@ export default function AdminEditProductPage() {
           </div>
         </div>
       </section>
+
+      <ProductImagesSection
+        productId={product.id}
+        images={Array.isArray(product.images) ? product.images : []}
+        onChanged={loadAll}
+      />
 
       <section style={{ marginTop: 14, border: "1px solid #e5e5e5", borderRadius: 14, padding: 14 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "end", gap: 12 }}>

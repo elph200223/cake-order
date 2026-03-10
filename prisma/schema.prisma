@@ -132,6 +132,8 @@ model ProductImage {
   sort            Int      @default(0)
   isCover         Boolean  @default(false)
   isActive        Boolean  @default(true)
+  focusX          Int      @default(50)
+  focusY          Int      @default(50)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
