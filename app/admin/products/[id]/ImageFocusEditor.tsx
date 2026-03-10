@@ -1,15 +1,16 @@
 "use client";
 
 import Image from "next/image";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type Props = {
   imageUrl: string;
   alt: string;
   initialFocusX: number;
   initialFocusY: number;
+  initialZoom: number;
   disabled?: boolean;
-  onSave: (focusX: number, focusY: number) => Promise<void> | void;
+  onSave: (focusX: number, focusY: number, zoom: number) => Promise<void> | void;
 };
 
 function clampPercent(value: number) {
@@ -19,11 +20,19 @@ function clampPercent(value: number) {
   return Math.round(value);
 }
 
+function clampZoom(value: number) {
+  if (!Number.isFinite(value)) return 100;
+  if (value < 100) return 100;
+  if (value > 250) return 250;
+  return Math.round(value);
+}
+
 export default function ImageFocusEditor({
   imageUrl,
   alt,
   initialFocusX,
   initialFocusY,
+  initialZoom,
   disabled = false,
   onSave,
 }: Props) {
@@ -31,8 +40,15 @@ export default function ImageFocusEditor({
   const [dragging, setDragging] = useState(false);
   const [focusX, setFocusX] = useState(initialFocusX);
   const [focusY, setFocusY] = useState(initialFocusY);
+  const [zoom, setZoom] = useState(clampZoom(initialZoom));
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
+
+  useEffect(() => {
+    setFocusX(initialFocusX);
+    setFocusY(initialFocusY);
+    setZoom(clampZoom(initialZoom));
+  }, [initialFocusX, initialFocusY, initialZoom]);
 
   function updateFromPointer(clientX: number, clientY: number) {
     const box = boxRef.current;
@@ -51,8 +67,8 @@ export default function ImageFocusEditor({
     setMsg("");
 
     try {
-      await onSave(focusX, focusY);
-      setMsg("✅ 已儲存中心");
+      await onSave(focusX, focusY, zoom);
+      setMsg("✅ 已儲存中心與縮放");
     } catch (error: unknown) {
       setMsg(error instanceof Error ? error.message : "儲存失敗");
     } finally {
@@ -101,18 +117,27 @@ export default function ImageFocusEditor({
           border: "1px solid #eee",
         }}
       >
-        <Image
-          src={imageUrl}
-          alt={alt}
-          fill
-          sizes="320px"
+        <div
           style={{
-            objectFit: "cover",
-            objectPosition: `${focusX}% ${focusY}%`,
-            userSelect: "none",
-            pointerEvents: "none",
+            position: "absolute",
+            inset: 0,
+            transform: `scale(${zoom / 100})`,
+            transformOrigin: `${focusX}% ${focusY}%`,
           }}
-        />
+        >
+          <Image
+            src={imageUrl}
+            alt={alt}
+            fill
+            sizes="320px"
+            style={{
+              objectFit: "cover",
+              objectPosition: `${focusX}% ${focusY}%`,
+              userSelect: "none",
+              pointerEvents: "none",
+            }}
+          />
+        </div>
 
         <div
           style={{
@@ -142,6 +167,29 @@ export default function ImageFocusEditor({
         />
       </div>
 
+      <div style={{ marginTop: 10 }}>
+        <label
+          htmlFor={`zoom-range-${imageUrl}`}
+          style={{ display: "block", marginBottom: 6, fontSize: 12, color: "#666" }}
+        >
+          縮放：{zoom}%
+        </label>
+        <input
+          id={`zoom-range-${imageUrl}`}
+          type="range"
+          min={100}
+          max={250}
+          step={1}
+          value={zoom}
+          disabled={disabled || saving}
+          onChange={(event) => {
+            setZoom(clampZoom(Number(event.target.value)));
+            setMsg("");
+          }}
+          style={{ width: "100%" }}
+        />
+      </div>
+
       <div
         style={{
           marginTop: 10,
@@ -153,7 +201,7 @@ export default function ImageFocusEditor({
         }}
       >
         <div style={{ fontSize: 12, color: "#666" }}>
-          中心：X {focusX}% / Y {focusY}%
+          中心：X {focusX}% / Y {focusY}% ／ 縮放：{zoom}%
         </div>
 
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -163,6 +211,7 @@ export default function ImageFocusEditor({
             onClick={() => {
               setFocusX(50);
               setFocusY(50);
+              setZoom(100);
               setMsg("");
             }}
             style={{
@@ -174,7 +223,7 @@ export default function ImageFocusEditor({
               cursor: disabled || saving ? "not-allowed" : "pointer",
             }}
           >
-            回到中央
+            回到預設
           </button>
 
           <button
@@ -190,7 +239,7 @@ export default function ImageFocusEditor({
               cursor: disabled || saving ? "not-allowed" : "pointer",
             }}
           >
-            {saving ? "儲存中…" : "儲存中心"}
+            {saving ? "儲存中…" : "儲存中心與縮放"}
           </button>
         </div>
       </div>

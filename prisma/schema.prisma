@@ -134,6 +134,7 @@ model ProductImage {
   isActive        Boolean  @default(true)
   focusX          Int      @default(50)
   focusY          Int      @default(50)
+  zoom            Int      @default(100)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 

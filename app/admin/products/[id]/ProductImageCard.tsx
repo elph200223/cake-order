@@ -37,6 +37,7 @@ export default function ProductImageCard({
   async function patchImage(payload: {
     focusX?: number;
     focusY?: number;
+    zoom?: number;
     isCover?: boolean;
     sort?: number;
   }) {
@@ -128,9 +129,10 @@ export default function ProductImageCard({
           alt={image.alt || image.originalName || "商品圖片"}
           initialFocusX={image.focusX ?? 50}
           initialFocusY={image.focusY ?? 50}
+          initialZoom={image.zoom ?? 100}
           disabled={busy}
-          onSave={async (focusX, focusY) => {
-            await patchImage({ focusX, focusY });
+          onSave={async (focusX, focusY, zoom) => {
+            await patchImage({ focusX, focusY, zoom });
           }}
         />
 
@@ -211,6 +213,7 @@ export default function ProductImageCard({
           <div>
             已存中心：X {image.focusX ?? 50}% / Y {image.focusY ?? 50}%
           </div>
+          <div>已存縮放：{image.zoom ?? 100}%</div>
         </div>
 
         <div

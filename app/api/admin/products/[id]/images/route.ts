@@ -11,6 +11,7 @@ type ProductImagePatchBody = {
   isActive?: unknown;
   focusX?: unknown;
   focusY?: unknown;
+  zoom?: unknown;
 };
 
 function parseId(idStr: string) {
@@ -22,6 +23,13 @@ function clampFocus(value: number) {
   if (!Number.isFinite(value)) return 50;
   if (value < 0) return 0;
   if (value > 100) return 100;
+  return Math.round(value);
+}
+
+function clampZoom(value: number) {
+  if (!Number.isFinite(value)) return 100;
+  if (value < 100) return 100;
+  if (value > 250) return 250;
   return Math.round(value);
 }
 
@@ -91,6 +99,7 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
       isActive?: boolean;
       focusX?: number;
       focusY?: number;
+      zoom?: number;
     } = {};
 
     if (body.alt != null) data.alt = String(body.alt).trim();
@@ -119,6 +128,14 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
         return NextResponse.json({ ok: false, error: "FOCUS_Y_INVALID" }, { status: 400 });
       }
       data.focusY = clampFocus(focusY);
+    }
+
+    if (body.zoom != null) {
+      const zoom = Number(body.zoom);
+      if (!Number.isFinite(zoom)) {
+        return NextResponse.json({ ok: false, error: "ZOOM_INVALID" }, { status: 400 });
+      }
+      data.zoom = clampZoom(zoom);
     }
 
     const makeCover = body.isCover === true;
