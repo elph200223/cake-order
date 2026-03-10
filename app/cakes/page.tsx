@@ -13,7 +13,7 @@ export default async function CakesPage() {
 
   return (
     <main className="min-h-screen bg-stone-50 text-stone-800">
-      <div className="mx-auto max-w-[1380px] px-5 py-7 sm:px-8 lg:px-10">
+      <div className="mx-auto max-w-[1280px] px-5 py-7 sm:px-8 lg:px-10">
         <header className="border-b border-stone-200 pb-4">
           <p className="text-[10px] tracking-[0.32em] text-stone-500">
             CAKE ORDER
@@ -52,20 +52,20 @@ export default async function CakesPage() {
               </p>
             </section>
           ) : (
-            <section className="grid grid-cols-2 gap-x-3 gap-y-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
+            <section className="grid grid-cols-2 gap-x-4 gap-y-5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-5">
               {products.map((product) => (
                 <article
                   key={product.id}
-                  className="border border-stone-200 bg-white transition duration-200 hover:border-stone-400 hover:shadow-[0_10px_24px_rgba(0,0,0,0.04)]"
+                  className="mx-auto w-full max-w-[220px] border border-stone-200 bg-white transition duration-200 hover:border-stone-400 hover:shadow-[0_10px_24px_rgba(0,0,0,0.04)]"
                 >
                   <Link href={`/cakes/${product.slug}`} className="block h-full">
-                    <div className="relative aspect-[4/4.8] bg-stone-100">
+                    <div className="relative aspect-[4/4.6] bg-stone-100">
                       {product.coverImage ? (
                         <Image
                           src={product.coverImage.url}
                           alt={product.coverImage.alt?.trim() || product.name}
                           fill
-                          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 16vw"
+                          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, (max-width: 1536px) 25vw, 220px"
                           className="object-cover"
                           style={{
                             objectPosition: `${product.coverImage.focusX ?? 50}% ${product.coverImage.focusY ?? 50}%`,
@@ -78,21 +78,21 @@ export default async function CakesPage() {
                       )}
                     </div>
 
-                    <div className="p-3">
+                    <div className="p-2.5">
                       <div className="flex items-start justify-between gap-2">
-                        <h2 className="line-clamp-2 text-[14px] font-medium leading-5 tracking-[0.03em] text-stone-900">
+                        <h2 className="line-clamp-2 text-[13px] font-medium leading-[1.35rem] tracking-[0.02em] text-stone-900">
                           {product.name}
                         </h2>
-                        <span className="shrink-0 pt-[1px] text-[12px] font-medium text-stone-700">
+                        <span className="shrink-0 pt-[1px] text-[11px] font-medium text-stone-700">
                           {formatPrice(product.basePrice)}
                         </span>
                       </div>
 
-                      <p className="mt-1.5 text-[11px] leading-5 text-stone-500">
+                      <p className="mt-1 text-[10px] leading-4 text-stone-500">
                         查看規格與加購
                       </p>
 
-                      <div className="mt-3 inline-flex items-center text-[11px] font-medium tracking-[0.1em] text-stone-800">
+                      <div className="mt-2.5 inline-flex items-center text-[10px] font-medium tracking-[0.1em] text-stone-800">
                         查看商品
                         <span className="ml-1">→</span>
                       </div>
