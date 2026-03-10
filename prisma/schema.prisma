@@ -13,6 +13,10 @@ enum OrderStatus {
   CANCELLED
 }
 
+enum SiteImageSlot {
+  HOME_HERO
+}
+
 model Order {
   id          Int         @id @default(autoincrement())
   orderNo     String      @unique
@@ -30,8 +34,8 @@ model Order {
 }
 
 model OrderItem {
-  id       Int    @id @default(autoincrement())
-  order    Order  @relation(fields: [orderId], references: [id])
+  id       Int   @id @default(autoincrement())
+  order    Order @relation(fields: [orderId], references: [id])
   orderId  Int
   name     String
   price    Int
@@ -48,6 +52,7 @@ model Product {
   updatedAt DateTime @updatedAt
 
   optionGroups ProductOptionGroup[]
+  images       ProductImage[]
 }
 
 model OptionGroup {
@@ -92,4 +97,44 @@ model ProductOptionGroup {
 
   @@unique([productId, optionGroupId])
   @@index([optionGroupId])
+}
+
+model SiteImage {
+  id              Int           @id @default(autoincrement())
+  slot            SiteImageSlot @unique
+  originalName    String
+  mimeType        String
+  storageKey      String        @unique
+  url             String
+  width           Int?
+  height          Int?
+  sizeBytes       Int?
+  compressedBytes Int?
+  alt             String        @default("")
+  isActive        Boolean       @default(true)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+}
+
+model ProductImage {
+  id              Int      @id @default(autoincrement())
+  product         Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId       Int
+  originalName    String
+  mimeType        String
+  storageKey      String   @unique
+  url             String
+  width           Int?
+  height          Int?
+  sizeBytes       Int?
+  compressedBytes Int?
+  alt             String   @default("")
+  sort            Int      @default(0)
+  isCover         Boolean  @default(false)
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([productId])
+  @@index([productId, sort])
 }
