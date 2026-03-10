@@ -1,7 +1,6 @@
 "use client";
 
-import Image from "next/image";
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 
 type Props = {
   imageUrl: string;
@@ -17,6 +16,7 @@ const ZOOM_MIN = 50;
 const ZOOM_MAX = 250;
 const ZOOM_STEP = 10;
 const ZOOM_PRESETS = [50, 75, 100, 125, 150, 200, 250];
+const BOX_RATIO = 4 / 3;
 
 function clampPercent(value: number) {
   if (!Number.isFinite(value)) return 50;
@@ -43,12 +43,14 @@ export default function ImageFocusEditor({
 }: Props) {
   const boxRef = useRef<HTMLDivElement | null>(null);
   const zoomInputId = useId();
+
   const [dragging, setDragging] = useState(false);
   const [focusX, setFocusX] = useState(clampPercent(initialFocusX));
   const [focusY, setFocusY] = useState(clampPercent(initialFocusY));
   const [zoom, setZoom] = useState(clampZoom(initialZoom));
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
+  const [naturalSize, setNaturalSize] = useState<{ width: number; height: number } | null>(null);
 
   useEffect(() => {
     setFocusX(clampPercent(initialFocusX));
@@ -89,9 +91,36 @@ export default function ImageFocusEditor({
   }
 
   const isBusy = disabled || saving;
-  const scale = zoom / 100;
-  const imageLeft = `${focusX * (1 - scale)}%`;
-  const imageTop = `${focusY * (1 - scale)}%`;
+
+  const imageLayout = useMemo(() => {
+    const sourceWidth = naturalSize?.width ?? BOX_RATIO * 1000;
+    const sourceHeight = naturalSize?.height ?? 1000;
+    const sourceRatio = sourceWidth / sourceHeight;
+
+    let baseWidthPercent = 100;
+    let baseHeightPercent = 100;
+
+    if (sourceRatio > BOX_RATIO) {
+      baseHeightPercent = 100;
+      baseWidthPercent = (sourceRatio / BOX_RATIO) * 100;
+    } else {
+      baseWidthPercent = 100;
+      baseHeightPercent = (BOX_RATIO / sourceRatio) * 100;
+    }
+
+    const scaledWidthPercent = baseWidthPercent * (zoom / 100);
+    const scaledHeightPercent = baseHeightPercent * (zoom / 100);
+
+    const leftPercent = 50 - (focusX / 100) * scaledWidthPercent;
+    const topPercent = 50 - (focusY / 100) * scaledHeightPercent;
+
+    return {
+      widthPercent: scaledWidthPercent,
+      heightPercent: scaledHeightPercent,
+      leftPercent,
+      topPercent,
+    };
+  }, [focusX, focusY, naturalSize, zoom]);
 
   return (
     <div>
@@ -123,28 +152,33 @@ export default function ImageFocusEditor({
           border: "1px solid #eee",
         }}
       >
-        <div
+        <img
+          src={imageUrl}
+          alt={alt}
+          draggable={false}
+          onLoad={(event) => {
+            const img = event.currentTarget;
+            if (img.naturalWidth > 0 && img.naturalHeight > 0) {
+              setNaturalSize({
+                width: img.naturalWidth,
+                height: img.naturalHeight,
+              });
+            }
+          }}
           style={{
             position: "absolute",
-            left: imageLeft,
-            top: imageTop,
-            width: `${zoom}%`,
-            height: `${zoom}%`,
-            transition: dragging ? "none" : "left 120ms ease, top 120ms ease, width 120ms ease, height 120ms ease",
+            left: `${imageLayout.leftPercent}%`,
+            top: `${imageLayout.topPercent}%`,
+            width: `${imageLayout.widthPercent}%`,
+            height: `${imageLayout.heightPercent}%`,
+            maxWidth: "none",
+            userSelect: "none",
+            pointerEvents: "none",
+            transition: dragging
+              ? "none"
+              : "left 120ms ease, top 120ms ease, width 120ms ease, height 120ms ease",
           }}
-        >
-          <Image
-            src={imageUrl}
-            alt={alt}
-            fill
-            sizes="320px"
-            style={{
-              objectFit: "cover",
-              userSelect: "none",
-              pointerEvents: "none",
-            }}
-          />
-        </div>
+        />
 
         <div
           style={{
@@ -189,7 +223,7 @@ export default function ImageFocusEditor({
             htmlFor={zoomInputId}
             style={{ fontSize: 12, color: "#666", fontWeight: 600 }}
           >
-            縮放：{zoom}%（固定外框，只縮放照片）
+            縮放：{zoom}%（固定外框，縮小時會露出更多照片範圍）
           </label>
 
           <div style={{ display: "flex", gap: 6 }}>
