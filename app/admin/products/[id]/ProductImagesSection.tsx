@@ -21,6 +21,7 @@ export type ProductImageItem = {
   isActive: boolean;
   focusX: number;
   focusY: number;
+  zoom: number;
   createdAt: string;
   updatedAt: string;
 };
