@@ -1,134 +1,181 @@
+import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
 import { put } from "@vercel/blob";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import sharp from "sharp";
 import { prisma } from "@/lib/prisma";
 
-export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
-const allowedSlots = ["HOME_HERO"] as const;
-type AllowedSlot = (typeof allowedSlots)[number];
+type ClientPayload = {
+  slot?: string;
+  alt?: string;
+  originalName?: string;
+  base?: string;
+  requestedAt?: number;
+};
 
-function isAllowedSlot(value: unknown): value is AllowedSlot {
-  return typeof value === "string" && allowedSlots.includes(value as AllowedSlot);
-}
+function parseClientPayload(raw: string | null | undefined): ClientPayload {
+  if (!raw) return {};
 
-function sanitizeFileName(name: string) {
-  return name
-    .trim()
-    .replace(/\s+/g, "-")
-    .replace(/[^a-zA-Z0-9._-]/g, "");
-}
-
-function buildStorageKey(slot: AllowedSlot, originalName: string) {
-  const safeName = sanitizeFileName(originalName) || "image.jpg";
-  const now = Date.now();
-  return `site-images/${slot.toLowerCase()}/${now}-${safeName}`;
-}
-
-export async function POST(req: Request) {
   try {
-    const formData = await req.formData();
+    const parsed = JSON.parse(raw) as ClientPayload;
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+}
 
-    const slotRaw = formData.get("slot");
-    const altRaw = formData.get("alt");
-    const fileRaw = formData.get("file");
+function safeBaseName(filename: string) {
+  const dotIndex = filename.lastIndexOf(".");
+  const base = dotIndex > 0 ? filename.slice(0, dotIndex) : filename;
 
-    if (!isAllowedSlot(slotRaw)) {
-      return NextResponse.json(
-        { ok: false, error: "INVALID_SLOT" },
-        { status: 400 }
-      );
-    }
+  return base
+    .normalize("NFKC")
+    .replace(/[^\w\-]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
+    .toLowerCase();
+}
 
-    if (!(fileRaw instanceof File)) {
-      return NextResponse.json(
-        { ok: false, error: "FILE_REQUIRED" },
-        { status: 400 }
-      );
-    }
+function extFromFormat(format: string | undefined) {
+  switch (format) {
+    case "jpeg":
+      return "jpg";
+    case "png":
+      return "png";
+    case "webp":
+      return "webp";
+    case "avif":
+      return "avif";
+    default:
+      return "webp";
+  }
+}
 
-    if (!fileRaw.type.startsWith("image/")) {
-      return NextResponse.json(
-        { ok: false, error: "FILE_MUST_BE_IMAGE" },
-        { status: 400 }
-      );
-    }
+function normalizeSlot(raw: string | undefined) {
+  return raw === "HOME_HERO" ? "HOME_HERO" : null;
+}
 
-    const originalBuffer = Buffer.from(await fileRaw.arrayBuffer());
-    const originalSize = originalBuffer.byteLength;
-    const originalName = fileRaw.name || "upload-image";
-    const alt = String(altRaw ?? "").trim();
+export async function POST(req: NextRequest) {
+  try {
+    const body = (await req.json()) as HandleUploadBody;
 
-    const transformed = await sharp(originalBuffer)
-      .rotate()
-      .resize({
-        width: 1800,
-        height: 1800,
-        fit: "inside",
-        withoutEnlargement: true,
-      })
-      .jpeg({
-        quality: 82,
-        mozjpeg: true,
-      })
-      .toBuffer({ resolveWithObject: true });
+    const json = await handleUpload({
+      body,
+      request: req,
+      onBeforeGenerateToken: async (pathname, clientPayload) => {
+        const payload = parseClientPayload(clientPayload);
+        const slot = normalizeSlot(payload.slot);
 
-    const compressedBuffer = transformed.data;
-    const compressedInfo = transformed.info;
+        if (!slot) {
+          throw new Error("INVALID_IMAGE_SLOT");
+        }
 
-    const storageKey = buildStorageKey(slotRaw, originalName.endsWith(".jpg") || originalName.endsWith(".jpeg")
-      ? originalName
-      : `${originalName}.jpg`);
+        const originalName = payload.originalName?.trim() || pathname || "upload";
+        const base = safeBaseName(originalName) || "upload";
 
-    const blob = await put(storageKey, compressedBuffer, {
-      access: "public",
-      contentType: "image/jpeg",
-      addRandomSuffix: false,
+        return {
+          allowedContentTypes: [
+            "image/jpeg",
+            "image/png",
+            "image/webp",
+            "image/avif",
+          ],
+          addRandomSuffix: true,
+          tokenPayload: JSON.stringify({
+            slot,
+            alt: payload.alt?.trim() || "",
+            originalName,
+            base,
+            requestedAt: Date.now(),
+          } satisfies ClientPayload),
+        };
+      },
+      onUploadCompleted: async ({ blob, tokenPayload }) => {
+        const payload = parseClientPayload(tokenPayload);
+        const slot = normalizeSlot(payload.slot);
+
+        if (!slot) {
+          throw new Error("INVALID_COMPLETION_PAYLOAD");
+        }
+
+        const sourceRes = await fetch(blob.url);
+
+        if (!sourceRes.ok) {
+          throw new Error("BLOB_FETCH_FAILED");
+        }
+
+        const sourceArrayBuffer = await sourceRes.arrayBuffer();
+        const sourceBuffer = Buffer.from(sourceArrayBuffer);
+
+        const transformed = await sharp(sourceBuffer)
+          .rotate()
+          .resize({
+            width: 2400,
+            height: 2400,
+            fit: "inside",
+            withoutEnlargement: true,
+          })
+          .webp({ quality: 82 })
+          .toBuffer({ resolveWithObject: true });
+
+        const compressedBuffer = transformed.data;
+        const info = transformed.info;
+
+        const base =
+          safeBaseName(payload.base || payload.originalName || "site-image") ||
+          "site-image";
+        const ext = extFromFormat(info.format);
+        const pathname = `site-images/${slot.toLowerCase()}/${Date.now()}-${base}.${ext}`;
+
+        const finalBlob = await put(pathname, compressedBuffer, {
+          access: "public",
+          contentType: "image/webp",
+          addRandomSuffix: false,
+        });
+
+        await prisma.siteImage.upsert({
+          where: { slot },
+          update: {
+            originalName: payload.originalName?.trim() || blob.pathname,
+            mimeType: "image/webp",
+            storageKey: finalBlob.pathname,
+            url: finalBlob.url,
+            width: info.width ?? undefined,
+            height: info.height ?? undefined,
+            sizeBytes: sourceBuffer.byteLength,
+            compressedBytes: compressedBuffer.byteLength,
+            alt: payload.alt?.trim() || "",
+            isActive: true,
+          },
+          create: {
+            slot,
+            originalName: payload.originalName?.trim() || blob.pathname,
+            mimeType: "image/webp",
+            storageKey: finalBlob.pathname,
+            url: finalBlob.url,
+            width: info.width ?? undefined,
+            height: info.height ?? undefined,
+            sizeBytes: sourceBuffer.byteLength,
+            compressedBytes: compressedBuffer.byteLength,
+            alt: payload.alt?.trim() || "",
+            isActive: true,
+          },
+        });
+      },
     });
 
-    const image = await prisma.siteImage.upsert({
-      where: { slot: slotRaw },
-      update: {
-        originalName,
-        mimeType: "image/jpeg",
-        storageKey: blob.pathname,
-        url: blob.url,
-        width: compressedInfo.width ?? null,
-        height: compressedInfo.height ?? null,
-        sizeBytes: originalSize,
-        compressedBytes: compressedBuffer.byteLength,
-        alt,
-        isActive: true,
-      },
-      create: {
-        slot: slotRaw,
-        originalName,
-        mimeType: "image/jpeg",
-        storageKey: blob.pathname,
-        url: blob.url,
-        width: compressedInfo.width ?? null,
-        height: compressedInfo.height ?? null,
-        sizeBytes: originalSize,
-        compressedBytes: compressedBuffer.byteLength,
-        alt,
-        isActive: true,
-      },
-    });
+    return NextResponse.json(json);
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "SITE_IMAGE_UPLOAD_TOKEN_FAILED";
 
-    return NextResponse.json(
-      {
-        ok: true,
-        image,
-      },
-      { status: 200 }
-    );
-  } catch (error: unknown) {
     return NextResponse.json(
       {
         ok: false,
-        error: error instanceof Error ? error.message : String(error),
+        error: message,
       },
-      { status: 500 }
+      { status: 400 }
     );
   }
 }

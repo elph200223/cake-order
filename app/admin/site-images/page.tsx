@@ -1,438 +1,373 @@
 "use client";
 
-import Link from "next/link";
-import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { upload } from "@vercel/blob/client";
 
-type SiteImageRecord = {
-  id: number;
-  slot: string;
-  originalName: string;
-  mimeType: string;
-  storageKey: string;
+type SiteImageKind = "HOME_HERO";
+
+type SiteImageItem = {
+  id: string;
+  kind: SiteImageKind | string;
   url: string;
+  alt: string | null;
   width: number | null;
   height: number | null;
   sizeBytes: number | null;
-  compressedBytes: number | null;
-  alt: string;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
+  mimeType: string | null;
+  originalName: string | null;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 type SiteImagesResponse = {
-  ok?: boolean;
-  images?: SiteImageRecord[];
-  error?: unknown;
+  ok: boolean;
+  images?: SiteImageItem[];
+  error?: string;
 };
 
-type UploadResponse = {
-  ok?: boolean;
-  image?: SiteImageRecord;
-  error?: unknown;
-};
+function formatBytes(value?: number | null) {
+  if (!value || value <= 0) return "-";
+  const units = ["B", "KB", "MB", "GB"];
+  let size = value;
+  let unitIndex = 0;
 
-const imageSlots = [
-  {
-    key: "HOME_HERO",
-    title: "首頁主圖",
-    description: "對應首頁左側的大圖區塊。",
-  },
-];
+  while (size >= 1024 && unitIndex < units.length - 1) {
+    size /= 1024;
+    unitIndex += 1;
+  }
 
-function isSiteImagesResponse(value: unknown): value is SiteImagesResponse {
-  return typeof value === "object" && value !== null;
+  return `${size.toFixed(size >= 100 ? 0 : size >= 10 ? 1 : 2)} ${units[unitIndex]}`;
 }
 
-function isUploadResponse(value: unknown): value is UploadResponse {
-  return typeof value === "object" && value !== null;
-}
+function formatDateTime(value?: string) {
+  if (!value) return "-";
 
-function formatBytes(value: number | null | undefined) {
-  if (typeof value !== "number" || Number.isNaN(value) || value < 0) return "-";
-  if (value < 1024) return `${value} B`;
-  if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`;
-  return `${(value / (1024 * 1024)).toFixed(2)} MB`;
-}
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
 
-function formatDimension(width: number | null | undefined, height: number | null | undefined) {
-  if (!width || !height) return "-";
-  return `${width} × ${height}`;
+  return new Intl.DateTimeFormat("zh-TW", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
 }
 
 export default function AdminSiteImagesPage() {
+  const [images, setImages] = useState<SiteImageItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [msg, setMsg] = useState("");
-  const [images, setImages] = useState<SiteImageRecord[]>([]);
-  const [altMap, setAltMap] = useState<Record<string, string>>({});
-  const [fileMap, setFileMap] = useState<Record<string, File | null>>({});
-  const [uploadingMap, setUploadingMap] = useState<Record<string, boolean>>({});
+  const [loadError, setLoadError] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [alt, setAlt] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+  const [submitMessage, setSubmitMessage] = useState("");
+  const [progress, setProgress] = useState<number | null>(null);
 
-  async function load() {
-    setMsg("");
+  const loadImages = useCallback(async () => {
     setLoading(true);
+    setLoadError("");
 
     try {
       const res = await fetch("/api/admin/site-images", {
+        method: "GET",
         cache: "no-store",
       });
 
-      const raw: unknown = await res.json().catch(() => null);
-      const data = isSiteImagesResponse(raw) ? raw : null;
+      const data = (await res.json()) as SiteImagesResponse;
 
-      if (!data || data.ok !== true || !Array.isArray(data.images)) {
-        throw new Error(String(data?.error ?? "LOAD_FAILED"));
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || "SITE_IMAGES_LOAD_FAILED");
       }
 
-      setImages(data.images);
-
-      setAltMap((prev) => {
-        const next = { ...prev };
-        for (const image of data.images ?? []) {
-          next[image.slot] = image.alt ?? "";
-        }
-        return next;
-      });
-    } catch (error: unknown) {
-      setImages([]);
-      setMsg(error instanceof Error ? error.message : "讀取站點圖片失敗");
+      setImages(Array.isArray(data.images) ? data.images : []);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "SITE_IMAGES_LOAD_FAILED";
+      setLoadError(message);
     } finally {
       setLoading(false);
     }
-  }
-
-  useEffect(() => {
-    void load();
   }, []);
 
-  const imageMap = useMemo(() => {
-    return new Map(images.map((image) => [image.slot, image]));
-  }, [images]);
+  useEffect(() => {
+    void loadImages();
+  }, [loadImages]);
 
-  function handleFileChange(slot: string, event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0] ?? null;
-    setFileMap((prev) => ({
-      ...prev,
-      [slot]: file,
-    }));
-  }
+  const homeHeroImages = useMemo(
+    () => images.filter((image) => image.kind === "HOME_HERO"),
+    [images]
+  );
 
-  async function handleUpload(slot: string, event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setMsg("");
 
-    const file = fileMap[slot] ?? null;
-    const alt = (altMap[slot] ?? "").trim();
-
-    if (!file) {
-      setMsg("請先選擇圖片檔案。");
+    if (!selectedFile) {
+      setSubmitError("請先選擇圖片");
+      setSubmitMessage("");
       return;
     }
 
-    setUploadingMap((prev) => ({
-      ...prev,
-      [slot]: true,
-    }));
+    setSubmitting(true);
+    setSubmitError("");
+    setSubmitMessage("");
+    setProgress(0);
 
     try {
-      const formData = new FormData();
-      formData.append("slot", slot);
-      formData.append("alt", alt);
-      formData.append("file", file);
-
-      const res = await fetch("/api/admin/site-images/upload", {
-        method: "POST",
-        body: formData,
+      const blob = await upload(selectedFile.name, selectedFile, {
+        access: "public",
+        handleUploadUrl: "/api/admin/site-images/upload",
+        multipart: selectedFile.size > 20 * 1024 * 1024,
+        clientPayload: JSON.stringify({
+          kind: "HOME_HERO",
+          alt: alt.trim(),
+          originalName: selectedFile.name,
+        }),
+        onUploadProgress: ({ percentage }) => {
+          setProgress(percentage);
+        },
       });
 
-      const raw: unknown = await res.json().catch(() => null);
-      const data = isUploadResponse(raw) ? raw : null;
+      setSubmitMessage(`上傳完成：${blob.pathname}`);
+      setSelectedFile(null);
+      setAlt("");
+      setProgress(100);
 
-      if (!data || data.ok !== true || !data.image) {
-        throw new Error(String(data?.error ?? "UPLOAD_FAILED"));
+      const fileInput = document.getElementById(
+        "site-image-file-input"
+      ) as HTMLInputElement | null;
+      if (fileInput) {
+        fileInput.value = "";
       }
 
-      setFileMap((prev) => ({
-        ...prev,
-        [slot]: null,
-      }));
-
-      const input = document.getElementById(`site-image-file-${slot}`) as HTMLInputElement | null;
-      if (input) input.value = "";
-
-      await load();
-      setMsg("✅ 圖片已上傳並更新。");
-    } catch (error: unknown) {
-      setMsg(error instanceof Error ? error.message : "圖片上傳失敗");
+      await loadImages();
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "SITE_IMAGE_UPLOAD_FAILED";
+      setSubmitError(message);
+      setSubmitMessage("");
+      setProgress(null);
     } finally {
-      setUploadingMap((prev) => ({
-        ...prev,
-        [slot]: false,
-      }));
+      setSubmitting(false);
     }
   }
 
   return (
-    <main style={{ padding: 16, maxWidth: 1100, margin: "0 auto" }}>
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        <Link
-          href="/admin"
-          style={{ textDecoration: "underline", fontWeight: 700, width: "fit-content" }}
-        >
-          ← 回後台首頁
-        </Link>
-
-        <div>
-          <h1 style={{ margin: 0, fontSize: 28, fontWeight: 900 }}>站點圖片管理</h1>
-          <p style={{ marginTop: 8, color: "#666", lineHeight: 1.7 }}>
-            目前已接上首頁主圖資料讀取與正式上傳。上傳後會先壓縮，再存入 Blob 與資料庫。
+    <main className="min-h-screen bg-stone-100 text-stone-900">
+      <div className="mx-auto max-w-6xl px-6 py-10">
+        <div className="mb-8">
+          <p className="text-sm tracking-[0.25em] text-stone-500">ADMIN</p>
+          <h1 className="mt-2 text-3xl font-semibold tracking-[0.12em]">
+            站點圖片管理
+          </h1>
+          <p className="mt-3 max-w-3xl text-sm leading-7 text-stone-600">
+            這一頁目前先管理首頁主圖（HOME_HERO）。
+            現在上傳會直接由瀏覽器送到 Blob，不再先把整張圖丟進你的 Next.js function。
           </p>
         </div>
-      </div>
 
-      <section
-        style={{
-          marginTop: 20,
-          border: "1px solid #e5e5e5",
-          borderRadius: 16,
-          overflow: "hidden",
-          background: "#fff",
-        }}
-      >
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "180px 1fr 280px",
-            gap: 16,
-            padding: 16,
-            background: "#fafafa",
-            borderBottom: "1px solid #eee",
-            fontSize: 13,
-            fontWeight: 800,
-          }}
-        >
-          <div>圖片欄位</div>
-          <div>說明 / 現況</div>
-          <div>操作</div>
-        </div>
+        <section className="grid gap-8 lg:grid-cols-[420px_minmax(0,1fr)]">
+          <div className="rounded-3xl border border-stone-200 bg-white p-6 shadow-sm">
+            <h2 className="text-lg font-semibold tracking-[0.08em]">新增首頁主圖</h2>
 
-        {loading ? (
-          <div style={{ padding: 16, color: "#777" }}>讀取中…</div>
-        ) : (
-          imageSlots.map((slot) => {
-            const image = imageMap.get(slot.key);
-            const uploading = Boolean(uploadingMap[slot.key]);
-            const selectedFile = fileMap[slot.key] ?? null;
-            const altValue = altMap[slot.key] ?? image?.alt ?? "";
+            <form className="mt-6 space-y-5" onSubmit={handleSubmit}>
+              <div className="space-y-2">
+                <label
+                  htmlFor="site-image-file-input"
+                  className="block text-sm font-medium text-stone-700"
+                >
+                  圖片檔案
+                </label>
+                <input
+                  id="site-image-file-input"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/avif"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0] ?? null;
+                    setSelectedFile(file);
+                    setSubmitError("");
+                    setSubmitMessage("");
+                    setProgress(null);
+                  }}
+                  className="block w-full rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm text-stone-800 file:mr-4 file:rounded-xl file:border-0 file:bg-stone-800 file:px-4 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-stone-700"
+                  disabled={submitting}
+                />
+                <p className="text-xs leading-6 text-stone-500">
+                  建議上傳橫式主圖。接受 JPG / PNG / WEBP / AVIF。
+                </p>
+              </div>
 
-            return (
-              <div
-                key={slot.key}
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "180px 1fr 280px",
-                  gap: 16,
-                  padding: 16,
-                  borderBottom: "1px solid #f1f1f1",
-                  alignItems: "start",
-                }}
-              >
-                <div>
-                  <div style={{ fontWeight: 900 }}>{slot.title}</div>
-                  <div style={{ marginTop: 4, fontSize: 12, color: "#777" }}>{slot.key}</div>
+              <div className="space-y-2">
+                <label
+                  htmlFor="site-image-alt"
+                  className="block text-sm font-medium text-stone-700"
+                >
+                  圖片說明（alt）
+                </label>
+                <input
+                  id="site-image-alt"
+                  type="text"
+                  value={alt}
+                  onChange={(event) => setAlt(event.target.value)}
+                  placeholder="例如：首頁主視覺蛋糕照片"
+                  className="block w-full rounded-2xl border border-stone-300 px-4 py-3 text-sm outline-none transition focus:border-stone-500"
+                  disabled={submitting}
+                />
+              </div>
+
+              <div className="rounded-2xl bg-stone-50 px-4 py-4 text-sm text-stone-600">
+                <div className="flex items-start justify-between gap-4">
+                  <span>站點位置</span>
+                  <span className="font-medium text-stone-900">HOME_HERO</span>
                 </div>
-
-                <div style={{ color: "#555", lineHeight: 1.7 }}>
-                  <div>{slot.description}</div>
-
-                  {image ? (
-                    <div
-                      style={{
-                        marginTop: 12,
-                        border: "1px solid #eee",
-                        borderRadius: 12,
-                        padding: 12,
-                        background: "#fafafa",
-                      }}
-                    >
-                      <div style={{ fontWeight: 800, color: "#333" }}>{image.originalName}</div>
-
-                      {image.url ? (
-                        <div style={{ marginTop: 10 }}>
-                          <img
-                            src={image.url}
-                            alt={image.alt || image.originalName}
-                            style={{
-                              width: "100%",
-                              maxWidth: 360,
-                              borderRadius: 10,
-                              border: "1px solid #e5e5e5",
-                              display: "block",
-                            }}
-                          />
-                        </div>
-                      ) : null}
-
-                      <div style={{ marginTop: 10, fontSize: 13, color: "#666" }}>
-                        尺寸：{formatDimension(image.width, image.height)}
-                      </div>
-                      <div style={{ marginTop: 4, fontSize: 13, color: "#666" }}>
-                        原始大小：{formatBytes(image.sizeBytes)}
-                      </div>
-                      <div style={{ marginTop: 4, fontSize: 13, color: "#666" }}>
-                        壓縮後大小：{formatBytes(image.compressedBytes)}
-                      </div>
-                      <div style={{ marginTop: 4, fontSize: 13, color: "#666" }}>
-                        MIME：{image.mimeType || "-"}
-                      </div>
-                      <div style={{ marginTop: 4, fontSize: 13, color: "#666" }}>
-                        啟用狀態：{image.isActive ? "啟用中" : "未啟用"}
-                      </div>
-                      <div style={{ marginTop: 4, fontSize: 13, color: "#666" }}>
-                        ALT：{image.alt || "-"}
-                      </div>
-                      <div style={{ marginTop: 8, fontSize: 12, color: "#888", wordBreak: "break-all" }}>
-                        URL：{image.url}
-                      </div>
-                    </div>
-                  ) : (
-                    <div
-                      style={{
-                        marginTop: 12,
-                        padding: "10px 12px",
-                        borderRadius: 12,
-                        border: "1px solid #ddd",
-                        background: "#fafafa",
-                        fontSize: 13,
-                        color: "#777",
-                      }}
-                    >
-                      目前尚無圖片資料
-                    </div>
-                  )}
+                <div className="mt-2 flex items-start justify-between gap-4">
+                  <span>目前檔案</span>
+                  <span className="text-right text-stone-900">
+                    {selectedFile ? selectedFile.name : "尚未選擇"}
+                  </span>
                 </div>
-
-                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                  <form
-                    onSubmit={(event) => {
-                      void handleUpload(slot.key, event);
-                    }}
-                    style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 10,
-                      border: "1px solid #e5e5e5",
-                      borderRadius: 12,
-                      padding: 12,
-                      background: "#fafafa",
-                    }}
-                  >
-                    <label style={{ display: "grid", gap: 6 }}>
-                      <span style={{ fontSize: 13, fontWeight: 700 }}>選擇圖片</span>
-                      <input
-                        id={`site-image-file-${slot.key}`}
-                        type="file"
-                        accept="image/*"
-                        onChange={(event) => handleFileChange(slot.key, event)}
-                      />
-                    </label>
-
-                    <label style={{ display: "grid", gap: 6 }}>
-                      <span style={{ fontSize: 13, fontWeight: 700 }}>ALT 文字</span>
-                      <input
-                        value={altValue}
-                        onChange={(event) =>
-                          setAltMap((prev) => ({
-                            ...prev,
-                            [slot.key]: event.target.value,
-                          }))
-                        }
-                        placeholder="例如：首頁主圖"
-                        style={{
-                          width: "100%",
-                          padding: 10,
-                          border: "1px solid #ddd",
-                          borderRadius: 10,
-                          fontSize: 14,
-                          background: "#fff",
-                        }}
-                      />
-                    </label>
-
-                    {selectedFile ? (
-                      <div style={{ fontSize: 12, color: "#666", lineHeight: 1.6 }}>
-                        已選擇：{selectedFile.name}
-                      </div>
-                    ) : null}
-
-                    <button
-                      type="submit"
-                      disabled={uploading}
-                      style={{
-                        padding: "10px 12px",
-                        borderRadius: 12,
-                        border: "1px solid #222",
-                        background: "#fff",
-                        fontWeight: 800,
-                        cursor: uploading ? "not-allowed" : "pointer",
-                      }}
-                    >
-                      {uploading ? "上傳中…" : "上傳圖片"}
-                    </button>
-                  </form>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      void load();
-                    }}
-                    style={{
-                      padding: "10px 12px",
-                      borderRadius: 12,
-                      border: "1px solid #222",
-                      background: "#fff",
-                      fontWeight: 800,
-                      cursor: "pointer",
-                    }}
-                  >
-                    重新讀取
-                  </button>
+                <div className="mt-2 flex items-start justify-between gap-4">
+                  <span>檔案大小</span>
+                  <span className="text-right text-stone-900">
+                    {selectedFile ? formatBytes(selectedFile.size) : "-"}
+                  </span>
                 </div>
               </div>
-            );
-          })
-        )}
-      </section>
 
-      <section
-        style={{
-          marginTop: 20,
-          border: "1px solid #e5e5e5",
-          borderRadius: 16,
-          padding: 16,
-          background: "#fff",
-        }}
-      >
-        <div style={{ fontWeight: 900, marginBottom: 10 }}>接下來要接的功能</div>
+              {progress !== null ? (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-xs text-stone-600">
+                    <span>上傳進度</span>
+                    <span>{Math.round(progress)}%</span>
+                  </div>
+                  <div className="h-2 overflow-hidden rounded-full bg-stone-200">
+                    <div
+                      className="h-full rounded-full bg-stone-800 transition-all"
+                      style={{ width: `${Math.max(0, Math.min(progress, 100))}%` }}
+                    />
+                  </div>
+                </div>
+              ) : null}
 
-        <div style={{ display: "grid", gap: 10, color: "#555", lineHeight: 1.7 }}>
-          <div>1. 首頁 app/page.tsx 改為讀取 HOME_HERO</div>
-          <div>2. 商品 ProductImage 上傳 API 與後台管理頁</div>
-          <div>3. 商品頁 /cakes/[slug] 改為顯示商品圖片</div>
-        </div>
-      </section>
+              {submitError ? (
+                <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  {submitError}
+                </div>
+              ) : null}
 
-      {msg ? (
-        <div
-          style={{
-            marginTop: 12,
-            whiteSpace: "pre-wrap",
-            color: msg.startsWith("✅") ? "#0a7" : "#b00020",
-          }}
-        >
-          {msg}
-        </div>
-      ) : null}
+              {submitMessage ? (
+                <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+                  {submitMessage}
+                </div>
+              ) : null}
+
+              <button
+                type="submit"
+                disabled={submitting || !selectedFile}
+                className="inline-flex w-full items-center justify-center rounded-2xl bg-stone-900 px-5 py-3 text-sm font-medium tracking-[0.08em] text-white transition hover:bg-stone-800 disabled:cursor-not-allowed disabled:bg-stone-400"
+              >
+                {submitting ? "上傳中..." : "上傳首頁主圖"}
+              </button>
+            </form>
+          </div>
+
+          <div className="rounded-3xl border border-stone-200 bg-white p-6 shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-semibold tracking-[0.08em]">
+                  已上傳圖片
+                </h2>
+                <p className="mt-2 text-sm text-stone-600">
+                  目前先列出 `HOME_HERO` 類型圖片。
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => void loadImages()}
+                className="inline-flex items-center justify-center rounded-2xl border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700 transition hover:bg-stone-50"
+              >
+                重新整理
+              </button>
+            </div>
+
+            {loading ? (
+              <div className="mt-6 rounded-2xl bg-stone-50 px-4 py-10 text-center text-sm text-stone-500">
+                讀取中...
+              </div>
+            ) : null}
+
+            {!loading && loadError ? (
+              <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-4 text-sm text-red-700">
+                {loadError}
+              </div>
+            ) : null}
+
+            {!loading && !loadError && homeHeroImages.length === 0 ? (
+              <div className="mt-6 rounded-2xl bg-stone-50 px-4 py-10 text-center text-sm text-stone-500">
+                目前還沒有 HOME_HERO 圖片
+              </div>
+            ) : null}
+
+            {!loading && !loadError && homeHeroImages.length > 0 ? (
+              <div className="mt-6 grid gap-6">
+                {homeHeroImages.map((image) => (
+                  <article
+                    key={image.id}
+                    className="overflow-hidden rounded-3xl border border-stone-200"
+                  >
+                    <div className="bg-stone-100">
+                      <img
+                        src={image.url}
+                        alt={image.alt || ""}
+                        className="aspect-[16/10] w-full object-cover"
+                      />
+                    </div>
+
+                    <div className="grid gap-4 p-5 md:grid-cols-[minmax(0,1fr)_220px]">
+                      <div className="min-w-0">
+                        <div className="text-sm font-semibold text-stone-900">
+                          {image.kind}
+                        </div>
+                        <div className="mt-2 break-all text-xs leading-6 text-stone-500">
+                          {image.url}
+                        </div>
+                        <div className="mt-3 text-sm text-stone-700">
+                          <span className="font-medium text-stone-900">alt：</span>
+                          {image.alt?.trim() ? image.alt : "—"}
+                        </div>
+                        <div className="mt-2 text-sm text-stone-700">
+                          <span className="font-medium text-stone-900">原始檔名：</span>
+                          {image.originalName || "—"}
+                        </div>
+                      </div>
+
+                      <dl className="grid grid-cols-[84px_1fr] gap-x-3 gap-y-2 text-sm text-stone-700">
+                        <dt className="text-stone-500">尺寸</dt>
+                        <dd>
+                          {image.width && image.height
+                            ? `${image.width} × ${image.height}`
+                            : "-"}
+                        </dd>
+
+                        <dt className="text-stone-500">大小</dt>
+                        <dd>{formatBytes(image.sizeBytes)}</dd>
+
+                        <dt className="text-stone-500">格式</dt>
+                        <dd>{image.mimeType || "-"}</dd>
+
+                        <dt className="text-stone-500">建立時間</dt>
+                        <dd>{formatDateTime(image.createdAt)}</dd>
+                      </dl>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        </section>
+      </div>
     </main>
   );
 }
