@@ -119,6 +119,26 @@ function formatPhone(value: string | undefined) {
   return String(value ?? "").trim();
 }
 
+function formatItemLine(item: OrderItem) {
+  const name = String(item.name ?? "").trim() || "未命名品項";
+  const qty = typeof item.qty === "number" && Number.isFinite(item.qty) ? item.qty : 0;
+  const priceText = formatCurrency(item.price);
+
+  if (qty > 0 && priceText) {
+    return `${name} × ${qty}｜${priceText}`;
+  }
+
+  if (qty > 0) {
+    return `${name} × ${qty}`;
+  }
+
+  if (priceText) {
+    return `${name}｜${priceText}`;
+  }
+
+  return name;
+}
+
 function PayResultContent() {
   const sp = useSearchParams();
   const orderId = useMemo(() => String(sp.get("orderId") ?? "").trim(), [sp]);
@@ -198,7 +218,8 @@ function PayResultContent() {
   const displayCustomer = String(order?.customer ?? "").trim();
   const displayPhone = formatPhone(order?.phone);
   const displayTotal = formatCurrency(order?.totalAmount);
-  const itemCount = Array.isArray(order?.items) ? order.items.length : 0;
+  const items = Array.isArray(order?.items) ? order.items : [];
+  const itemCount = items.length;
 
   return (
     <main
@@ -334,6 +355,48 @@ function PayResultContent() {
               <div style={{ color: "#8c6a70", marginTop: 2 }}>{err}</div>
             ) : null}
           </div>
+
+          {items.length > 0 ? (
+            <div
+              style={{
+                marginTop: 28,
+                padding: "18px 18px 16px",
+                background: "#faf7f2",
+                textAlign: "left",
+              }}
+            >
+              <div
+                style={{
+                  marginBottom: 10,
+                  fontSize: 13,
+                  letterSpacing: "0.08em",
+                  color: "#8d877f",
+                }}
+              >
+                訂單內容
+              </div>
+
+              <div
+                style={{
+                  display: "grid",
+                  gap: 8,
+                }}
+              >
+                {items.map((item) => (
+                  <div
+                    key={String(item.id ?? `${item.name ?? "item"}-${item.qty ?? 0}`)}
+                    style={{
+                      fontSize: 14,
+                      lineHeight: 1.9,
+                      color: "#5d5750",
+                    }}
+                  >
+                    {formatItemLine(item)}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
 
           <div
             style={{
