@@ -12,6 +12,20 @@ type PickupBlockDatePatchBody = {
   reason?: unknown;
 };
 
+type PickupBlockDateDelegate = {
+  findUnique: (args: {
+    where: { id: number };
+    select?: { id?: boolean };
+  }) => Promise<{ id: number } | null>;
+  update: (args: {
+    where: { id: number };
+    data: {
+      isActive?: boolean;
+      reason?: string;
+    };
+  }) => Promise<unknown>;
+};
+
 function parseId(raw: string) {
   const n = Number(raw);
   return Number.isInteger(n) && n > 0 ? n : null;
@@ -19,6 +33,17 @@ function parseId(raw: string) {
 
 function isPatchBody(value: unknown): value is PickupBlockDatePatchBody {
   return typeof value === "object" && value !== null;
+}
+
+function getPickupBlockDateDelegate() {
+  const prismaRecord = prisma as unknown as Record<string, unknown>;
+  const delegate = prismaRecord["pickupBlockDate"];
+
+  if (!delegate) {
+    throw new Error("PICKUP_BLOCK_DATE_MODEL_UNAVAILABLE");
+  }
+
+  return delegate as PickupBlockDateDelegate;
 }
 
 /**
@@ -37,7 +62,9 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
       );
     }
 
-    const existing = await prisma.pickupBlockDate.findUnique({
+    const pickupBlockDateModel = getPickupBlockDateDelegate();
+
+    const existing = await pickupBlockDateModel.findUnique({
       where: { id: pickupBlockDateId },
       select: { id: true },
     });
@@ -72,7 +99,7 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
       );
     }
 
-    const pickupBlockDate = await prisma.pickupBlockDate.update({
+    const pickupBlockDate = await pickupBlockDateModel.update({
       where: { id: pickupBlockDateId },
       data,
     });
