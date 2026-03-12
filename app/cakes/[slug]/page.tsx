@@ -23,92 +23,101 @@ export default async function CakeDetailPage({
   const images = product.images;
   const mainImage = product.coverImage ?? images[0] ?? null;
   const galleryImages = mainImage
-    ? [
-        mainImage,
-        ...images.filter((image) => image.id !== mainImage.id),
-      ]
+    ? [mainImage, ...images.filter((image) => image.id !== mainImage.id)]
     : images;
 
   return (
-    <main className="mx-auto max-w-5xl px-6 py-10">
-      <div className="mb-6">
-        <Link href="/cakes" className="text-sm text-neutral-500 hover:text-neutral-900">
-          ← 返回蛋糕列表
-        </Link>
-      </div>
+    <main className="min-h-screen bg-neutral-100 px-5 py-12 text-neutral-800">
+      <div className="mx-auto max-w-[980px]">
+        <div className="mx-auto max-w-xl text-center">
+          <div className="text-[11px] tracking-[0.22em] text-neutral-500">
+            NOSTALGIA COFFEE ROASTERY
+          </div>
+          <h1 className="mt-4 font-serif text-2xl font-medium tracking-[0.08em] text-neutral-900">
+            整模蛋糕
+          </h1>
+        </div>
 
-      <section className="grid grid-cols-1 gap-8 lg:grid-cols-[1.1fr_0.9fr]">
-        <div className="space-y-4">
-          <div className="overflow-hidden rounded-3xl border border-neutral-200 bg-white shadow-sm">
-            <div className="relative aspect-[4/3]">
-              {mainImage ? (
-                <Image
-                  src={mainImage.url}
-                  alt={mainImage.alt?.trim() || product.name}
-                  fill
-                  priority
-                  sizes="(max-width: 1024px) 100vw, 55vw"
-                  className="object-cover"
-                  style={{
-                    objectPosition: `${mainImage.focusX ?? 50}% ${mainImage.focusY ?? 50}%`,
-                  }}
-                />
-              ) : (
-                <div className="flex h-full items-center justify-center bg-neutral-100 text-sm text-neutral-400">
-                  尚無圖片
-                </div>
-              )}
+        <div className="mt-8">
+          <Link
+            href="/cakes"
+            className="inline-flex text-sm text-neutral-500 transition hover:text-neutral-900"
+          >
+            ← 返回蛋糕列表
+          </Link>
+        </div>
+
+        <section className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[380px_minmax(0,1fr)] lg:items-start lg:gap-8">
+          <div className="space-y-3">
+            <div className="overflow-hidden bg-neutral-50">
+              <div className="relative aspect-[5/4]">
+                {mainImage ? (
+                  <Image
+                    src={mainImage.url}
+                    alt={mainImage.alt?.trim() || product.name}
+                    fill
+                    priority
+                    sizes="(max-width: 1024px) 100vw, 380px"
+                    className="object-cover"
+                    style={{
+                      objectPosition: `${mainImage.focusX ?? 50}% ${mainImage.focusY ?? 50}%`,
+                    }}
+                  />
+                ) : (
+                  <div className="flex h-full items-center justify-center bg-neutral-200 text-sm text-neutral-500">
+                    尚無圖片
+                  </div>
+                )}
+              </div>
             </div>
+
+            {galleryImages.length > 1 ? (
+              <div className="grid grid-cols-3 gap-2">
+                {galleryImages.slice(1, 7).map((image) => (
+                  <div key={image.id} className="overflow-hidden bg-neutral-50">
+                    <div className="relative aspect-square">
+                      <Image
+                        src={image.url}
+                        alt={image.alt?.trim() || `${product.name} 圖片 ${image.id}`}
+                        fill
+                        sizes="(max-width: 1024px) 33vw, 118px"
+                        className="object-cover"
+                        style={{
+                          objectPosition: `${image.focusX ?? 50}% ${image.focusY ?? 50}%`,
+                        }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : null}
           </div>
 
-          {galleryImages.length > 1 ? (
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-              {galleryImages.slice(1).map((image) => (
-                <div
-                  key={image.id}
-                  className="overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-sm"
-                >
-                  <div className="relative aspect-[4/3]">
-                    <Image
-                      src={image.url}
-                      alt={image.alt?.trim() || `${product.name} 圖片 ${image.id}`}
-                      fill
-                      sizes="(max-width: 640px) 50vw, 240px"
-                      className="object-cover"
-                      style={{
-                        objectPosition: `${image.focusX ?? 50}% ${image.focusY ?? 50}%`,
-                      }}
-                    />
-                  </div>
-                </div>
-              ))}
+          <div className="bg-neutral-50 px-6 py-6 md:px-8 md:py-8">
+            <div className="border-b border-neutral-200 pb-5">
+              <div className="text-[11px] tracking-[0.22em] text-neutral-500">
+                WHOLE CAKE
+              </div>
+              <h2 className="mt-3 font-serif text-2xl font-medium tracking-[0.08em] text-neutral-900">
+                {product.name}
+              </h2>
+              <p className="mt-4 text-xl font-medium tracking-[0.03em] text-neutral-900">
+                {formatBasePrice(product.basePrice)}
+              </p>
+              <p className="mt-4 text-sm leading-7 text-neutral-600">
+                請先選擇規格與加購項目，確認金額後再加入購物車或前往結帳。
+              </p>
             </div>
-          ) : null}
-        </div>
 
-        <div>
-          <header className="border-b border-neutral-200 pb-6">
-            <h1 className="text-3xl font-bold tracking-tight text-neutral-950">
-              {product.name}
-            </h1>
-
-            <p className="mt-3 text-lg font-semibold text-neutral-900">
-              {formatBasePrice(product.basePrice)}
-            </p>
-
-            <p className="mt-4 text-sm leading-7 text-neutral-500">
-              請先選擇規格與加購項目，確認價格後再進入下一步購買流程。
-            </p>
-          </header>
-
-          <CakeOptionSelector
-            productId={product.id}
-            productName={product.name}
-            basePrice={product.basePrice}
-            optionGroups={product.optionGroups}
-          />
-        </div>
-      </section>
+            <CakeOptionSelector
+              productId={product.id}
+              productName={product.name}
+              basePrice={product.basePrice}
+              optionGroups={product.optionGroups}
+            />
+          </div>
+        </section>
+      </div>
     </main>
   );
 }

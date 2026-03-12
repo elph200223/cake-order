@@ -35,12 +35,6 @@ function formatMoney(price: number) {
   return `NT$ ${price.toLocaleString("zh-TW")}`;
 }
 
-function formatDelta(price: number) {
-  if (price === 0) return "不加價";
-  const sign = price > 0 ? "+" : "-";
-  return `${sign}NT$ ${Math.abs(price).toLocaleString("zh-TW")}`;
-}
-
 function getGroupRuleText(group: {
   required: boolean;
   minSelect: number;
@@ -239,42 +233,59 @@ export default function CakeOptionSelector({
     });
   }
 
-  function handleAddToCart() {
-    setSubmitMessage("");
-    setSubmitTone("");
-
+  function tryAddToCart() {
     if (!isFormValid) {
       setSubmitTone("error");
       setSubmitMessage("請先完成必選規格，再加入購物車。");
-      return;
+      return false;
     }
 
     try {
       addCartItem(draftCartItem);
       setSubmitTone("success");
-      setSubmitMessage("已加入購物車，現在可前往結帳頁查看。");
+      setSubmitMessage("已加入購物車。");
+      return true;
     } catch {
       setSubmitTone("error");
       setSubmitMessage("加入購物車失敗。");
+      return false;
     }
   }
 
+  function handleAddToCart() {
+    setSubmitMessage("");
+    setSubmitTone("");
+    tryAddToCart();
+  }
+
+  function handleAddToCartAndCheckout() {
+    setSubmitMessage("");
+    setSubmitTone("");
+
+    const ok = tryAddToCart();
+    if (!ok) return;
+
+    window.location.href = "/checkout";
+  }
+
   return (
-    <section className="mt-6 space-y-4">
-      <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
-        <div className="flex items-center justify-between gap-4">
+    <section className="mt-6 space-y-3">
+      <div className="bg-neutral-100 px-4 py-4">
+        <div className="flex items-end justify-between gap-4">
           <div>
-            <h2 className="text-lg font-semibold text-neutral-900">目前選擇總價</h2>
-            <p className="mt-1 text-sm text-neutral-500">已含規格與加購加價</p>
+            <h2 className="text-sm font-medium tracking-[0.08em] text-neutral-500">
+              目前總價
+            </h2>
+            <p className="mt-1 text-xs text-neutral-500">已含規格與加購加價</p>
           </div>
-          <div className="text-xl font-bold text-neutral-950">
+          <div className="text-2xl font-medium tracking-[0.02em] text-neutral-950">
             {formatMoney(totalPrice)}
           </div>
         </div>
       </div>
 
       {optionGroups.length === 0 ? (
-        <div className="rounded-2xl border border-neutral-200 bg-white p-5 text-sm text-neutral-500">
+        <div className="bg-neutral-50 px-4 py-4 text-sm text-neutral-500">
           此商品目前沒有可選規格或加購項目。
         </div>
       ) : (
@@ -285,26 +296,23 @@ export default function CakeOptionSelector({
           const status = getGroupStatus(group, selectedIds, error);
 
           return (
-            <section
-              key={group.id}
-              className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm"
-            >
-              <div className="flex flex-col gap-2 border-b border-neutral-100 pb-4 sm:flex-row sm:items-center sm:justify-between">
+            <section key={group.id} className="bg-neutral-50 px-4 py-4">
+              <div className="flex flex-col gap-1 border-b border-neutral-200 pb-3 sm:flex-row sm:items-end sm:justify-between">
                 <div>
-                  <h2 className="text-lg font-semibold text-neutral-900">
+                  <h2 className="text-[15px] font-medium tracking-[0.02em] text-neutral-900">
                     {group.name}
                   </h2>
-                  <p className="mt-1 text-xs text-neutral-500">
+                  <p className="mt-1 text-[11px] tracking-[0.08em] text-neutral-500">
                     {getGroupRuleText(group)}
                   </p>
                 </div>
 
-                <div className="text-xs text-neutral-500">
+                <div className="text-[11px] tracking-[0.08em] text-neutral-500">
                   已選 {checkedCount} / 最多 {group.maxSelect}
                 </div>
               </div>
 
-              <div className="mt-4 space-y-3">
+              <div className="mt-3 space-y-2">
                 {group.options.length === 0 ? (
                   <p className="text-sm text-neutral-400">此群組目前沒有可用選項</p>
                 ) : (
@@ -320,14 +328,14 @@ export default function CakeOptionSelector({
                       <label
                         key={option.id}
                         className={[
-                          "flex cursor-pointer items-center justify-between rounded-xl border px-4 py-3 transition",
+                          "flex cursor-pointer items-center justify-between px-3 py-2.5 transition",
                           checked
-                            ? "border-neutral-900 bg-neutral-100"
-                            : "border-neutral-200 bg-white hover:bg-neutral-50",
+                            ? "bg-neutral-200 text-neutral-950"
+                            : "bg-white text-neutral-800 hover:bg-neutral-100",
                           disabled ? "cursor-not-allowed opacity-50" : "",
                         ].join(" ")}
                       >
-                        <div className="flex min-w-0 items-center gap-3">
+                        <div className="flex min-w-0 items-center gap-2.5">
                           <input
                             type={inputType}
                             name={`group-${group.id}`}
@@ -340,17 +348,13 @@ export default function CakeOptionSelector({
                                 toggleMulti(group, option.id);
                               }
                             }}
-                            className="h-4 w-4"
+                            className="h-3.5 w-3.5"
                           />
                           <div className="min-w-0">
-                            <p className="text-sm font-medium text-neutral-900">
+                            <p className="text-sm font-normal leading-6 text-current">
                               {option.name}
                             </p>
                           </div>
-                        </div>
-
-                        <div className="ml-4 shrink-0 text-sm font-medium text-neutral-700">
-                          {formatDelta(option.priceDelta)}
                         </div>
                       </label>
                     );
@@ -360,7 +364,7 @@ export default function CakeOptionSelector({
 
               <p
                 className={[
-                  "mt-3 text-sm font-medium",
+                  "mt-2 text-xs tracking-[0.04em]",
                   status.tone === "error"
                     ? "text-red-600"
                     : status.tone === "success"
@@ -375,51 +379,54 @@ export default function CakeOptionSelector({
         })
       )}
 
-      <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <h3 className="text-base font-semibold text-neutral-900">下一步</h3>
-            <p className="mt-1 text-sm text-neutral-500">
-              加入購物車後，可直接前往結帳頁查看已選商品。
-            </p>
+      <div className="bg-neutral-100 px-4 py-4">
+        <div className="flex flex-col gap-3">
+          <button
+            type="button"
+            onClick={handleAddToCart}
+            className="inline-flex w-full items-center justify-center bg-neutral-900 px-4 py-3 text-sm font-medium tracking-[0.04em] text-white transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={!isFormValid}
+          >
+            先加入購物車
+          </button>
+
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <Link
+              href="/cakes"
+              className="inline-flex items-center justify-center bg-white px-4 py-3 text-sm font-medium tracking-[0.04em] text-neutral-800 transition hover:bg-neutral-200"
+            >
+              繼續選購
+            </Link>
+
+            <button
+              type="button"
+              onClick={handleAddToCartAndCheckout}
+              className="inline-flex items-center justify-center bg-white px-4 py-3 text-sm font-medium tracking-[0.04em] text-neutral-800 transition hover:bg-neutral-200 disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={!isFormValid}
+            >
+              加入後直接結帳
+            </button>
           </div>
-          <Link
-            href="/checkout"
-            className="inline-flex items-center rounded-xl border border-neutral-300 px-4 py-3 text-sm font-semibold text-neutral-900 hover:bg-neutral-50"
-          >
-            前往結帳頁
-          </Link>
+
+          {submitMessage ? (
+            <p
+              className={[
+                "text-sm",
+                submitTone === "error" ? "text-red-600" : "text-green-700",
+              ].join(" ")}
+            >
+              {submitMessage}
+            </p>
+          ) : !isFormValid ? (
+            <p className="text-sm text-red-600">
+              請先完成必選規格，才能加入購物車。
+            </p>
+          ) : (
+            <p className="text-sm text-neutral-500">
+              先加入購物車後，可回列表繼續選購，或直接前往結帳。
+            </p>
+          )}
         </div>
-      </div>
-
-      <div className="rounded-2xl border border-dashed border-neutral-300 bg-neutral-50 p-5">
-        <button
-          type="button"
-          onClick={handleAddToCart}
-          className="w-full rounded-xl bg-neutral-900 px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
-          disabled={!isFormValid}
-        >
-          加入購物車
-        </button>
-
-        {submitMessage ? (
-          <p
-            className={[
-              "mt-3 text-sm font-medium",
-              submitTone === "error" ? "text-red-600" : "text-green-700",
-            ].join(" ")}
-          >
-            {submitMessage}
-          </p>
-        ) : !isFormValid ? (
-          <p className="mt-3 text-sm text-red-600">
-            請先完成必選規格，才能加入購物車。
-          </p>
-        ) : (
-          <p className="mt-3 text-sm text-green-700">
-            規格資料已可加入購物車。
-          </p>
-        )}
       </div>
     </section>
   );
