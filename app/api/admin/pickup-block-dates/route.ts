@@ -7,6 +7,34 @@ type PickupBlockDatePostBody = {
   isActive?: unknown;
 };
 
+type PickupBlockDateDelegate = {
+  findMany: (args: {
+    orderBy?: Array<{ date?: "asc" | "desc"; id?: "asc" | "desc" }>;
+  }) => Promise<unknown>;
+  findUnique: (args: {
+    where: { date: string };
+    select?: { id?: boolean };
+  }) => Promise<{ id: number } | null>;
+  create: (args: {
+    data: {
+      date: string;
+      reason: string;
+      isActive: boolean;
+    };
+  }) => Promise<unknown>;
+};
+
+function getPickupBlockDateDelegate() {
+  const prismaRecord = prisma as unknown as Record<string, unknown>;
+  const delegate = prismaRecord["pickupBlockDate"];
+
+  if (!delegate) {
+    throw new Error("PICKUP_BLOCK_DATE_MODEL_UNAVAILABLE");
+  }
+
+  return delegate as PickupBlockDateDelegate;
+}
+
 function isPickupBlockDatePostBody(value: unknown): value is PickupBlockDatePostBody {
   return typeof value === "object" && value !== null;
 }
@@ -47,7 +75,9 @@ function isValidDateString(value: string) {
  */
 export async function GET() {
   try {
-    const dates = await prisma.pickupBlockDate.findMany({
+    const pickupBlockDateModel = getPickupBlockDateDelegate();
+
+    const dates = await pickupBlockDateModel.findMany({
       orderBy: [{ date: "asc" }, { id: "asc" }],
     });
 
@@ -70,6 +100,8 @@ export async function GET() {
  */
 export async function POST(req: NextRequest) {
   try {
+    const pickupBlockDateModel = getPickupBlockDateDelegate();
+
     const raw: unknown = await req.json().catch(() => ({}));
     const body: PickupBlockDatePostBody = isPickupBlockDatePostBody(raw) ? raw : {};
 
@@ -91,7 +123,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const exists = await prisma.pickupBlockDate.findUnique({
+    const exists = await pickupBlockDateModel.findUnique({
       where: { date },
       select: { id: true },
     });
@@ -103,7 +135,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const pickupBlockDate = await prisma.pickupBlockDate.create({
+    const pickupBlockDate = await pickupBlockDateModel.create({
       data: {
         date,
         reason,

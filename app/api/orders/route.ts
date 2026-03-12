@@ -1,6 +1,38 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { type CheckoutOrderPayload } from "@/lib/checkout";
+import { isPickupSelectionValid } from "@/lib/pickup-rules";
+
+type PickupBlockDateRow = {
+  date: string;
+  reason: string;
+};
+
+type PickupBlockDateDelegate = {
+  findMany: (args: {
+    where?: {
+      isActive?: boolean;
+    };
+    orderBy?: {
+      date?: "asc" | "desc";
+    };
+    select?: {
+      date?: boolean;
+      reason?: boolean;
+    };
+  }) => Promise<PickupBlockDateRow[]>;
+};
+
+function getPickupBlockDateDelegate() {
+  const prismaRecord = prisma as unknown as Record<string, unknown>;
+  const delegate = prismaRecord["pickupBlockDate"];
+
+  if (!delegate) {
+    throw new Error("PICKUP_BLOCK_DATE_MODEL_UNAVAILABLE");
+  }
+
+  return delegate as PickupBlockDateDelegate;
+}
 
 function getTodayOrderPrefix() {
   const now = new Date();
@@ -104,19 +136,56 @@ function buildOrderItemName(item: CheckoutOrderPayload["items"][number]) {
   return `${item.productName}（${optionText}）`;
 }
 
+async function getActivePickupBlockDates() {
+  const pickupBlockDateModel = getPickupBlockDateDelegate();
+
+  const rows = await pickupBlockDateModel.findMany({
+    where: {
+      isActive: true,
+    },
+    orderBy: {
+      date: "asc",
+    },
+    select: {
+      date: true,
+      reason: true,
+    },
+  });
+
+  return rows.map((row) => ({
+    date: row.date,
+    reason: row.reason,
+  }));
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = (await req.json()) as CheckoutOrderPayload;
     const error = validatePayload(body);
 
     if (error) {
+      return NextResponse.json({ ok: false, error }, { status: 400 });
+    }
+
+    const payload = normalizePayload(body);
+    const blockedDates = await getActivePickupBlockDates();
+
+    const pickupValidation = isPickupSelectionValid({
+      date: payload.pickupDate,
+      time: payload.pickupTime,
+      blockedDates,
+    });
+
+    if (!pickupValidation.ok) {
       return NextResponse.json(
-        { ok: false, error },
+        {
+          ok: false,
+          error: pickupValidation.error,
+        },
         { status: 400 }
       );
     }
 
-    const payload = normalizePayload(body);
     const orderNo = await generateOrderNo();
 
     const order = await prisma.order.create({

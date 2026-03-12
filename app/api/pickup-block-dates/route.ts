@@ -4,9 +4,44 @@ import { evaluatePickupDateRules, getLeadBlockedDateStrings } from "@/lib/pickup
 
 export const dynamic = "force-dynamic";
 
+type PickupBlockDateRow = {
+  id: number;
+  date: string;
+  reason: string;
+};
+
+type PickupBlockDateDelegate = {
+  findMany: (args: {
+    where?: {
+      isActive?: boolean;
+    };
+    orderBy?: {
+      date?: "asc" | "desc";
+    };
+    select?: {
+      id?: boolean;
+      date?: boolean;
+      reason?: boolean;
+    };
+  }) => Promise<PickupBlockDateRow[]>;
+};
+
+function getPickupBlockDateDelegate() {
+  const prismaRecord = prisma as unknown as Record<string, unknown>;
+  const delegate = prismaRecord["pickupBlockDate"];
+
+  if (!delegate) {
+    throw new Error("PICKUP_BLOCK_DATE_MODEL_UNAVAILABLE");
+  }
+
+  return delegate as PickupBlockDateDelegate;
+}
+
 export async function GET() {
   try {
-    const rows = await prisma.pickupBlockDate.findMany({
+    const pickupBlockDateModel = getPickupBlockDateDelegate();
+
+    const rows = await pickupBlockDateModel.findMany({
       where: {
         isActive: true,
       },
@@ -28,22 +63,21 @@ export async function GET() {
 
     const leadBlockedDates = getLeadBlockedDateStrings();
 
-    const restrictedDates = rows
-      .map((row) => {
-        const nextDate = evaluatePickupDateRules({
-          date: row.date,
-          blockedDates: rows.map((item) => ({
-            date: item.date,
-            reason: item.reason,
-          })),
-        });
-
-        return {
-          date: row.date,
-          nextDayRestricted: false,
-          blockedReason: nextDate.blockedReason,
-        };
+    const restrictedDates = rows.map((row) => {
+      const nextDate = evaluatePickupDateRules({
+        date: row.date,
+        blockedDates: rows.map((item) => ({
+          date: item.date,
+          reason: item.reason,
+        })),
       });
+
+      return {
+        date: row.date,
+        nextDayRestricted: false,
+        blockedReason: nextDate.blockedReason,
+      };
+    });
 
     const nextDayRestrictedDates = rows
       .map((row) => {
