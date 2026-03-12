@@ -6,21 +6,55 @@ import { useSearchParams } from "next/navigation";
 
 type ViewState = "LOADING" | "PAID" | "FAILED" | "PENDING" | "UNKNOWN" | "ERROR";
 
+type OrderItem = {
+  id?: number;
+  name?: string;
+  price?: number;
+  qty?: number;
+};
+
+type OrderData = {
+  id?: number;
+  orderNo?: string;
+  customer?: string;
+  phone?: string;
+  pickupDate?: string;
+  pickupTime?: string;
+  note?: string;
+  status?: string;
+  totalAmount?: number;
+  createdAt?: string;
+  updatedAt?: string;
+  items?: OrderItem[];
+};
+
 type OrderStatusResponse = {
   ok?: boolean;
   status?: string;
   error?: string;
-  [key: string]: unknown;
+  order?: OrderData;
 };
 
 function isOrderStatusResponse(value: unknown): value is OrderStatusResponse {
   return typeof value === "object" && value !== null;
 }
 
+function normalizeStatus(raw: string | undefined): ViewState {
+  const status = String(raw ?? "").trim().toUpperCase();
+
+  if (status === "PAID") return "PAID";
+  if (status === "FAILED" || status === "CANCELLED") return "FAILED";
+  if (status === "PENDING" || status === "PENDING_PAYMENT" || status === "UNPAID") {
+    return "PENDING";
+  }
+  if (!status) return "UNKNOWN";
+  return "UNKNOWN";
+}
+
 function getStatusText(state: ViewState) {
   if (state === "PAID") return "已付款";
   if (state === "FAILED") return "付款失敗";
-  if (state === "PENDING") return "待付款";
+  if (state === "PENDING") return "確認中";
   if (state === "UNKNOWN") return "確認中";
   if (state === "LOADING") return "讀取中";
   return "讀取失敗";
@@ -29,7 +63,7 @@ function getStatusText(state: ViewState) {
 function getTitle(state: ViewState) {
   if (state === "PAID") return "付款完成";
   if (state === "FAILED") return "付款未完成";
-  if (state === "PENDING") return "等待付款確認";
+  if (state === "PENDING") return "付款結果確認中";
   if (state === "UNKNOWN") return "付款結果確認中";
   if (state === "LOADING") return "正在讀取付款結果";
   return "付款結果載入失敗";
@@ -43,7 +77,7 @@ function getDescription(state: ViewState) {
     return "目前尚未確認到付款成功，請稍後再次確認，或重新操作付款流程。";
   }
   if (state === "PENDING") {
-    return "系統已收到訂單，付款狀態仍在確認中，請稍後重新查看。";
+    return "系統正在同步這筆訂單的付款狀態，請稍候片刻。";
   }
   if (state === "UNKNOWN") {
     return "目前尚未取得明確付款結果，請稍後再回來確認。";
@@ -60,6 +94,31 @@ function statusColor(state: ViewState) {
   return "#73706b";
 }
 
+function formatPickupDate(raw: string | undefined) {
+  if (!raw) return "";
+
+  const d = new Date(raw);
+  if (Number.isNaN(d.getTime())) {
+    return raw;
+  }
+
+  return d.toLocaleDateString("zh-TW", {
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+    weekday: "short",
+  });
+}
+
+function formatCurrency(value: number | undefined) {
+  if (typeof value !== "number" || Number.isNaN(value)) return "";
+  return `NT$ ${value.toLocaleString("zh-TW")}`;
+}
+
+function formatPhone(value: string | undefined) {
+  return String(value ?? "").trim();
+}
+
 function PayResultContent() {
   const sp = useSearchParams();
   const orderId = useMemo(() => String(sp.get("orderId") ?? "").trim(), [sp]);
@@ -72,6 +131,7 @@ function PayResultContent() {
     if (!orderId) return;
 
     let alive = true;
+    let timer: ReturnType<typeof setInterval> | null = null;
 
     async function poll() {
       try {
@@ -89,40 +149,56 @@ function PayResultContent() {
         if (!data || data.ok !== true) {
           setState("ERROR");
           setErr(String(data?.error ?? "無法取得訂單狀態"));
+          if (timer) {
+            clearInterval(timer);
+            timer = null;
+          }
           return;
         }
 
-        const status = String(data.status ?? "UNKNOWN").toUpperCase();
-
-        if (status === "PAID") {
-          setState("PAID");
-        } else if (status === "FAILED" || status === "CANCELLED") {
-          setState("FAILED");
-        } else if (status === "PENDING" || status === "PENDING_PAYMENT") {
-          setState("PENDING");
-        } else {
-          setState("UNKNOWN");
-        }
-
+        const nextState = normalizeStatus(data.status ?? data.order?.status);
+        setState(nextState);
         setErr(null);
+
+        if (nextState === "PAID" || nextState === "FAILED") {
+          if (timer) {
+            clearInterval(timer);
+            timer = null;
+          }
+        }
       } catch (error: unknown) {
         if (!alive) return;
         setState("ERROR");
         setErr(error instanceof Error ? error.message : String(error));
+        if (timer) {
+          clearInterval(timer);
+          timer = null;
+        }
       }
     }
 
     void poll();
 
-    const timer = setInterval(() => {
+    timer = setInterval(() => {
       void poll();
     }, 2000);
 
     return () => {
       alive = false;
-      clearInterval(timer);
+      if (timer) {
+        clearInterval(timer);
+      }
     };
   }, [orderId]);
+
+  const order = detail?.order;
+  const displayOrderNo = order?.orderNo || String(order?.id ?? "") || orderId || "未提供";
+  const displayPickupDate = formatPickupDate(order?.pickupDate);
+  const displayPickupTime = String(order?.pickupTime ?? "").trim();
+  const displayCustomer = String(order?.customer ?? "").trim();
+  const displayPhone = formatPhone(order?.phone);
+  const displayTotal = formatCurrency(order?.totalAmount);
+  const itemCount = Array.isArray(order?.items) ? order.items.length : 0;
 
   return (
     <main
@@ -204,13 +280,55 @@ function PayResultContent() {
           >
             <div>
               <span style={{ color: "#8d877f" }}>訂單編號　</span>
-              <span>{orderId || "未提供"}</span>
+              <span>{displayOrderNo}</span>
             </div>
 
             <div>
               <span style={{ color: "#8d877f" }}>付款狀態　</span>
               <span style={{ color: statusColor(state) }}>{getStatusText(state)}</span>
             </div>
+
+            {displayPickupDate ? (
+              <div>
+                <span style={{ color: "#8d877f" }}>取貨日期　</span>
+                <span>{displayPickupDate}</span>
+              </div>
+            ) : null}
+
+            {displayPickupTime ? (
+              <div>
+                <span style={{ color: "#8d877f" }}>取貨時間　</span>
+                <span>{displayPickupTime}</span>
+              </div>
+            ) : null}
+
+            {displayCustomer ? (
+              <div>
+                <span style={{ color: "#8d877f" }}>訂購人　　</span>
+                <span>{displayCustomer}</span>
+              </div>
+            ) : null}
+
+            {displayPhone ? (
+              <div>
+                <span style={{ color: "#8d877f" }}>聯絡電話　</span>
+                <span>{displayPhone}</span>
+              </div>
+            ) : null}
+
+            {displayTotal ? (
+              <div>
+                <span style={{ color: "#8d877f" }}>訂單金額　</span>
+                <span>{displayTotal}</span>
+              </div>
+            ) : null}
+
+            {itemCount > 0 ? (
+              <div>
+                <span style={{ color: "#8d877f" }}>品項數量　</span>
+                <span>{itemCount} 項</span>
+              </div>
+            ) : null}
 
             {state === "ERROR" && err ? (
               <div style={{ color: "#8c6a70", marginTop: 2 }}>{err}</div>
