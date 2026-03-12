@@ -17,8 +17,8 @@ const adminItems = [
     href: "/admin/option-groups",
   },
   {
-    title: "蛋糕整理",
-    description: "整理蛋糕相關內容",
+    title: "店休日管理",
+    description: "設定每月店休日與前台禁選日期",
     href: "/admin/cakes",
   },
   {

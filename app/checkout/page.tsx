@@ -4,10 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import CheckoutCartItems from "./CheckoutCartItems";
 import CheckoutCustomerForm from "./CheckoutCustomerForm";
-import CheckoutSummary from "./CheckoutSummary";
 import {
-  clearCart,
-  getCartItemCount,
   getCartTotalAmount,
   readCart,
   removeCartItem,
@@ -30,7 +27,6 @@ export default function CheckoutPage() {
     };
   }, []);
 
-  const itemCount = useMemo(() => getCartItemCount(cart), [cart]);
   const totalAmount = useMemo(() => getCartTotalAmount(cart), [cart]);
 
   function handleRemoveItem(itemId: string) {
@@ -38,65 +34,82 @@ export default function CheckoutPage() {
     setCart(nextCart);
   }
 
-  function handleClearCart() {
-    const nextCart = clearCart();
-    setCart(nextCart);
-  }
-
   if (!hydrated) {
     return (
-      <main className="mx-auto max-w-6xl px-6 py-10">
-        <h1 className="text-3xl font-bold tracking-tight text-neutral-950">結帳</h1>
-        <p className="mt-4 text-sm text-neutral-500">載入購物車中…</p>
+      <main className="min-h-screen bg-neutral-100 px-5 py-12 text-neutral-800">
+        <div className="mx-auto max-w-[980px]">
+          <div className="mx-auto max-w-xl bg-neutral-50 px-8 py-12 text-center">
+            <div className="text-[11px] tracking-[0.22em] text-neutral-500">
+              NOSTALGIA COFFEE ROASTERY
+            </div>
+            <h1 className="mt-4 font-serif text-2xl font-medium tracking-[0.08em] text-neutral-900">
+              結帳
+            </h1>
+            <p className="mt-4 text-sm leading-8 text-neutral-600">
+              載入購物車中…
+            </p>
+          </div>
+        </div>
       </main>
     );
   }
 
   return (
-    <main className="mx-auto max-w-6xl px-6 py-10">
-      <div className="mb-6">
-        <Link href="/cakes" className="text-sm text-neutral-500 hover:text-neutral-900">
-          ← 返回蛋糕列表
-        </Link>
+    <main className="min-h-screen bg-neutral-100 px-5 py-12 text-neutral-800">
+      <div className="mx-auto max-w-[980px]">
+        <div className="mx-auto max-w-xl text-center">
+          <div className="text-[11px] tracking-[0.22em] text-neutral-500">
+            NOSTALGIA COFFEE ROASTERY
+          </div>
+          <h1 className="mt-4 font-serif text-2xl font-medium tracking-[0.08em] text-neutral-900">
+            結帳
+          </h1>
+          <p className="mt-4 text-sm leading-8 text-neutral-600">
+            先確認商品與金額，再填寫取貨資訊並進入付款流程。
+          </p>
+        </div>
+
+        <div className="mt-8">
+          <Link
+            href="/cakes"
+            className="inline-flex text-sm text-neutral-500 transition hover:text-neutral-900"
+          >
+            ← 返回蛋糕列表
+          </Link>
+        </div>
+
+        {cart.items.length === 0 ? (
+          <section className="mx-auto mt-6 max-w-xl bg-neutral-50 px-8 py-12 text-center">
+            <h2 className="font-serif text-xl font-medium tracking-[0.06em] text-neutral-900">
+              購物車目前是空的
+            </h2>
+            <p className="mt-3 text-sm leading-8 text-neutral-600">
+              請先到商品頁加入蛋糕與規格選項。
+            </p>
+
+            <div className="mt-8">
+              <Link
+                href="/cakes"
+                className="inline-flex items-center justify-center bg-neutral-900 px-5 py-3 text-sm font-medium tracking-[0.06em] text-white transition hover:bg-neutral-800"
+              >
+                去選購蛋糕
+              </Link>
+            </div>
+          </section>
+        ) : (
+          <section className="mx-auto mt-6 max-w-[920px]">
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-[260px_620px] lg:justify-center lg:gap-8 lg:items-start">
+              <div className="w-full bg-neutral-50 px-5 py-6">
+                <CheckoutCartItems items={cart.items} onRemove={handleRemoveItem} />
+              </div>
+
+              <div className="w-full bg-neutral-50 px-6 py-6 md:px-8 md:py-8">
+                <CheckoutCustomerForm cart={cart} totalAmount={totalAmount} />
+              </div>
+            </div>
+          </section>
+        )}
       </div>
-
-      <header className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight text-neutral-950">結帳</h1>
-        <p className="mt-2 text-sm text-neutral-600">
-          先確認商品、規格與金額，再填寫顧客資料。下一步才接建立訂單。
-        </p>
-      </header>
-
-      {cart.items.length === 0 ? (
-        <section className="rounded-2xl border border-neutral-200 bg-white p-8 text-center shadow-sm">
-          <h2 className="text-lg font-semibold text-neutral-900">購物車目前是空的</h2>
-          <p className="mt-2 text-sm text-neutral-500">請先到商品頁加入蛋糕與規格選項。</p>
-
-          <div className="mt-6">
-            <Link
-              href="/cakes"
-              className="inline-flex items-center rounded-xl bg-neutral-900 px-4 py-3 text-sm font-semibold text-white"
-            >
-              去選購蛋糕
-            </Link>
-          </div>
-        </section>
-      ) : (
-        <section className="grid grid-cols-1 gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-          <div className="space-y-6">
-            <CheckoutCartItems items={cart.items} onRemove={handleRemoveItem} />
-
-            <CheckoutCustomerForm cart={cart} totalAmount={totalAmount} />
-          </div>
-
-          <CheckoutSummary
-            itemCount={itemCount}
-            cartItemCount={cart.items.length}
-            totalAmount={totalAmount}
-            onClear={handleClearCart}
-          />
-        </section>
-      )}
     </main>
   );
 }

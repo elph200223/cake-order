@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   buildCheckoutOrderPayload,
   validateCheckoutCustomerInput,
@@ -8,169 +8,60 @@ import {
 } from "@/lib/checkout";
 import { clearCart, type CartState } from "@/lib/cart";
 import { submitOrder } from "@/lib/order-submit";
+import {
+  PICKUP_TIME_OPTIONS,
+  evaluatePickupDateRules,
+  getEarliestPickupDateString,
+  type PickupBlockedDateItem,
+} from "@/lib/pickup-rules";
+import PickupDateCalendar from "./PickupDateCalendar";
+import { createPayNowPayment, submitPostForm } from "./createPayNowPayment";
 
 type Props = {
   cart: CartState;
   totalAmount: number;
 };
 
-const PICKUP_TIME_OPTIONS = [
-  "13:00",
-  "14:00",
-  "15:00",
-  "16:00",
-  "17:00",
-  "18:00",
-  "19:00",
-  "20:00",
-];
-
 type SubmitState =
   | { status: "idle"; message: string }
   | { status: "submitting"; message: string }
   | { status: "error"; message: string };
 
-type PayNowCreateSuccess = {
-  ok: true;
-  orderId: string;
-  dbOrderId?: string;
-  action: string;
-  fields: Record<string, string>;
-  returnUrl?: string;
-};
-
-type PayNowCreateFailure = {
-  ok: false;
-  error: string;
-};
-
-type PayNowCreateResponse = PayNowCreateSuccess | PayNowCreateFailure;
-
-type PayNowCreateApiResponse = {
+type PickupBlockDatesApiResponse = {
   ok?: boolean;
-  orderId?: unknown;
-  dbOrderId?: unknown;
-  action?: unknown;
-  fields?: unknown;
-  returnUrl?: unknown;
+  blockedDates?: {
+    id?: unknown;
+    date?: unknown;
+    reason?: unknown;
+  }[];
   error?: unknown;
 };
-
-function isRecordOfStrings(value: unknown): value is Record<string, string> {
-  if (typeof value !== "object" || value === null) return false;
-  return Object.values(value).every((item) => typeof item === "string");
-}
 
 function formatMoney(price: number) {
   return `NT$ ${price.toLocaleString("zh-TW")}`;
 }
 
-function getTodayString() {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = `${now.getMonth() + 1}`.padStart(2, "0");
-  const day = `${now.getDate()}`.padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
-function buildPayNowItemDesc(cart: CartState) {
-  const names = cart.items.map((item) => item.productName).filter(Boolean);
-
-  if (names.length === 0) {
-    return "Cake Order";
-  }
-
-  const summary = names.slice(0, 3).join("、");
-  return names.length > 3 ? `${summary} 等商品` : summary;
-}
-
-async function createPayNowPayment(input: {
-  orderNo: string;
-  dbOrderId: number;
-  amount: number;
-  customerName: string;
-  phone: string;
-  email: string;
-  note: string;
-  items: CartState["items"];
-}): Promise<PayNowCreateResponse> {
-  try {
-    const res = await fetch("/api/paynow/create", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        orderId: input.orderNo,
-        dbOrderId: input.dbOrderId,
-        amount: input.amount,
-        itemDesc: buildPayNowItemDesc({ items: input.items }),
-        customer: {
-          name: input.customerName,
-          phone: input.phone,
-          email: input.email,
-        },
-        items: input.items,
-        note: input.note,
-      }),
-    });
-
-    const raw: unknown = await res.json().catch(() => null);
-    const data: PayNowCreateApiResponse =
-      typeof raw === "object" && raw !== null ? (raw as PayNowCreateApiResponse) : {};
-
-    if (
-      !res.ok ||
-      data.ok !== true ||
-      typeof data.action !== "string" ||
-      !isRecordOfStrings(data.fields)
-    ) {
-      return {
-        ok: false,
-        error:
-          typeof data.error === "string"
-            ? data.error
-            : "CREATE_PAYNOW_PAYMENT_FAILED",
-      };
-    }
-
-    return {
-      ok: true,
-      orderId: typeof data.orderId === "string" ? data.orderId : "",
-      dbOrderId:
-        typeof data.dbOrderId === "string" ? data.dbOrderId : undefined,
-      action: data.action,
-      fields: data.fields,
-      returnUrl:
-        typeof data.returnUrl === "string" ? data.returnUrl : undefined,
-    };
-  } catch (error: unknown) {
-    return {
-      ok: false,
-      error:
-        error instanceof Error
-          ? error.message
-          : "CREATE_PAYNOW_PAYMENT_FAILED",
-    };
+function formatOrderErrorMessage(error: string) {
+  switch (error) {
+    case "PICKUP_DATE_INVALID":
+      return "取貨日期格式不正確。";
+    case "PICKUP_DATE_LEAD_TIME_REQUIRED":
+      return "蛋糕需於兩天前預訂，今天起三天後才可取貨。";
+    case "PICKUP_DATE_BLOCKED":
+      return "該日期為店休日，無法選擇取貨。";
+    case "PICKUP_TIME_NOT_ALLOWED":
+      return "該日期的取貨時間不可選。若為店休日隔天，只能選 13:00 後。";
+    case "PICKUP_TIME_REQUIRED":
+      return "請選擇取貨時間。";
+    case "CREATE_ORDER_FAILED":
+      return "建立訂單失敗。";
+    default:
+      return error || "建立訂單失敗。";
   }
 }
 
-function submitPostForm(action: string, fields: Record<string, string>) {
-  const form = document.createElement("form");
-  form.method = "POST";
-  form.action = action;
-  form.style.display = "none";
-
-  Object.entries(fields).forEach(([key, value]) => {
-    const input = document.createElement("input");
-    input.type = "hidden";
-    input.name = key;
-    input.value = value ?? "";
-    form.appendChild(input);
-  });
-
-  document.body.appendChild(form);
-  form.submit();
+function isDateBefore(a: string, b: string) {
+  return a.localeCompare(b) < 0;
 }
 
 export default function CheckoutCustomerForm({ cart, totalAmount }: Props) {
@@ -186,10 +77,113 @@ export default function CheckoutCustomerForm({ cart, totalAmount }: Props) {
     status: "idle",
     message: "",
   });
+  const [blockedDates, setBlockedDates] = useState<PickupBlockedDateItem[]>([]);
+  const [pickupRulesLoading, setPickupRulesLoading] = useState(true);
+  const [pickupRulesError, setPickupRulesError] = useState("");
+
+  const earliestPickupDate = useMemo(() => getEarliestPickupDateString(), []);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadPickupRules() {
+      setPickupRulesLoading(true);
+      setPickupRulesError("");
+
+      try {
+        const res = await fetch("/api/pickup-block-dates", {
+          method: "GET",
+          cache: "no-store",
+        });
+
+        const raw: unknown = await res.json().catch(() => null);
+        const data: PickupBlockDatesApiResponse =
+          typeof raw === "object" && raw !== null ? (raw as PickupBlockDatesApiResponse) : {};
+
+        if (!res.ok || data.ok !== true) {
+          throw new Error(
+            typeof data.error === "string" ? data.error : "LIST_FAILED"
+          );
+        }
+
+        const nextBlockedDates: PickupBlockedDateItem[] = Array.isArray(data.blockedDates)
+          ? data.blockedDates
+              .map((item) => ({
+                date: typeof item.date === "string" ? item.date : "",
+                reason: typeof item.reason === "string" ? item.reason : "",
+              }))
+              .filter((item) => item.date)
+          : [];
+
+        if (!active) return;
+
+        setBlockedDates(nextBlockedDates);
+      } catch (error: unknown) {
+        if (!active) return;
+
+        setBlockedDates([]);
+        setPickupRulesError(
+          error instanceof Error ? error.message : "LIST_FAILED"
+        );
+      } finally {
+        if (!active) return;
+        setPickupRulesLoading(false);
+      }
+    }
+
+    void loadPickupRules();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const validation = useMemo(() => {
     return validateCheckoutCustomerInput(form);
   }, [form]);
+
+  const pickupRuleEvaluation = useMemo(() => {
+    if (!form.pickupDate) {
+      return null;
+    }
+
+    return evaluatePickupDateRules({
+      date: form.pickupDate,
+      blockedDates,
+    });
+  }, [blockedDates, form.pickupDate]);
+
+  const availablePickupTimes = useMemo(() => {
+    if (!form.pickupDate) {
+      return [...PICKUP_TIME_OPTIONS];
+    }
+
+    if (!pickupRuleEvaluation || pickupRuleEvaluation.isDateBlocked) {
+      return [];
+    }
+
+    return pickupRuleEvaluation.availableTimes;
+  }, [form.pickupDate, pickupRuleEvaluation]);
+
+  const pickupDateRuleError = useMemo(() => {
+    if (!form.pickupDate || !pickupRuleEvaluation?.isDateBlocked) {
+      return "";
+    }
+
+    return formatOrderErrorMessage(pickupRuleEvaluation.blockedReason);
+  }, [form.pickupDate, pickupRuleEvaluation]);
+
+  const pickupTimeRuleError = useMemo(() => {
+    if (!form.pickupDate || !form.pickupTime) {
+      return "";
+    }
+
+    if (availablePickupTimes.includes(form.pickupTime)) {
+      return "";
+    }
+
+    return "該日期的取貨時間不可選。若為店休日隔天，只能選 13:00 後。";
+  }, [availablePickupTimes, form.pickupDate, form.pickupTime]);
 
   const isFormValid = useMemo(() => {
     return (
@@ -197,9 +191,11 @@ export default function CheckoutCustomerForm({ cart, totalAmount }: Props) {
       !validation.errors.phone &&
       !validation.errors.email &&
       !validation.errors.pickupDate &&
-      !validation.errors.pickupTime
+      !validation.errors.pickupTime &&
+      !pickupDateRuleError &&
+      !pickupTimeRuleError
     );
-  }, [validation]);
+  }, [pickupDateRuleError, pickupTimeRuleError, validation]);
 
   const orderPayload = useMemo(() => {
     return buildCheckoutOrderPayload(cart, form);
@@ -214,6 +210,41 @@ export default function CheckoutCustomerForm({ cart, totalAmount }: Props) {
       ...prev,
       [key]: value,
     }));
+  }
+
+  function updatePickupDate(value: string) {
+    setSubmitState({ status: "idle", message: "" });
+
+    if (isDateBefore(value, earliestPickupDate)) {
+      setForm((prev) => ({
+        ...prev,
+        pickupDate: "",
+        pickupTime: "",
+      }));
+      return;
+    }
+
+    const evaluation = value
+      ? evaluatePickupDateRules({
+          date: value,
+          blockedDates,
+        })
+      : null;
+
+    setForm((prev) => {
+      const nextPickupTime =
+        evaluation &&
+        !evaluation.isDateBlocked &&
+        evaluation.availableTimes.includes(prev.pickupTime)
+          ? prev.pickupTime
+          : "";
+
+      return {
+        ...prev,
+        pickupDate: value,
+        pickupTime: nextPickupTime,
+      };
+    });
   }
 
   async function handleSubmit() {
@@ -243,7 +274,7 @@ export default function CheckoutCustomerForm({ cart, totalAmount }: Props) {
     if (!result.ok) {
       setSubmitState({
         status: "error",
-        message: result.error || "建立訂單失敗。",
+        message: formatOrderErrorMessage(result.error),
       });
       return;
     }
@@ -277,17 +308,17 @@ export default function CheckoutCustomerForm({ cart, totalAmount }: Props) {
   }
 
   return (
-    <section className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
-      <div className="border-b border-neutral-100 pb-4">
-        <h2 className="text-lg font-semibold text-neutral-900">顧客資料</h2>
-        <p className="mt-1 text-sm text-neutral-500">請填寫取貨資訊並送出訂單。</p>
+    <section className="bg-transparent p-0">
+      <div className="pb-3">
+        <h2 className="text-base font-semibold text-neutral-900">顧客資料</h2>
+        <p className="mt-1 text-xs text-neutral-500">請填寫取貨資訊並送出訂單。</p>
       </div>
 
-      <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         <div className="md:col-span-1">
           <label
             htmlFor="customerName"
-            className="mb-2 block text-sm font-medium text-neutral-700"
+            className="mb-1.5 block text-sm font-medium text-neutral-700"
           >
             姓名
           </label>
@@ -296,11 +327,11 @@ export default function CheckoutCustomerForm({ cart, totalAmount }: Props) {
             type="text"
             value={form.customerName}
             onChange={(e) => updateField("customerName", e.target.value)}
-            className="w-full rounded-xl border border-neutral-300 px-4 py-3 text-sm outline-none transition focus:border-neutral-900"
+            className="w-full bg-white px-3 py-2.5 text-sm outline-none ring-1 ring-inset ring-neutral-300 transition focus:ring-neutral-900"
             placeholder="請輸入訂購人姓名"
           />
           {validation.errors.customerName ? (
-            <p className="mt-2 text-sm text-red-600">
+            <p className="mt-1.5 text-sm text-red-600">
               {validation.errors.customerName}
             </p>
           ) : null}
@@ -309,7 +340,7 @@ export default function CheckoutCustomerForm({ cart, totalAmount }: Props) {
         <div className="md:col-span-1">
           <label
             htmlFor="phone"
-            className="mb-2 block text-sm font-medium text-neutral-700"
+            className="mb-1.5 block text-sm font-medium text-neutral-700"
           >
             電話
           </label>
@@ -318,18 +349,18 @@ export default function CheckoutCustomerForm({ cart, totalAmount }: Props) {
             type="tel"
             value={form.phone}
             onChange={(e) => updateField("phone", e.target.value)}
-            className="w-full rounded-xl border border-neutral-300 px-4 py-3 text-sm outline-none transition focus:border-neutral-900"
+            className="w-full bg-white px-3 py-2.5 text-sm outline-none ring-1 ring-inset ring-neutral-300 transition focus:ring-neutral-900"
             placeholder="請輸入聯絡電話"
           />
           {validation.errors.phone ? (
-            <p className="mt-2 text-sm text-red-600">{validation.errors.phone}</p>
+            <p className="mt-1.5 text-sm text-red-600">{validation.errors.phone}</p>
           ) : null}
         </div>
 
         <div className="md:col-span-2">
           <label
             htmlFor="email"
-            className="mb-2 block text-sm font-medium text-neutral-700"
+            className="mb-1.5 block text-sm font-medium text-neutral-700"
           >
             Email
           </label>
@@ -338,40 +369,28 @@ export default function CheckoutCustomerForm({ cart, totalAmount }: Props) {
             type="email"
             value={form.email}
             onChange={(e) => updateField("email", e.target.value)}
-            className="w-full rounded-xl border border-neutral-300 px-4 py-3 text-sm outline-none transition focus:border-neutral-900"
+            className="w-full bg-white px-3 py-2.5 text-sm outline-none ring-1 ring-inset ring-neutral-300 transition focus:ring-neutral-900"
             placeholder="請輸入 Email"
           />
           {validation.errors.email ? (
-            <p className="mt-2 text-sm text-red-600">{validation.errors.email}</p>
+            <p className="mt-1.5 text-sm text-red-600">{validation.errors.email}</p>
           ) : null}
         </div>
 
-        <div className="md:col-span-1">
-          <label
-            htmlFor="pickupDate"
-            className="mb-2 block text-sm font-medium text-neutral-700"
-          >
-            取貨日期
-          </label>
-          <input
-            id="pickupDate"
-            type="date"
-            min={getTodayString()}
-            value={form.pickupDate}
-            onChange={(e) => updateField("pickupDate", e.target.value)}
-            className="w-full rounded-xl border border-neutral-300 px-4 py-3 text-sm outline-none transition focus:border-neutral-900"
-          />
-          {validation.errors.pickupDate ? (
-            <p className="mt-2 text-sm text-red-600">
-              {validation.errors.pickupDate}
-            </p>
-          ) : null}
-        </div>
+        <PickupDateCalendar
+          value={form.pickupDate}
+          blockedDates={blockedDates}
+          loading={pickupRulesLoading}
+          loadError={pickupRulesError}
+          errorMessage={pickupDateRuleError}
+          fallbackErrorMessage={validation.errors.pickupDate}
+          onChange={updatePickupDate}
+        />
 
         <div className="md:col-span-1">
           <label
             htmlFor="pickupTime"
-            className="mb-2 block text-sm font-medium text-neutral-700"
+            className="mb-1.5 block text-sm font-medium text-neutral-700"
           >
             取貨時間
           </label>
@@ -379,29 +398,37 @@ export default function CheckoutCustomerForm({ cart, totalAmount }: Props) {
             id="pickupTime"
             value={form.pickupTime}
             onChange={(e) => updateField("pickupTime", e.target.value)}
-            className="w-full rounded-xl border border-neutral-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-neutral-900"
+            className="w-full bg-white px-3 py-2.5 text-sm outline-none ring-1 ring-inset ring-neutral-300 transition focus:ring-neutral-900"
+            disabled={!form.pickupDate || !!pickupDateRuleError}
           >
             <option value="">請選擇取貨時間</option>
-            {PICKUP_TIME_OPTIONS.map((time) => (
+            {availablePickupTimes.map((time) => (
               <option key={time} value={time}>
                 {time}
               </option>
             ))}
           </select>
-          <p className="mt-2 text-xs text-neutral-500">
-            可選時段為 13:00～20:00，每個整點。
+          <p className="mt-1.5 text-xs text-neutral-500">
+            可選時段為 13:00～20:00；店休日隔天僅提供 13:00 後取貨。
           </p>
-          {validation.errors.pickupTime ? (
-            <p className="mt-2 text-sm text-red-600">
+          {pickupRuleEvaluation?.timeRestrictedAfterHoliday && !pickupDateRuleError ? (
+            <p className="mt-1.5 text-sm text-amber-700">
+              此日期為店休日隔天，僅可選 13:00 後時段。
+            </p>
+          ) : null}
+          {pickupTimeRuleError ? (
+            <p className="mt-1.5 text-sm text-red-600">{pickupTimeRuleError}</p>
+          ) : validation.errors.pickupTime ? (
+            <p className="mt-1.5 text-sm text-red-600">
               {validation.errors.pickupTime}
             </p>
           ) : null}
         </div>
 
         <div className="md:col-span-1">
-          <div className="rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3">
-            <p className="text-sm text-neutral-500">目前訂單金額</p>
-            <p className="mt-1 text-xl font-bold text-neutral-950">
+          <div className="bg-neutral-50 px-3 py-2.5">
+            <p className="text-xs text-neutral-500">目前訂單金額</p>
+            <p className="mt-1 text-lg font-bold text-neutral-950">
               {formatMoney(totalAmount)}
             </p>
           </div>
@@ -410,7 +437,7 @@ export default function CheckoutCustomerForm({ cart, totalAmount }: Props) {
         <div className="md:col-span-2">
           <label
             htmlFor="note"
-            className="mb-2 block text-sm font-medium text-neutral-700"
+            className="mb-1.5 block text-sm font-medium text-neutral-700"
           >
             備註
           </label>
@@ -418,34 +445,34 @@ export default function CheckoutCustomerForm({ cart, totalAmount }: Props) {
             id="note"
             value={form.note}
             onChange={(e) => updateField("note", e.target.value)}
-            className="min-h-[120px] w-full rounded-xl border border-neutral-300 px-4 py-3 text-sm outline-none transition focus:border-neutral-900"
-            placeholder="可填寫蠟燭、餐具、特殊需求等"
+            className="min-h-[96px] w-full bg-white px-3 py-2.5 text-sm outline-none ring-1 ring-inset ring-neutral-300 transition focus:ring-neutral-900"
+            placeholder="備註請先與我們討論，單方面要求不予理會。"
           />
         </div>
       </div>
 
-      <div className="mt-6 rounded-2xl border border-dashed border-neutral-300 bg-neutral-50 p-4">
+      <div className="mt-4 bg-neutral-50 p-3">
         <button
           type="button"
           onClick={handleSubmit}
-          className="w-full rounded-xl bg-neutral-900 px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+          className="w-full bg-neutral-900 px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
           disabled={!isFormValid || submitState.status === "submitting"}
         >
           {submitState.status === "submitting" ? "處理中…" : "前往付款"}
         </button>
 
         {submitState.status === "error" ? (
-          <p className="mt-3 text-sm text-red-600">{submitState.message}</p>
+          <p className="mt-2 text-sm text-red-600">{submitState.message}</p>
         ) : null}
 
         {submitState.status === "idle" && !isFormValid ? (
-          <p className="mt-3 text-sm text-red-600">
-            請先完成姓名、電話、Email、取貨日期與取貨時間。
+          <p className="mt-2 text-sm text-red-600">
+            請先完成姓名、電話、Email、合法的取貨日期與取貨時間。
           </p>
         ) : null}
 
         {submitState.status === "idle" && isFormValid ? (
-          <p className="mt-3 text-sm text-green-700">
+          <p className="mt-2 text-sm text-green-700">
             顧客資料已完成，可前往付款。
           </p>
         ) : null}
