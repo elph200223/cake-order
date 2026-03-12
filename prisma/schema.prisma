@@ -141,3 +141,14 @@ model ProductImage {
   @@index([productId])
   @@index([productId, sort])
 }
+
+model PickupBlockDate {
+  id        Int      @id @default(autoincrement())
+  date      String   @unique
+  reason    String   @default("")
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive, date])
+}
