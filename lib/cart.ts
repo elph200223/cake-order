@@ -35,7 +35,7 @@ function isBrowser() {
   return typeof window !== "undefined";
 }
 
-function createCartItemId(input: AddCartItemInput) {
+export function createCartItemId(input: Pick<AddCartItemInput, "productId" | "options">) {
   const optionKey = input.options
     .map((option) => `${option.optionGroupId}:${option.optionId}`)
     .sort()
@@ -44,15 +44,34 @@ function createCartItemId(input: AddCartItemInput) {
   return `${input.productId}__${optionKey || "no-options"}`;
 }
 
+function getUnitPrice(input: Pick<AddCartItemInput, "basePrice" | "options">) {
+  return (
+    input.basePrice +
+    input.options.reduce((sum, option) => sum + option.priceDelta, 0)
+  );
+}
+
+function normalizeQuantity(quantity: number) {
+  if (!Number.isFinite(quantity)) return 1;
+  return Math.max(1, Math.floor(quantity));
+}
+
+function buildSubtotal(unitPrice: number, quantity: number) {
+  return unitPrice * quantity;
+}
+
 export function createCartItem(input: AddCartItemInput): CartItem {
+  const normalizedQuantity = normalizeQuantity(input.quantity);
+  const unitPrice = getUnitPrice(input);
+
   return {
     id: createCartItemId(input),
     productId: input.productId,
     productName: input.productName,
     basePrice: input.basePrice,
-    quantity: input.quantity,
+    quantity: normalizedQuantity,
     options: input.options,
-    subtotal: input.subtotal,
+    subtotal: buildSubtotal(unitPrice, normalizedQuantity),
   };
 }
 
@@ -89,19 +108,27 @@ export function writeCart(cart: CartState) {
   window.localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
 }
 
+export function hasCartItem(input: Pick<AddCartItemInput, "productId" | "options">) {
+  const cart = readCart();
+  const itemId = createCartItemId(input);
+  return cart.items.some((item) => item.id === itemId);
+}
+
 export function addCartItem(input: AddCartItemInput): CartState {
   const cart = readCart();
   const newItem = createCartItem(input);
+  const unitPrice = getUnitPrice(input);
 
   const existingIndex = cart.items.findIndex((item) => item.id === newItem.id);
 
   if (existingIndex >= 0) {
     const existing = cart.items[existingIndex];
+    const nextQuantity = existing.quantity + normalizeQuantity(input.quantity);
 
     const merged: CartItem = {
       ...existing,
-      quantity: existing.quantity + input.quantity,
-      subtotal: existing.subtotal + input.subtotal,
+      quantity: nextQuantity,
+      subtotal: buildSubtotal(unitPrice, nextQuantity),
     };
 
     const items = [...cart.items];
@@ -118,6 +145,54 @@ export function addCartItem(input: AddCartItemInput): CartState {
 
   writeCart(nextCart);
   return nextCart;
+}
+
+export function setCartItemQuantity(itemId: string, quantity: number): CartState {
+  const cart = readCart();
+  const normalizedQuantity = Math.floor(quantity);
+
+  if (normalizedQuantity <= 0) {
+    return removeCartItem(itemId);
+  }
+
+  const items = cart.items.map((item) => {
+    if (item.id !== itemId) return item;
+
+    const unitPrice =
+      item.basePrice + item.options.reduce((sum, option) => sum + option.priceDelta, 0);
+
+    return {
+      ...item,
+      quantity: normalizedQuantity,
+      subtotal: buildSubtotal(unitPrice, normalizedQuantity),
+    };
+  });
+
+  const nextCart = { items };
+  writeCart(nextCart);
+  return nextCart;
+}
+
+export function incrementCartItemQuantity(itemId: string): CartState {
+  const cart = readCart();
+  const target = cart.items.find((item) => item.id === itemId);
+
+  if (!target) {
+    return cart;
+  }
+
+  return setCartItemQuantity(itemId, target.quantity + 1);
+}
+
+export function decrementCartItemQuantity(itemId: string): CartState {
+  const cart = readCart();
+  const target = cart.items.find((item) => item.id === itemId);
+
+  if (!target) {
+    return cart;
+  }
+
+  return setCartItemQuantity(itemId, target.quantity - 1);
 }
 
 export function removeCartItem(itemId: string): CartState {

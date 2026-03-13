@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import type { CatalogOptionGroup } from "@/lib/catalog";
-import { addCartItem } from "@/lib/cart";
+import { addCartItem, hasCartItem } from "@/lib/cart";
 
 type Props = {
   productId: number;
@@ -258,14 +258,31 @@ export default function CakeOptionSelector({
     tryAddToCart();
   }
 
-  function handleAddToCartAndCheckout() {
+  function handleCheckoutNow() {
     setSubmitMessage("");
     setSubmitTone("");
 
-    const ok = tryAddToCart();
-    if (!ok) return;
+    if (!isFormValid) {
+      setSubmitTone("error");
+      setSubmitMessage("請先完成必選規格，再前往結帳。");
+      return;
+    }
 
-    window.location.href = "/checkout";
+    try {
+      const alreadyInCart = hasCartItem({
+        productId: draftCartItem.productId,
+        options: draftCartItem.options,
+      });
+
+      if (!alreadyInCart) {
+        addCartItem(draftCartItem);
+      }
+
+      window.location.href = "/checkout";
+    } catch {
+      setSubmitTone("error");
+      setSubmitMessage("前往結帳失敗。");
+    }
   }
 
   return (
@@ -387,7 +404,7 @@ export default function CakeOptionSelector({
             className="inline-flex w-full items-center justify-center bg-neutral-900 px-4 py-3 text-sm font-medium tracking-[0.04em] text-white transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-50"
             disabled={!isFormValid}
           >
-            先加入購物車
+            加入購物車
           </button>
 
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -400,11 +417,11 @@ export default function CakeOptionSelector({
 
             <button
               type="button"
-              onClick={handleAddToCartAndCheckout}
+              onClick={handleCheckoutNow}
               className="inline-flex items-center justify-center bg-white px-4 py-3 text-sm font-medium tracking-[0.04em] text-neutral-800 transition hover:bg-neutral-200 disabled:cursor-not-allowed disabled:opacity-50"
               disabled={!isFormValid}
             >
-              加入後直接結帳
+              直接結帳
             </button>
           </div>
 
@@ -419,11 +436,11 @@ export default function CakeOptionSelector({
             </p>
           ) : !isFormValid ? (
             <p className="text-sm text-red-600">
-              請先完成必選規格，才能加入購物車。
+              請先完成必選規格，才能加入購物車或前往結帳。
             </p>
           ) : (
             <p className="text-sm text-neutral-500">
-              先加入購物車後，可回列表繼續選購，或直接前往結帳。
+              可先加入購物車繼續選購，或直接前往結帳。
             </p>
           )}
         </div>
