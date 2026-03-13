@@ -1,7 +1,7 @@
 import Image from "next/image";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getCatalogProductBySlug } from "@/lib/catalog";
+import CakesPageNav from "../CakesPageNav";
 import CakeOptionSelector from "./CakeOptionSelector";
 
 function formatBasePrice(price: number) {
@@ -39,12 +39,7 @@ export default async function CakeDetailPage({
         </div>
 
         <div className="mt-8">
-          <Link
-            href="/cakes"
-            className="inline-flex text-sm text-neutral-500 transition hover:text-neutral-900"
-          >
-            ← 返回蛋糕列表
-          </Link>
+          <CakesPageNav />
         </div>
 
         <section className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[380px_minmax(0,1fr)] lg:items-start lg:gap-8">
