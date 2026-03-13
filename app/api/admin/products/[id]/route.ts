@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 type Ctx = { params: Promise<{ id: string }> };
 
 type ProductPatchBody = {
@@ -26,23 +29,46 @@ export async function GET(_req: NextRequest, ctx: Ctx) {
     const id = parseId(idStr);
 
     if (id == null) {
-      return NextResponse.json({ ok: false, error: "ID_INVALID" }, { status: 400 });
+      return NextResponse.json(
+        { ok: false, error: "ID_INVALID" },
+        {
+          status: 400,
+          headers: {
+            "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+          },
+        }
+      );
     }
 
     const product = await prisma.product.findUnique({
       where: { id },
       include: {
         images: {
-          orderBy: [{ sort: "asc" }, { id: "asc" }],
+          orderBy: [{ isCover: "desc" }, { sort: "asc" }, { id: "asc" }],
         },
       },
     });
 
     if (!product) {
-      return NextResponse.json({ ok: false, error: "NOT_FOUND" }, { status: 404 });
+      return NextResponse.json(
+        { ok: false, error: "NOT_FOUND" },
+        {
+          status: 404,
+          headers: {
+            "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+          },
+        }
+      );
     }
 
-    return NextResponse.json({ ok: true, product });
+    return NextResponse.json(
+      { ok: true, product },
+      {
+        headers: {
+          "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        },
+      }
+    );
   } catch (error: unknown) {
     console.error("GET /api/admin/products/[id] error:", error);
     return NextResponse.json(
@@ -50,7 +76,12 @@ export async function GET(_req: NextRequest, ctx: Ctx) {
         ok: false,
         error: "GET_FAILED_" + (error instanceof Error ? error.message : String(error)),
       },
-      { status: 500 }
+      {
+        status: 500,
+        headers: {
+          "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        },
+      }
     );
   }
 }
