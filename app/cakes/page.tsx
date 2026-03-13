@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import CakesPageNav from "./CakesPageNav";
 import { getCatalogProducts } from "@/lib/catalog";
 
 export const dynamic = "force-dynamic";
@@ -33,14 +34,7 @@ export default async function CakesPage() {
         </header>
 
         <div className="pt-6">
-          <div className="mb-5">
-            <Link
-              href="/"
-              className="text-[13px] tracking-[0.08em] text-stone-500 transition hover:text-stone-800"
-            >
-              ← 返回首頁
-            </Link>
-          </div>
+          <CakesPageNav />
 
           {products.length === 0 ? (
             <section className="border border-stone-200 bg-white p-10 text-center shadow-sm">
