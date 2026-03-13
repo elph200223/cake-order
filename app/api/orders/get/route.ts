@@ -25,6 +25,28 @@ function toIsoString(value: Date | string | null | undefined) {
   return String(value);
 }
 
+function buildResponseOrder(order: OrderWithItems) {
+  return {
+    id: order.id,
+    orderNo: order.orderNo,
+    customer: order.customer,
+    phone: order.phone,
+    pickupDate: toIsoString(order.pickupDate),
+    pickupTime: order.pickupTime ?? "",
+    note: order.note ?? "",
+    status: order.status,
+    totalAmount: order.totalAmount,
+    createdAt: toIsoString(order.createdAt),
+    updatedAt: toIsoString(order.updatedAt),
+    items: order.items.map((item) => ({
+      id: item.id,
+      name: item.name,
+      price: item.price,
+      qty: item.quantity,
+    })),
+  };
+}
+
 // GET /api/orders/get?orderId=123
 // GET /api/orders/get?orderNo=CAKE202603070001&phone=0912345678
 export async function GET(req: Request) {
@@ -77,34 +99,20 @@ export async function GET(req: Request) {
 
     if (!order) {
       return NextResponse.json(
-        { ok: false, error: "ORDER_NOT_FOUND" },
+        {
+          ok: false,
+          error: "ORDER_NOT_FOUND",
+        },
         { status: 404 }
       );
     }
 
-    const responseOrder = {
-      id: order.id,
-      orderNo: order.orderNo,
-      customer: order.customer,
-      phone: order.phone,
-      pickupDate: toIsoString(order.pickupDate),
-      pickupTime: order.pickupTime ?? "",
-      note: order.note ?? "",
-      status: order.status,
-      totalAmount: order.totalAmount,
-      createdAt: toIsoString(order.createdAt),
-      updatedAt: toIsoString(order.updatedAt),
-      items: order.items.map((item) => ({
-        id: item.id,
-        name: item.name,
-        price: item.price,
-        qty: item.quantity,
-      })),
-    };
+    const responseOrder = buildResponseOrder(order);
 
     return NextResponse.json(
       {
         ok: true,
+        status: responseOrder.status,
         order: responseOrder,
       },
       { status: 200 }
