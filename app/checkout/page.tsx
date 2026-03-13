@@ -5,7 +5,9 @@ import { useEffect, useMemo, useState } from "react";
 import CheckoutCartItems from "./CheckoutCartItems";
 import CheckoutCustomerForm from "./CheckoutCustomerForm";
 import {
+  decrementCartItemQuantity,
   getCartTotalAmount,
+  incrementCartItemQuantity,
   readCart,
   removeCartItem,
   type CartState,
@@ -31,6 +33,16 @@ export default function CheckoutPage() {
 
   function handleRemoveItem(itemId: string) {
     const nextCart = removeCartItem(itemId);
+    setCart(nextCart);
+  }
+
+  function handleIncreaseQuantity(itemId: string) {
+    const nextCart = incrementCartItemQuantity(itemId);
+    setCart(nextCart);
+  }
+
+  function handleDecreaseQuantity(itemId: string) {
+    const nextCart = decrementCartItemQuantity(itemId);
     setCart(nextCart);
   }
 
@@ -98,9 +110,14 @@ export default function CheckoutPage() {
           </section>
         ) : (
           <section className="mx-auto mt-6 max-w-[920px]">
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-[260px_620px] lg:justify-center lg:gap-8 lg:items-start">
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-[260px_620px] lg:items-start lg:justify-center lg:gap-8">
               <div className="w-full bg-neutral-50 px-5 py-6">
-                <CheckoutCartItems items={cart.items} onRemove={handleRemoveItem} />
+                <CheckoutCartItems
+                  items={cart.items}
+                  onRemove={handleRemoveItem}
+                  onDecreaseQuantity={handleDecreaseQuantity}
+                  onIncreaseQuantity={handleIncreaseQuantity}
+                />
               </div>
 
               <div className="w-full bg-neutral-50 px-6 py-6 md:px-8 md:py-8">
