@@ -1,7 +1,8 @@
 "use client";
 
 import { upload } from "@vercel/blob/client";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import ProductImageCard from "./ProductImageCard";
 
 export type ProductImageItem = {
@@ -52,12 +53,20 @@ export default function ProductImagesSection({
   images,
   onChanged,
 }: Props) {
+  const router = useRouter();
+
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [alt, setAlt] = useState("");
   const [makeCover, setMakeCover] = useState(images.length === 0);
   const [submitting, setSubmitting] = useState(false);
   const [msg, setMsg] = useState("");
   const [progress, setProgress] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (images.length === 0) {
+      setMakeCover(true);
+    }
+  }, [images.length]);
 
   const orderedImages = useMemo(() => {
     return [...images].sort((a, b) => {
@@ -93,7 +102,6 @@ export default function ProductImagesSection({
         },
       });
 
-      setMsg(`✅ 已上傳圖片：${blob.pathname}`);
       setSelectedFile(null);
       setAlt("");
       setMakeCover(false);
@@ -108,6 +116,9 @@ export default function ProductImagesSection({
       }
 
       await onChanged?.();
+      router.refresh();
+
+      setMsg(`✅ 已上傳圖片：${blob.pathname}`);
     } catch (error: unknown) {
       setMsg(error instanceof Error ? error.message : "圖片上傳失敗");
       setProgress(null);
