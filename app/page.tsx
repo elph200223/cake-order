@@ -108,12 +108,26 @@ export default async function Home() {
 
                   <div>
                     <div className="text-stone-500">Instagram</div>
-                    <div className="text-stone-400">請放入 IG 連結</div>
+                    <a
+                      href="https://www.instagram.com/nostalgia_coffeelovee?igsh=MXNtMXdrZWI0ZDY1cg%3D%3D&utm_source=qr"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="break-all text-stone-700 underline decoration-stone-300 underline-offset-4 transition hover:text-stone-900 hover:decoration-stone-500"
+                    >
+                      @nostalgia_coffeelovee
+                    </a>
                   </div>
 
                   <div>
                     <div className="text-stone-500">官方 LINE</div>
-                    <div className="text-stone-400">請放入 LINE 連結</div>
+                    <a
+                      href="https://lin.ee/FDXPdMy"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="break-all text-stone-700 underline decoration-stone-300 underline-offset-4 transition hover:text-stone-900 hover:decoration-stone-500"
+                    >
+                      https://lin.ee/FDXPdMy
+                    </a>
                   </div>
                 </div>
               </div>

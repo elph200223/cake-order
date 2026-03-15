@@ -35,17 +35,20 @@ export default function ProductImageGallery({ productName, images }: Props) {
       <div className="overflow-hidden bg-neutral-50">
         <div className="relative aspect-[5/4] bg-neutral-100">
           {activeImage ? (
-            <Image
-              src={activeImage.url}
-              alt={activeImage.alt?.trim() || productName}
-              fill
-              priority
-              sizes="(max-width: 1024px) 100vw, 380px"
-              className="object-contain"
-              style={{
-                objectPosition: `${activeImage.focusX ?? 50}% ${activeImage.focusY ?? 50}%`,
-              }}
-            />
+            <>
+              <Image
+                src={activeImage.url}
+                alt={activeImage.alt?.trim() || productName}
+                fill
+                priority
+                sizes="(max-width: 1024px) 100vw, 380px"
+                className="scale-[1.01] object-cover transition-transform duration-300"
+                style={{
+                  objectPosition: `${activeImage.focusX ?? 50}% ${activeImage.focusY ?? 50}%`,
+                }}
+              />
+              <div className="pointer-events-none absolute inset-0 ring-1 ring-inset ring-black/5" />
+            </>
           ) : (
             <div className="flex h-full items-center justify-center bg-neutral-200 text-sm text-neutral-500">
               尚無圖片
@@ -64,7 +67,7 @@ export default function ProductImageGallery({ productName, images }: Props) {
                 key={image.id}
                 type="button"
                 onClick={() => setActiveImageId(image.id)}
-                className={`overflow-hidden bg-neutral-50 text-left transition ${
+                className={`group overflow-hidden bg-neutral-50 text-left transition ${
                   isActive
                     ? "ring-1 ring-neutral-900"
                     : "ring-1 ring-transparent hover:ring-neutral-300"
@@ -78,7 +81,7 @@ export default function ProductImageGallery({ productName, images }: Props) {
                     alt={image.alt?.trim() || `${productName} 圖片 ${image.id}`}
                     fill
                     sizes="(max-width: 1024px) 33vw, 118px"
-                    className="object-cover"
+                    className="object-cover transition-transform duration-300 group-hover:scale-[1.02]"
                     style={{
                       objectPosition: `${image.focusX ?? 50}% ${image.focusY ?? 50}%`,
                     }}
