@@ -6,8 +6,40 @@ const actionItems = [
   { label: "訂蛋糕", href: "/cakes", enabled: true },
   { label: "訂咖啡豆", href: "", enabled: false },
   { label: "查詢訂單", href: "/orders", enabled: true },
-  { label: "訂位", href: "", enabled: false },
+  { label: "訂位（尚未開放）", href: "", enabled: false },
 ];
+
+function InstagramIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      className="h-[18px] w-[18px]"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="3.5" y="3.5" width="17" height="17" rx="4.5" />
+      <circle cx="12" cy="12" r="4.25" />
+      <circle cx="17.4" cy="6.6" r="0.8" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+function LineIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      className="h-[18px] w-[18px]"
+      fill="currentColor"
+    >
+      <path d="M20.03 10.12c0-4.22-3.87-7.66-8.63-7.66s-8.63 3.44-8.63 7.66c0 3.79 3.07 6.96 7.22 7.56.28.06.66.19.76.43.09.22.06.56.03.78l-.12.73c-.04.22-.18.86.75.47.94-.39 5.06-2.98 6.9-5.1 1.27-1.39 1.72-2.8 1.72-4.87ZM8.17 12.97a.6.6 0 0 1-.6.6H5.6a.6.6 0 0 1-.6-.6V8.85a.6.6 0 1 1 1.2 0v3.52h1.37a.6.6 0 0 1 .6.6Zm2.34 0a.6.6 0 0 1-1.2 0V8.85a.6.6 0 1 1 1.2 0v4.12Zm4.67 0a.6.6 0 0 1-.51-.28l-1.98-2.95v3.23a.6.6 0 0 1-1.2 0V8.85a.6.6 0 0 1 1.11-.33l1.98 2.95V8.85a.6.6 0 1 1 1.2 0v4.12a.6.6 0 0 1-.6.6Zm3.81-3.52h-1.37v1h1.37a.6.6 0 0 1 0 1.2h-1.37v1h1.37a.6.6 0 0 1 0 1.2h-1.97a.6.6 0 0 1-.6-.6V8.85a.6.6 0 0 1 .6-.6h1.97a.6.6 0 0 1 0 1.2Z" />
+    </svg>
+  );
+}
 
 export const dynamic = "force-dynamic";
 
@@ -107,27 +139,28 @@ export default async function Home() {
                   </div>
 
                   <div>
-                    <div className="text-stone-500">Instagram</div>
-                    <a
-                      href="https://www.instagram.com/nostalgia_coffeelovee?igsh=MXNtMXdrZWI0ZDY1cg%3D%3D&utm_source=qr"
-                      target="_blank"
-                      rel="noreferrer"
-                      className="break-all text-stone-700 underline decoration-stone-300 underline-offset-4 transition hover:text-stone-900 hover:decoration-stone-500"
-                    >
-                      @nostalgia_coffeelovee
-                    </a>
-                  </div>
+                    <div className="text-stone-500">社群</div>
+                    <div className="mt-1 flex items-center gap-3">
+                      <a
+                        href="https://www.instagram.com/nostalgia_coffeelovee?igsh=MXNtMXdrZWI0ZDY1cg%3D%3D&utm_source=qr"
+                        target="_blank"
+                        rel="noreferrer"
+                        aria-label="Instagram"
+                        className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-stone-300 text-stone-700 transition hover:border-stone-500 hover:text-stone-900"
+                      >
+                        <InstagramIcon />
+                      </a>
 
-                  <div>
-                    <div className="text-stone-500">官方 LINE</div>
-                    <a
-                      href="https://lin.ee/FDXPdMy"
-                      target="_blank"
-                      rel="noreferrer"
-                      className="break-all text-stone-700 underline decoration-stone-300 underline-offset-4 transition hover:text-stone-900 hover:decoration-stone-500"
-                    >
-                      https://lin.ee/FDXPdMy
-                    </a>
+                      <a
+                        href="https://lin.ee/FDXPdMy"
+                        target="_blank"
+                        rel="noreferrer"
+                        aria-label="LINE"
+                        className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-stone-300 text-stone-700 transition hover:border-stone-500 hover:text-stone-900"
+                      >
+                        <LineIcon />
+                      </a>
+                    </div>
                   </div>
                 </div>
               </div>
