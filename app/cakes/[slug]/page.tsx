@@ -1,8 +1,8 @@
-import Image from "next/image";
 import { notFound } from "next/navigation";
 import { getCatalogProductBySlug } from "@/lib/catalog";
 import CakesPageNav from "../CakesPageNav";
 import CakeOptionSelector from "./CakeOptionSelector";
+import ProductImageGallery from "./ProductImageGallery";
 
 function formatBasePrice(price: number) {
   return `NT$ ${price.toLocaleString("zh-TW")}`;
@@ -34,6 +34,7 @@ export default async function CakeDetailPage({
   const galleryImages = mainImage
     ? [mainImage, ...images.filter((image) => image.id !== mainImage.id)]
     : images;
+
   const productDescription = getProductDescription(product);
 
   return (
@@ -54,48 +55,16 @@ export default async function CakeDetailPage({
 
         <section className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[380px_minmax(0,1fr)] lg:items-start lg:gap-8">
           <div className="space-y-3">
-            <div className="overflow-hidden bg-neutral-50">
-              <div className="relative aspect-[5/4]">
-                {mainImage ? (
-                  <Image
-                    src={mainImage.url}
-                    alt={mainImage.alt?.trim() || product.name}
-                    fill
-                    priority
-                    sizes="(max-width: 1024px) 100vw, 380px"
-                    className="object-cover"
-                    style={{
-                      objectPosition: `${mainImage.focusX ?? 50}% ${mainImage.focusY ?? 50}%`,
-                    }}
-                  />
-                ) : (
-                  <div className="flex h-full items-center justify-center bg-neutral-200 text-sm text-neutral-500">
-                    尚無圖片
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {galleryImages.length > 1 ? (
-              <div className="grid grid-cols-3 gap-2">
-                {galleryImages.slice(1, 7).map((image) => (
-                  <div key={image.id} className="overflow-hidden bg-neutral-50">
-                    <div className="relative aspect-square">
-                      <Image
-                        src={image.url}
-                        alt={image.alt?.trim() || `${product.name} 圖片 ${image.id}`}
-                        fill
-                        sizes="(max-width: 1024px) 33vw, 118px"
-                        className="object-cover"
-                        style={{
-                          objectPosition: `${image.focusX ?? 50}% ${image.focusY ?? 50}%`,
-                        }}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : null}
+            <ProductImageGallery
+              productName={product.name}
+              images={galleryImages.map((image) => ({
+                id: image.id,
+                url: image.url,
+                alt: image.alt ?? null,
+                focusX: image.focusX ?? null,
+                focusY: image.focusY ?? null,
+              }))}
+            />
 
             {productDescription ? (
               <section className="bg-neutral-50 px-5 py-5">
@@ -103,9 +72,6 @@ export default async function CakeDetailPage({
                   <h3 className="text-[11px] tracking-[0.22em] text-neutral-500">
                     CAKE DESCRIPTION
                   </h3>
-                  <p className="mt-2 text-xl font-medium tracking-[0.06em] text-neutral-900">
-                    蛋糕簡介
-                  </p>
                 </div>
 
                 <div className="pt-4">
