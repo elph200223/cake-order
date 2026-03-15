@@ -12,6 +12,7 @@ type Product = {
   name: string;
   slug: string;
   basePrice: number;
+  description: string;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -99,6 +100,7 @@ export default function AdminEditProductPage() {
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [basePrice, setBasePrice] = useState("0");
+  const [description, setDescription] = useState("");
   const [isActive, setIsActive] = useState(true);
 
   const [savingProduct, setSavingProduct] = useState(false);
@@ -116,6 +118,21 @@ export default function AdminEditProductPage() {
       border: "1px solid #ddd",
       borderRadius: 12,
       fontSize: 14,
+    }),
+    []
+  );
+
+  const textareaStyle = useMemo<React.CSSProperties>(
+    () => ({
+      width: "100%",
+      minHeight: 140,
+      padding: 10,
+      border: "1px solid #ddd",
+      borderRadius: 12,
+      fontSize: 14,
+      lineHeight: 1.7,
+      resize: "vertical",
+      fontFamily: "inherit",
     }),
     []
   );
@@ -139,6 +156,7 @@ export default function AdminEditProductPage() {
       setName(p.name ?? "");
       setSlug(p.slug ?? "");
       setBasePrice(String(p.basePrice ?? 0));
+      setDescription(p.description ?? "");
       setIsActive(Boolean(p.isActive));
 
       const resG = await fetch(`/api/admin/option-groups`, { cache: "no-store" });
@@ -192,6 +210,7 @@ export default function AdminEditProductPage() {
           name: n,
           slug: s,
           basePrice: Math.trunc(price),
+          description: description.trim(),
           isActive,
         }),
       });
@@ -412,6 +431,16 @@ export default function AdminEditProductPage() {
           <div style={{ gridColumn: "1 / -1" }}>
             <label style={{ display: "block", marginBottom: 6, fontSize: 13 }}>slug（網址用，必須唯一）</label>
             <input value={slug} onChange={(e) => setSlug(e.target.value)} style={inputStyle} />
+          </div>
+
+          <div style={{ gridColumn: "1 / -1" }}>
+            <label style={{ display: "block", marginBottom: 6, fontSize: 13 }}>蛋糕簡介</label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              style={textareaStyle}
+              placeholder="這裡可輸入蛋糕介紹、口感描述、尺寸提醒、保存建議等內容。"
+            />
           </div>
 
           <div style={{ gridColumn: "1 / -1", display: "flex", gap: 14, alignItems: "center" }}>

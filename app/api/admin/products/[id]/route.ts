@@ -10,6 +10,7 @@ type ProductPatchBody = {
   name?: unknown;
   slug?: unknown;
   basePrice?: unknown;
+  description?: unknown;
   isActive?: unknown;
 };
 
@@ -101,11 +102,13 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
       name?: string;
       slug?: string;
       basePrice?: number;
+      description?: string;
       isActive?: boolean;
     } = {};
 
     if (body.name != null) data.name = String(body.name).trim();
     if (body.slug != null) data.slug = String(body.slug).trim();
+    if (body.description != null) data.description = String(body.description);
 
     if (body.basePrice != null && body.basePrice !== "") {
       const p = Number(body.basePrice);

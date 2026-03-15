@@ -8,6 +8,15 @@ function formatBasePrice(price: number) {
   return `NT$ ${price.toLocaleString("zh-TW")}`;
 }
 
+function getProductDescription(product: unknown) {
+  if (!product || typeof product !== "object") return "";
+
+  const raw = (product as Record<string, unknown>).description;
+  if (typeof raw !== "string") return "";
+
+  return raw.trim();
+}
+
 export default async function CakeDetailPage({
   params,
 }: {
@@ -25,6 +34,7 @@ export default async function CakeDetailPage({
   const galleryImages = mainImage
     ? [mainImage, ...images.filter((image) => image.id !== mainImage.id)]
     : images;
+  const productDescription = getProductDescription(product);
 
   return (
     <main className="min-h-screen bg-neutral-100 px-5 py-12 text-neutral-800">
@@ -85,6 +95,25 @@ export default async function CakeDetailPage({
                   </div>
                 ))}
               </div>
+            ) : null}
+
+            {productDescription ? (
+              <section className="bg-neutral-50 px-5 py-5">
+                <div className="border-b border-neutral-200 pb-3">
+                  <h3 className="text-[11px] tracking-[0.22em] text-neutral-500">
+                    CAKE DESCRIPTION
+                  </h3>
+                  <p className="mt-2 text-xl font-medium tracking-[0.06em] text-neutral-900">
+                    蛋糕簡介
+                  </p>
+                </div>
+
+                <div className="pt-4">
+                  <p className="whitespace-pre-wrap text-sm leading-7 text-neutral-700">
+                    {productDescription}
+                  </p>
+                </div>
+              </section>
             ) : null}
           </div>
 

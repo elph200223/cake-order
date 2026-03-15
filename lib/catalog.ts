@@ -41,6 +41,7 @@ export type CatalogProductDetail = {
   name: string;
   slug: string;
   basePrice: number;
+  description: string;
   coverImage: CatalogProductImage | null;
   images: CatalogProductImage[];
   optionGroups: CatalogOptionGroup[];
@@ -113,6 +114,7 @@ type ProductDetailQueryResult = {
   name: string;
   slug: string;
   basePrice: number;
+  description: string;
   images: {
     id: number;
     url: string;
@@ -158,6 +160,7 @@ export async function getCatalogProductBySlug(
       name: true,
       slug: true,
       basePrice: true,
+      description: true,
       images: {
         where: {
           isActive: true,
@@ -245,6 +248,7 @@ export async function getCatalogProductBySlug(
     name: product.name,
     slug: product.slug,
     basePrice: product.basePrice,
+    description: product.description ?? "",
     coverImage,
     images,
     optionGroups,
