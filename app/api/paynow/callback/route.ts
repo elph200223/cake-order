@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
+import { OrderStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -20,6 +21,7 @@ type VerifyPassCodeResult =
 type PrismaOrderUpdateResult = {
   ok: boolean;
   status?: string;
+  previousStatus?: string;
   error?: string;
 };
 
@@ -91,6 +93,90 @@ function parseCallbackPayload(raw: string, contentType: string): Record<string, 
   return payload;
 }
 
+function formatCurrency(amount: number) {
+  return `NT$ ${amount.toLocaleString("zh-TW")}`;
+}
+
+function buildOrderItemsSummary(
+  items: Array<{
+    name: string;
+    quantity: number;
+  }>
+) {
+  if (!items.length) return "（無品項資料）";
+
+  return items.map((item) => `・${item.name} × ${item.quantity}`).join("\n");
+}
+
+function buildLineMessage(args: {
+  orderNo: string;
+  customer: string;
+  phone: string;
+  pickupDate: string;
+  pickupTime: string;
+  totalAmount: number;
+  items: Array<{
+    name: string;
+    quantity: number;
+  }>;
+  transactionId: string;
+}) {
+  const pickupText = [args.pickupDate.trim(), args.pickupTime.trim()].filter(Boolean).join(" ");
+
+  return [
+    "【新訂單付款成功】",
+    `訂單編號：${args.orderNo}`,
+    `姓名：${args.customer.trim() || "未填寫"}`,
+    `電話：${args.phone.trim() || "未填寫"}`,
+    `取貨時間：${pickupText || "未填寫"}`,
+    `訂單金額：${formatCurrency(args.totalAmount)}`,
+    `交易編號：${args.transactionId.trim() || "未提供"}`,
+    "",
+    "品項：",
+    buildOrderItemsSummary(args.items),
+  ].join("\n");
+}
+
+async function pushLineOrderPaidMessage(message: string) {
+  const channelAccessToken = (process.env.LINE_CHANNEL_ACCESS_TOKEN || "").trim();
+  const groupId = (process.env.LINE_GROUP_ID || "").trim();
+
+  if (!channelAccessToken || !groupId) {
+    return {
+      ok: false,
+      skipped: true,
+      error: "Missing LINE env",
+    };
+  }
+
+  const response = await fetch("https://api.line.me/v2/bot/message/push", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${channelAccessToken}`,
+    },
+    body: JSON.stringify({
+      to: groupId,
+      messages: [
+        {
+          type: "text",
+          text: message.slice(0, 5000),
+        },
+      ],
+    }),
+    cache: "no-store",
+  });
+
+  const text = await response.text();
+
+  return {
+    ok: response.ok,
+    skipped: false,
+    status: response.status,
+    body: text,
+  };
+}
+
 export async function POST(req: Request) {
   console.log("[paynow-callback] HIT AT", new Date().toISOString());
 
@@ -118,25 +204,74 @@ export async function POST(req: Request) {
 
     let prismaOrderUpdate: PrismaOrderUpdateResult | null = null;
     let dbOrderId = "";
+    let shouldNotifyLine = false;
+    let lineMessage = "";
 
     if (sig.tranStatus === "S") {
       try {
-        const updated = await prisma.order.update({
+        const existingOrder = await prisma.order.findUnique({
           where: { orderNo },
-          data: { status: "PAID" },
           select: {
             id: true,
             orderNo: true,
+            customer: true,
+            phone: true,
+            pickupDate: true,
+            pickupTime: true,
+            totalAmount: true,
             status: true,
+            items: {
+              select: {
+                name: true,
+                quantity: true,
+              },
+              orderBy: { id: "asc" },
+            },
           },
         });
 
-        dbOrderId = String(updated.id);
+        if (!existingOrder) {
+          prismaOrderUpdate = {
+            ok: false,
+            error: "ORDER_NOT_FOUND",
+          };
+        } else {
+          dbOrderId = String(existingOrder.id);
 
-        prismaOrderUpdate = {
-          ok: true,
-          status: updated.status,
-        };
+          const updated = await prisma.order.update({
+            where: { orderNo },
+            data: { status: OrderStatus.PAID },
+            select: {
+              id: true,
+              orderNo: true,
+              status: true,
+            },
+          });
+
+          prismaOrderUpdate = {
+            ok: true,
+            status: updated.status,
+            previousStatus: existingOrder.status,
+          };
+
+          shouldNotifyLine = existingOrder.status !== OrderStatus.PAID;
+
+          if (shouldNotifyLine) {
+            lineMessage = buildLineMessage({
+              orderNo: existingOrder.orderNo,
+              customer: existingOrder.customer,
+              phone: existingOrder.phone,
+              pickupDate: existingOrder.pickupDate,
+              pickupTime: existingOrder.pickupTime,
+              totalAmount: existingOrder.totalAmount,
+              items: existingOrder.items.map((item) => ({
+                name: item.name,
+                quantity: item.quantity,
+              })),
+              transactionId: (p.BuysafeNo || "").trim(),
+            });
+          }
+        }
       } catch (error: unknown) {
         prismaOrderUpdate = {
           ok: false,
@@ -209,6 +344,25 @@ export async function POST(req: Request) {
 
     console.log("[paynow-callback] gasStatus=", r.status);
     console.log("[paynow-callback] gasBody=", gasBody);
+
+    if (shouldNotifyLine && lineMessage) {
+      try {
+        const lineResult = await pushLineOrderPaidMessage(lineMessage);
+        console.log("[paynow-callback] lineResult=", lineResult);
+      } catch (error: unknown) {
+        console.log("[paynow-callback] LINE_PUSH_ERROR", error);
+      }
+    } else {
+      console.log("[paynow-callback] line skipped", {
+        shouldNotifyLine,
+        reason:
+          sig.tranStatus !== "S"
+            ? "NON_SUCCESS_TRANSACTION"
+            : prismaOrderUpdate?.previousStatus === OrderStatus.PAID
+              ? "ALREADY_PAID"
+              : "NO_MESSAGE",
+      });
+    }
 
     const target = dbOrderId
       ? `${origin}/pay/result?orderId=${encodeURIComponent(dbOrderId)}`
