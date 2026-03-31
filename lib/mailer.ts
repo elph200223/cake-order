@@ -25,6 +25,20 @@ function getRequiredEnv(name: string) {
   return value;
 }
 
+function getSmtpConfig() {
+  const user = getRequiredEnv("GMAIL_SMTP_USER");
+  const rawPass = getRequiredEnv("GMAIL_SMTP_APP_PASSWORD");
+  const normalizedPass = rawPass.replace(/\s+/g, "");
+  const fromName = (process.env.GMAIL_FROM_NAME || "眷鳥咖啡").trim();
+
+  return {
+    user,
+    rawPass,
+    normalizedPass,
+    fromName,
+  };
+}
+
 function formatCurrency(amount: number) {
   return `NT$ ${amount.toLocaleString("zh-TW")}`;
 }
@@ -50,29 +64,43 @@ function escapeHtml(value: string) {
     .replaceAll("'", "&#39;");
 }
 
+function maskEmail(value: string) {
+  const at = value.indexOf("@");
+  if (at <= 1) return "***";
+  return `${value.slice(0, 2)}***${value.slice(at)}`;
+}
+
 function createTransporter() {
-  const user = getRequiredEnv("GMAIL_SMTP_USER");
-  const pass = getRequiredEnv("GMAIL_SMTP_APP_PASSWORD");
+  const smtp = getSmtpConfig();
 
   return nodemailer.createTransport({
     host: "smtp.gmail.com",
     port: 465,
     secure: true,
     auth: {
-      user,
-      pass,
+      user: smtp.user,
+      pass: smtp.normalizedPass,
     },
   });
 }
 
 export async function sendPaidOrderEmail(args: SendPaidOrderEmailArgs) {
-  const smtpUser = getRequiredEnv("GMAIL_SMTP_USER");
-  const fromName = (process.env.GMAIL_FROM_NAME || "眷鳥咖啡").trim();
+  const smtp = getSmtpConfig();
   const to = args.to.trim();
 
   if (!to) {
     throw new Error("EMAIL_RECIPIENT_REQUIRED");
   }
+
+  console.log("[mailer] smtp config", {
+    userMasked: maskEmail(smtp.user),
+    rawPassLength: smtp.rawPass.length,
+    normalizedPassLength: smtp.normalizedPass.length,
+    rawPassHasWhitespace: /\s/.test(smtp.rawPass),
+    normalizedPassHasWhitespace: /\s/.test(smtp.normalizedPass),
+    fromName: smtp.fromName,
+    recipientMasked: maskEmail(to),
+  });
 
   const transporter = createTransporter();
 
@@ -114,11 +142,11 @@ export async function sendPaidOrderEmail(args: SendPaidOrderEmailArgs) {
   `;
 
   return transporter.sendMail({
-    from: `"${fromName}" <${smtpUser}>`,
+    from: `"${smtp.fromName}" <${smtp.user}>`,
     to,
     subject,
     text,
     html,
-    replyTo: smtpUser,
+    replyTo: smtp.user,
   });
 }
