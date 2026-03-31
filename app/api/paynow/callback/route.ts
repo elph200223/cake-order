@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import crypto from "crypto";
 import { OrderStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { sendPaidOrderEmail } from "@/lib/mailer";
 
 export const dynamic = "force-dynamic";
 
@@ -205,7 +206,20 @@ export async function POST(req: Request) {
     let prismaOrderUpdate: PrismaOrderUpdateResult | null = null;
     let dbOrderId = "";
     let shouldNotifyLine = false;
+    let shouldNotifyEmail = false;
     let lineMessage = "";
+    let emailPayload: {
+      to: string;
+      orderNo: string;
+      customer: string;
+      pickupDate: string;
+      pickupTime: string;
+      totalAmount: number;
+      items: Array<{
+        name: string;
+        quantity: number;
+      }>;
+    } | null = null;
 
     if (sig.tranStatus === "S") {
       try {
@@ -216,6 +230,7 @@ export async function POST(req: Request) {
             orderNo: true,
             customer: true,
             phone: true,
+            email: true,
             pickupDate: true,
             pickupTime: true,
             totalAmount: true,
@@ -255,6 +270,9 @@ export async function POST(req: Request) {
           };
 
           shouldNotifyLine = existingOrder.status !== OrderStatus.PAID;
+          shouldNotifyEmail =
+            existingOrder.status !== OrderStatus.PAID &&
+            Boolean(existingOrder.email?.trim());
 
           if (shouldNotifyLine) {
             lineMessage = buildLineMessage({
@@ -270,6 +288,21 @@ export async function POST(req: Request) {
               })),
               transactionId: (p.BuysafeNo || "").trim(),
             });
+          }
+
+          if (shouldNotifyEmail) {
+            emailPayload = {
+              to: existingOrder.email.trim(),
+              orderNo: existingOrder.orderNo,
+              customer: existingOrder.customer,
+              pickupDate: existingOrder.pickupDate,
+              pickupTime: existingOrder.pickupTime,
+              totalAmount: existingOrder.totalAmount,
+              items: existingOrder.items.map((item) => ({
+                name: item.name,
+                quantity: item.quantity,
+              })),
+            };
           }
         }
       } catch (error: unknown) {
@@ -361,6 +394,29 @@ export async function POST(req: Request) {
             : prismaOrderUpdate?.previousStatus === OrderStatus.PAID
               ? "ALREADY_PAID"
               : "NO_MESSAGE",
+      });
+    }
+
+    if (shouldNotifyEmail && emailPayload) {
+      try {
+        const emailResult = await sendPaidOrderEmail(emailPayload);
+        console.log("[paynow-callback] emailResult=", {
+          accepted: emailResult.accepted,
+          rejected: emailResult.rejected,
+          messageId: emailResult.messageId,
+        });
+      } catch (error: unknown) {
+        console.log("[paynow-callback] EMAIL_SEND_ERROR", error);
+      }
+    } else {
+      console.log("[paynow-callback] email skipped", {
+        shouldNotifyEmail,
+        reason:
+          sig.tranStatus !== "S"
+            ? "NON_SUCCESS_TRANSACTION"
+            : prismaOrderUpdate?.previousStatus === OrderStatus.PAID
+              ? "ALREADY_PAID"
+              : "MISSING_EMAIL",
       });
     }
 
