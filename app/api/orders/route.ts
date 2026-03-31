@@ -72,6 +72,7 @@ function normalizePayload(body: CheckoutOrderPayload) {
   return {
     customerName: body.customerName.trim(),
     phone: body.phone.trim(),
+    email: body.email.trim(),
     pickupDate: body.pickupDate.trim(),
     pickupTime: body.pickupTime.trim(),
     note: body.note.trim(),
@@ -89,6 +90,10 @@ function validatePayload(body: CheckoutOrderPayload) {
 
   if (!normalized.phone) {
     return "PHONE_REQUIRED";
+  }
+
+  if (!normalized.email) {
+    return "EMAIL_REQUIRED";
   }
 
   if (!normalized.pickupDate) {
@@ -193,6 +198,7 @@ export async function POST(req: NextRequest) {
         orderNo,
         customer: payload.customerName,
         phone: payload.phone,
+        email: payload.email,
         pickupDate: payload.pickupDate,
         pickupTime: payload.pickupTime,
         note: payload.note,
@@ -217,6 +223,7 @@ export async function POST(req: NextRequest) {
         orderNo: order.orderNo,
         customer: order.customer,
         phone: order.phone,
+        email: order.email,
         pickupDate: order.pickupDate,
         pickupTime: order.pickupTime,
         note: order.note,
