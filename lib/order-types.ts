@@ -12,6 +12,7 @@ export type OrderDetail = {
   orderNo: string;
   customer: string;
   phone: string;
+  email: string;
   pickupDate: string;
   pickupTime: string;
   note: string;
