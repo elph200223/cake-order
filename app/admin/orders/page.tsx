@@ -1,9 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import {
-  formatOrderMoney,
-  formatOrderPickup,
-} from "@/lib/order-format";
+import { formatOrderMoney, formatOrderPickup } from "@/lib/order-format";
 import {
   ORDER_STATUS_OPTIONS,
   OrderStatusFilter,
@@ -60,6 +57,11 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
                   contains: q,
                 },
               },
+              {
+                email: {
+                  contains: q,
+                },
+              },
             ],
           }
         : {}),
@@ -89,7 +91,7 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
             訂單列表
           </h1>
           <p className="mt-2 text-sm text-neutral-600">
-            可用訂單編號、客人姓名、電話搜尋，並依狀態篩選。
+            可用訂單編號、客人姓名、電話、Email 搜尋，並依狀態篩選。
           </p>
         </div>
       </div>
@@ -111,7 +113,7 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
               name="q"
               type="text"
               defaultValue={q}
-              placeholder="輸入訂單編號、客人姓名或電話"
+              placeholder="輸入訂單編號、客人姓名、電話或 Email"
               className="w-full rounded-xl border border-neutral-300 px-4 py-3 text-sm outline-none transition focus:border-neutral-500"
             />
           </div>
@@ -221,6 +223,9 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
                     電話
                   </th>
                   <th className="border-b border-neutral-200 px-4 py-3 font-semibold text-neutral-700">
+                    Email
+                  </th>
+                  <th className="border-b border-neutral-200 px-4 py-3 font-semibold text-neutral-700">
                     取貨時間
                   </th>
                   <th className="border-b border-neutral-200 px-4 py-3 font-semibold text-neutral-700">
@@ -254,6 +259,11 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
                     </td>
                     <td className="border-b border-neutral-100 px-4 py-4 text-neutral-800">
                       {order.phone}
+                    </td>
+                    <td className="border-b border-neutral-100 px-4 py-4 text-neutral-800">
+                      <span className="block min-w-[220px] break-all">
+                        {order.email?.trim() ? order.email : "—"}
+                      </span>
                     </td>
                     <td className="border-b border-neutral-100 px-4 py-4 text-neutral-800">
                       {formatOrderPickup(order.pickupDate, order.pickupTime)}
