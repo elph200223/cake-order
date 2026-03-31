@@ -31,6 +31,7 @@ function buildResponseOrder(order: OrderWithItems) {
     orderNo: order.orderNo,
     customer: order.customer,
     phone: order.phone,
+    email: order.email ?? "",
     pickupDate: toIsoString(order.pickupDate),
     pickupTime: order.pickupTime ?? "",
     note: order.note ?? "",
