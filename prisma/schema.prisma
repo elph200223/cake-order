@@ -22,6 +22,7 @@ model Order {
   orderNo     String      @unique
   customer    String
   phone       String
+  email       String      @default("")
   pickupDate  String
   pickupTime  String
   note        String      @default("")
