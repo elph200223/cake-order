@@ -210,6 +210,13 @@ export default function AdminOrderDetailPage({ params }: Props) {
               </div>
 
               <div className="flex items-start justify-between gap-4 border-b border-neutral-100 pb-3">
+                <span className="text-neutral-500">Email</span>
+                <span className="max-w-[70%] break-all text-right font-medium text-neutral-900">
+                  {order.email?.trim() ? order.email : "—"}
+                </span>
+              </div>
+
+              <div className="flex items-start justify-between gap-4 border-b border-neutral-100 pb-3">
                 <span className="text-neutral-500">取貨日期</span>
                 <span className="font-medium text-neutral-900">
                   {order.pickupDate || "—"}
