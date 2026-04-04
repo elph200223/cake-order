@@ -3,6 +3,9 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import ProductBasicFormSection, {
+  type ProductType,
+} from "./ProductBasicFormSection";
 import ProductImagesSection, {
   type ProductImageItem,
 } from "./ProductImagesSection";
@@ -11,6 +14,7 @@ type Product = {
   id: number;
   name: string;
   slug: string;
+  productType: ProductType;
   basePrice: number;
   description: string;
   isActive: boolean;
@@ -99,6 +103,7 @@ export default function AdminEditProductPage() {
 
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
+  const [productType, setProductType] = useState<ProductType | "">("");
   const [basePrice, setBasePrice] = useState("0");
   const [description, setDescription] = useState("");
   const [isActive, setIsActive] = useState(true);
@@ -118,6 +123,7 @@ export default function AdminEditProductPage() {
       border: "1px solid #ddd",
       borderRadius: 12,
       fontSize: 14,
+      background: "#fff",
     }),
     []
   );
@@ -133,6 +139,7 @@ export default function AdminEditProductPage() {
       lineHeight: 1.7,
       resize: "vertical",
       fontFamily: "inherit",
+      background: "#fff",
     }),
     []
   );
@@ -155,6 +162,7 @@ export default function AdminEditProductPage() {
       setProduct(p);
       setName(p.name ?? "");
       setSlug(p.slug ?? "");
+      setProductType(p.productType ?? "");
       setBasePrice(String(p.basePrice ?? 0));
       setDescription(p.description ?? "");
       setIsActive(Boolean(p.isActive));
@@ -199,6 +207,7 @@ export default function AdminEditProductPage() {
       const s = slug.trim();
       const price = Number(basePrice);
 
+      if (!productType) throw new Error("請選擇商品分類");
       if (!n) throw new Error("請輸入商品名稱");
       if (!s) throw new Error("請輸入 slug（網址用）");
       if (!Number.isFinite(price) || price < 0) throw new Error("basePrice 金額不正確");
@@ -209,6 +218,7 @@ export default function AdminEditProductPage() {
         body: JSON.stringify({
           name: n,
           slug: s,
+          productType,
           basePrice: Math.trunc(price),
           description: description.trim(),
           isActive,
@@ -368,9 +378,6 @@ export default function AdminEditProductPage() {
           <h1 style={{ marginTop: 10, fontSize: 20, fontWeight: 900 }}>
             編輯商品：{product.name} (ID {product.id})
           </h1>
-          <div style={{ marginTop: 6, fontSize: 13, opacity: 0.75 }}>
-            前台網址：/cakes/{slug || product.slug}
-          </div>
         </div>
 
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
@@ -409,56 +416,24 @@ export default function AdminEditProductPage() {
         </div>
       </div>
 
-      <section style={{ marginTop: 14, border: "1px solid #e5e5e5", borderRadius: 14, padding: 14 }}>
-        <div style={{ fontWeight: 900, marginBottom: 10 }}>商品基本資料</div>
-
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 220px", gap: 10 }}>
-          <div>
-            <label style={{ display: "block", marginBottom: 6, fontSize: 13 }}>名稱</label>
-            <input value={name} onChange={(e) => setName(e.target.value)} style={inputStyle} />
-          </div>
-
-          <div>
-            <label style={{ display: "block", marginBottom: 6, fontSize: 13 }}>basePrice</label>
-            <input
-              value={basePrice}
-              onChange={(e) => setBasePrice(e.target.value)}
-              style={inputStyle}
-              inputMode="numeric"
-            />
-          </div>
-
-          <div style={{ gridColumn: "1 / -1" }}>
-            <label style={{ display: "block", marginBottom: 6, fontSize: 13 }}>slug（網址用，必須唯一）</label>
-            <input value={slug} onChange={(e) => setSlug(e.target.value)} style={inputStyle} />
-          </div>
-
-          <div style={{ gridColumn: "1 / -1" }}>
-            <label style={{ display: "block", marginBottom: 6, fontSize: 13 }}>蛋糕簡介</label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              style={textareaStyle}
-              placeholder="這裡可輸入蛋糕介紹、口感描述、尺寸提醒、保存建議等內容。"
-            />
-          </div>
-
-          <div style={{ gridColumn: "1 / -1", display: "flex", gap: 14, alignItems: "center" }}>
-            <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              <input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} />
-              上架（isActive）
-            </label>
-
-            <Link
-              href={`/cakes/${slug || product.slug}`}
-              style={{ textDecoration: "underline", fontWeight: 800 }}
-              target="_blank"
-            >
-              打開前台商品頁
-            </Link>
-          </div>
-        </div>
-      </section>
+      <ProductBasicFormSection
+        productId={product.id}
+        currentSlug={product.slug}
+        name={name}
+        slug={slug}
+        productType={productType}
+        basePrice={basePrice}
+        description={description}
+        isActive={isActive}
+        inputStyle={inputStyle}
+        textareaStyle={textareaStyle}
+        onNameChange={setName}
+        onSlugChange={setSlug}
+        onProductTypeChange={setProductType}
+        onBasePriceChange={setBasePrice}
+        onDescriptionChange={setDescription}
+        onIsActiveChange={setIsActive}
+      />
 
       <ProductImagesSection
         productId={product.id}
@@ -490,6 +465,7 @@ export default function AdminEditProductPage() {
               borderRadius: 12,
               fontSize: 14,
               minWidth: 260,
+              background: "#fff",
             }}
           >
             <option value="">選擇要綁定的群組…</option>
@@ -573,6 +549,7 @@ function BindingRow({
     border: "1px solid #ddd",
     borderRadius: 10,
     fontSize: 14,
+    background: "#fff",
   };
 
   return (
@@ -597,7 +574,13 @@ function BindingRow({
                 setRowBusy(false);
               }
             }}
-            style={{ border: "1px solid #222", borderRadius: 10, padding: "6px 10px", background: "#fff", fontWeight: 800 }}
+            style={{
+              border: "1px solid #222",
+              borderRadius: 10,
+              padding: "6px 10px",
+              background: "#fff",
+              fontWeight: 800,
+            }}
           >
             更新 sort
           </button>
@@ -613,7 +596,14 @@ function BindingRow({
                 setRowBusy(false);
               }
             }}
-            style={{ border: "1px solid #d33", color: "#d33", borderRadius: 10, padding: "6px 10px", background: "#fff", fontWeight: 800 }}
+            style={{
+              border: "1px solid #d33",
+              color: "#d33",
+              borderRadius: 10,
+              padding: "6px 10px",
+              background: "#fff",
+              fontWeight: 800,
+            }}
           >
             解除綁定
           </button>
