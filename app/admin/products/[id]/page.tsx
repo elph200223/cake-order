@@ -255,7 +255,7 @@ export default function AdminEditProductPage() {
         throw new Error(String(data?.detail ?? data?.error ?? "DELETE_FAILED"));
       }
 
-      router.push("/admin/products");
+      router.replace("/admin/products/list");
       router.refresh();
     } catch (error: unknown) {
       setMsg(error instanceof Error ? error.message : "刪除失敗");
