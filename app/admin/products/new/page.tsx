@@ -3,6 +3,8 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
+type ProductType = "CAKE" | "COFFEE";
+
 type ProductCreateResponse = {
   ok?: boolean;
   error?: unknown;
@@ -11,6 +13,7 @@ type ProductCreateResponse = {
     id: number;
     name: string;
     slug: string;
+    productType: ProductType;
     basePrice: number;
     isActive: boolean;
   };
@@ -41,6 +44,7 @@ function buildFallbackSlug(name: string) {
 export default function NewProductPage() {
   const router = useRouter();
 
+  const [productType, setProductType] = useState<ProductType | "">("");
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [basePrice, setBasePrice] = useState("1000");
@@ -56,6 +60,7 @@ export default function NewProductPage() {
       border: "1px solid #ddd",
       borderRadius: 12,
       fontSize: 14,
+      background: "#fff",
     }),
     []
   );
@@ -65,6 +70,10 @@ export default function NewProductPage() {
     setLoading(true);
 
     try {
+      if (!productType) {
+        throw new Error("請選擇商品分類");
+      }
+
       const n = name.trim();
       if (!n) throw new Error("請輸入名稱");
 
@@ -84,6 +93,7 @@ export default function NewProductPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          productType,
           name: n,
           slug: finalSlug,
           basePrice: p,
@@ -117,6 +127,21 @@ export default function NewProductPage() {
   return (
     <main style={{ padding: 16, maxWidth: 720, margin: "0 auto" }}>
       <h1 style={{ fontSize: 20, fontWeight: 800 }}>新增商品</h1>
+
+      <div style={{ marginTop: 12 }}>
+        <label style={{ display: "block", marginBottom: 6, fontSize: 13 }}>
+          商品分類
+        </label>
+        <select
+          value={productType}
+          onChange={(e) => setProductType(e.target.value as ProductType | "")}
+          style={inputStyle}
+        >
+          <option value="">請選擇分類</option>
+          <option value="CAKE">蛋糕</option>
+          <option value="COFFEE">咖啡</option>
+        </select>
+      </div>
 
       <div style={{ marginTop: 12 }}>
         <label style={{ display: "block", marginBottom: 6, fontSize: 13 }}>名稱</label>
