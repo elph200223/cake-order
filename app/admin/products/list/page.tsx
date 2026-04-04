@@ -1,11 +1,41 @@
 import Image from "next/image";
 import Link from "next/link";
+import { ProductType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminProductsPage() {
+type PageProps = {
+  searchParams?: Promise<{
+    type?: string;
+  }>;
+};
+
+function parseProductType(raw?: string): ProductType | null {
+  if (raw === ProductType.CAKE || raw === ProductType.COFFEE) {
+    return raw;
+  }
+  return null;
+}
+
+function getTypeLabel(productType: ProductType) {
+  return productType === ProductType.COFFEE ? "咖啡" : "蛋糕";
+}
+
+function getFrontendPath(productType: ProductType, slug: string) {
+  return productType === ProductType.COFFEE ? `/coffee/${slug}` : `/cakes/${slug}`;
+}
+
+export default async function AdminProductsPage({ searchParams }: PageProps) {
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
+  const selectedType = parseProductType(resolvedSearchParams?.type);
+
   const products = await prisma.product.findMany({
+    where: selectedType
+      ? {
+          productType: selectedType,
+        }
+      : undefined,
     orderBy: { createdAt: "desc" },
     include: {
       images: {
@@ -18,6 +48,18 @@ export default async function AdminProductsPage() {
     },
   });
 
+  const counts = await prisma.product.groupBy({
+    by: ["productType"],
+    _count: {
+      _all: true,
+    },
+  });
+
+  const cakeCount =
+    counts.find((item) => item.productType === ProductType.CAKE)?._count._all ?? 0;
+  const coffeeCount =
+    counts.find((item) => item.productType === ProductType.COFFEE)?._count._all ?? 0;
+
   return (
     <main style={{ padding: 16, maxWidth: 1180, margin: "0 auto" }}>
       <div
@@ -26,12 +68,14 @@ export default async function AdminProductsPage() {
           justifyContent: "space-between",
           alignItems: "end",
           gap: 12,
+          flexWrap: "wrap",
         }}
       >
         <div>
           <h1 style={{ fontSize: 20, fontWeight: 800 }}>Products</h1>
           <div style={{ marginTop: 6, opacity: 0.75, fontSize: 13 }}>
             共 {products.length} 筆
+            {selectedType ? `｜目前篩選：${getTypeLabel(selectedType)}` : "｜目前篩選：全部"}
           </div>
         </div>
 
@@ -47,6 +91,62 @@ export default async function AdminProductsPage() {
           }}
         >
           ＋ 新增商品
+        </Link>
+      </div>
+
+      <div style={{ marginTop: 14, display: "flex", gap: 10, flexWrap: "wrap" }}>
+        <Link
+          href="/admin/products/list"
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "8px 12px",
+            border: "1px solid #ddd",
+            borderRadius: 999,
+            textDecoration: "none",
+            fontWeight: 700,
+            color: "#222",
+            background: selectedType == null ? "#f3f3f3" : "#fff",
+          }}
+        >
+          全部 ({cakeCount + coffeeCount})
+        </Link>
+
+        <Link
+          href="/admin/products/list?type=CAKE"
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "8px 12px",
+            border: "1px solid #ddd",
+            borderRadius: 999,
+            textDecoration: "none",
+            fontWeight: 700,
+            color: "#222",
+            background: selectedType === ProductType.CAKE ? "#f3f3f3" : "#fff",
+          }}
+        >
+          蛋糕 ({cakeCount})
+        </Link>
+
+        <Link
+          href="/admin/products/list?type=COFFEE"
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "8px 12px",
+            border: "1px solid #ddd",
+            borderRadius: 999,
+            textDecoration: "none",
+            fontWeight: 700,
+            color: "#222",
+            background: selectedType === ProductType.COFFEE ? "#f3f3f3" : "#fff",
+          }}
+        >
+          咖啡 ({coffeeCount})
         </Link>
       </div>
 
@@ -67,6 +167,9 @@ export default async function AdminProductsPage() {
               <th style={{ padding: 12, borderBottom: "1px solid #eee", width: 80 }}>
                 ID
               </th>
+              <th style={{ padding: 12, borderBottom: "1px solid #eee", width: 110 }}>
+                分類
+              </th>
               <th style={{ padding: 12, borderBottom: "1px solid #eee" }}>名稱</th>
               <th style={{ padding: 12, borderBottom: "1px solid #eee" }}>Slug</th>
               <th style={{ padding: 12, borderBottom: "1px solid #eee", width: 120 }}>
@@ -75,7 +178,7 @@ export default async function AdminProductsPage() {
               <th style={{ padding: 12, borderBottom: "1px solid #eee", width: 120 }}>
                 狀態
               </th>
-              <th style={{ padding: 12, borderBottom: "1px solid #eee", width: 140 }}>
+              <th style={{ padding: 12, borderBottom: "1px solid #eee", width: 180 }}>
                 操作
               </th>
             </tr>
@@ -84,6 +187,8 @@ export default async function AdminProductsPage() {
           <tbody>
             {products.map((p) => {
               const cover = p.images[0] ?? null;
+              const frontendPath = getFrontendPath(p.productType, p.slug);
+
               return (
                 <tr key={p.id}>
                   <td style={{ padding: 12, borderBottom: "1px solid #f1f1f1" }}>
@@ -132,6 +237,22 @@ export default async function AdminProductsPage() {
 
                   <td style={{ padding: 12, borderBottom: "1px solid #f1f1f1" }}>{p.id}</td>
 
+                  <td style={{ padding: 12, borderBottom: "1px solid #f1f1f1" }}>
+                    <span
+                      style={{
+                        display: "inline-block",
+                        padding: "4px 10px",
+                        borderRadius: 999,
+                        border: "1px solid #ddd",
+                        background: "#fff",
+                        fontWeight: 700,
+                        fontSize: 12,
+                      }}
+                    >
+                      {getTypeLabel(p.productType)}
+                    </span>
+                  </td>
+
                   <td style={{ padding: 12, borderBottom: "1px solid #f1f1f1", fontWeight: 700 }}>
                     <div>{p.name}</div>
                     {cover?.isCover ? (
@@ -143,7 +264,9 @@ export default async function AdminProductsPage() {
                     {p.slug}
                   </td>
 
-                  <td style={{ padding: 12, borderBottom: "1px solid #f1f1f1" }}>{p.basePrice}</td>
+                  <td style={{ padding: 12, borderBottom: "1px solid #f1f1f1" }}>
+                    {p.basePrice}
+                  </td>
 
                   <td style={{ padding: 12, borderBottom: "1px solid #f1f1f1" }}>
                     <span
@@ -162,12 +285,22 @@ export default async function AdminProductsPage() {
                   </td>
 
                   <td style={{ padding: 12, borderBottom: "1px solid #f1f1f1" }}>
-                    <Link
-                      href={`/admin/products/${p.id}`}
-                      style={{ textDecoration: "underline", fontWeight: 700 }}
-                    >
-                      編輯
-                    </Link>
+                    <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                      <Link
+                        href={`/admin/products/${p.id}`}
+                        style={{ textDecoration: "underline", fontWeight: 700 }}
+                      >
+                        編輯
+                      </Link>
+
+                      <Link
+                        href={frontendPath}
+                        target="_blank"
+                        style={{ textDecoration: "underline", fontWeight: 700 }}
+                      >
+                        前台
+                      </Link>
+                    </div>
                   </td>
                 </tr>
               );
@@ -175,7 +308,7 @@ export default async function AdminProductsPage() {
 
             {products.length === 0 ? (
               <tr>
-                <td colSpan={7} style={{ padding: 16, opacity: 0.75 }}>
+                <td colSpan={8} style={{ padding: 16, opacity: 0.75 }}>
                   目前沒有商品，點右上角「新增商品」開始。
                 </td>
               </tr>
