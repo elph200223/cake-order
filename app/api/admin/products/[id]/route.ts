@@ -148,7 +148,14 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
     return NextResponse.json({ ok: true, product });
   } catch (error: unknown) {
     console.error("PATCH /api/admin/products/[id] error:", error);
-    return NextResponse.json({ ok: false, error: "UPDATE_FAILED" }, { status: 500 });
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "UPDATE_FAILED",
+        detail: error instanceof Error ? error.message : String(error),
+      },
+      { status: 500 }
+    );
   }
 }
 
@@ -161,10 +168,30 @@ export async function DELETE(_req: NextRequest, ctx: Ctx) {
       return NextResponse.json({ ok: false, error: "ID_INVALID" }, { status: 400 });
     }
 
-    await prisma.product.delete({ where: { id } });
+    await prisma.$transaction(async (tx) => {
+      await tx.productOptionGroup.deleteMany({
+        where: { productId: id },
+      });
+
+      await tx.productImage.deleteMany({
+        where: { productId: id },
+      });
+
+      await tx.product.delete({
+        where: { id },
+      });
+    });
+
     return NextResponse.json({ ok: true });
   } catch (error: unknown) {
     console.error("DELETE /api/admin/products/[id] error:", error);
-    return NextResponse.json({ ok: false, error: "DELETE_FAILED" }, { status: 500 });
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "DELETE_FAILED",
+        detail: error instanceof Error ? error.message : String(error),
+      },
+      { status: 500 }
+    );
   }
 }
