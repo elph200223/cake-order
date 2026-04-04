@@ -17,6 +17,11 @@ enum SiteImageSlot {
   HOME_HERO
 }
 
+enum ProductType {
+  CAKE
+  COFFEE
+}
+
 model Order {
   id          Int         @id @default(autoincrement())
   orderNo     String      @unique
@@ -44,17 +49,20 @@ model OrderItem {
 }
 
 model Product {
-  id          Int      @id @default(autoincrement())
+  id          Int         @id @default(autoincrement())
   name        String
-  slug        String   @unique
+  slug        String      @unique
+  productType ProductType @default(CAKE)
   basePrice   Int
-  description String   @default("")
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  description String      @default("")
+  isActive    Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
 
   optionGroups ProductOptionGroup[]
   images       ProductImage[]
+
+  @@index([productType, isActive])
 }
 
 model OptionGroup {
