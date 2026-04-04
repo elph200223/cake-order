@@ -1,3 +1,4 @@
+import { ProductType } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
@@ -9,6 +10,7 @@ type Ctx = { params: Promise<{ id: string }> };
 type ProductPatchBody = {
   name?: unknown;
   slug?: unknown;
+  productType?: unknown;
   basePrice?: unknown;
   description?: unknown;
   isActive?: unknown;
@@ -22,6 +24,13 @@ function parseId(idStr: string) {
 
 function isProductPatchBody(value: unknown): value is ProductPatchBody {
   return typeof value === "object" && value !== null;
+}
+
+function parseProductType(value: unknown): ProductType | null {
+  if (value === ProductType.CAKE || value === ProductType.COFFEE) {
+    return value;
+  }
+  return null;
 }
 
 export async function GET(_req: NextRequest, ctx: Ctx) {
@@ -101,6 +110,7 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
     const data: {
       name?: string;
       slug?: string;
+      productType?: ProductType;
       basePrice?: number;
       description?: string;
       isActive?: boolean;
@@ -109,6 +119,17 @@ export async function PATCH(req: NextRequest, ctx: Ctx) {
     if (body.name != null) data.name = String(body.name).trim();
     if (body.slug != null) data.slug = String(body.slug).trim();
     if (body.description != null) data.description = String(body.description);
+
+    if (body.productType != null) {
+      const productType = parseProductType(body.productType);
+      if (!productType) {
+        return NextResponse.json(
+          { ok: false, error: "PRODUCT_TYPE_INVALID" },
+          { status: 400 }
+        );
+      }
+      data.productType = productType;
+    }
 
     if (body.basePrice != null && body.basePrice !== "") {
       const p = Number(body.basePrice);
