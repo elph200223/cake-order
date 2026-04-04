@@ -1,3 +1,4 @@
+import { ProductType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
 export type CatalogOption = {
@@ -32,6 +33,7 @@ export type CatalogProductCard = {
   id: number;
   name: string;
   slug: string;
+  productType: ProductType;
   basePrice: number;
   coverImage: CatalogProductImage | null;
 };
@@ -40,6 +42,7 @@ export type CatalogProductDetail = {
   id: number;
   name: string;
   slug: string;
+  productType: ProductType;
   basePrice: number;
   description: string;
   coverImage: CatalogProductImage | null;
@@ -69,16 +72,20 @@ function mapCatalogProductImage(image: {
   };
 }
 
-export async function getCatalogProducts(): Promise<CatalogProductCard[]> {
+export async function getCatalogProductsByType(
+  productType: ProductType
+): Promise<CatalogProductCard[]> {
   const products = await prisma.product.findMany({
     where: {
       isActive: true,
+      productType,
     },
     orderBy: [{ id: "asc" }],
     select: {
       id: true,
       name: true,
       slug: true,
+      productType: true,
       basePrice: true,
       images: {
         where: {
@@ -104,15 +111,21 @@ export async function getCatalogProducts(): Promise<CatalogProductCard[]> {
     id: product.id,
     name: product.name,
     slug: product.slug,
+    productType: product.productType,
     basePrice: product.basePrice,
     coverImage: product.images[0] ? mapCatalogProductImage(product.images[0]) : null,
   }));
+}
+
+export async function getCatalogProducts(): Promise<CatalogProductCard[]> {
+  return getCatalogProductsByType(ProductType.CAKE);
 }
 
 type ProductDetailQueryResult = {
   id: number;
   name: string;
   slug: string;
+  productType: ProductType;
   basePrice: number;
   description: string;
   images: {
@@ -147,18 +160,21 @@ type ProductDetailQueryResult = {
   }[];
 };
 
-export async function getCatalogProductBySlug(
-  slug: string
+export async function getCatalogProductBySlugAndType(
+  slug: string,
+  productType: ProductType
 ): Promise<CatalogProductDetail | null> {
   const product = (await prisma.product.findFirst({
     where: {
       slug,
       isActive: true,
+      productType,
     },
     select: {
       id: true,
       name: true,
       slug: true,
+      productType: true,
       basePrice: true,
       description: true,
       images: {
@@ -247,10 +263,17 @@ export async function getCatalogProductBySlug(
     id: product.id,
     name: product.name,
     slug: product.slug,
+    productType: product.productType,
     basePrice: product.basePrice,
     description: product.description ?? "",
     coverImage,
     images,
     optionGroups,
   };
+}
+
+export async function getCatalogProductBySlug(
+  slug: string
+): Promise<CatalogProductDetail | null> {
+  return getCatalogProductBySlugAndType(slug, ProductType.CAKE);
 }
