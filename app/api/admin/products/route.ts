@@ -1,15 +1,24 @@
+import { ProductType } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 type ProductMutationBody = {
   name?: unknown;
   slug?: unknown;
+  productType?: unknown;
   basePrice?: unknown;
   isActive?: unknown;
 };
 
 function isProductMutationBody(value: unknown): value is ProductMutationBody {
   return typeof value === "object" && value !== null;
+}
+
+function parseProductType(value: unknown): ProductType | null {
+  if (value === ProductType.CAKE || value === ProductType.COFFEE) {
+    return value;
+  }
+  return null;
 }
 
 /**
@@ -36,7 +45,7 @@ export async function GET() {
 
 /**
  * POST /api/admin/products
- * body: { name, slug, basePrice, isActive }
+ * body: { name, slug, productType, basePrice, isActive }
  */
 export async function POST(req: NextRequest) {
   try {
@@ -46,6 +55,7 @@ export async function POST(req: NextRequest) {
     const name = String(body.name ?? "").trim();
     const slug = String(body.slug ?? "").trim();
     const basePrice = Number(body.basePrice);
+    const productTypeRaw = body.productType;
 
     if (!name) {
       return NextResponse.json(
@@ -61,6 +71,21 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    if (productTypeRaw == null || productTypeRaw === "") {
+      return NextResponse.json(
+        { ok: false, error: "PRODUCT_TYPE_REQUIRED" },
+        { status: 400 }
+      );
+    }
+
+    const productType = parseProductType(productTypeRaw);
+    if (!productType) {
+      return NextResponse.json(
+        { ok: false, error: "PRODUCT_TYPE_INVALID" },
+        { status: 400 }
+      );
+    }
+
     if (!Number.isFinite(basePrice)) {
       return NextResponse.json(
         { ok: false, error: "BASEPRICE_INVALID" },
@@ -72,6 +97,7 @@ export async function POST(req: NextRequest) {
       data: {
         name,
         slug,
+        productType,
         basePrice,
         isActive: body.isActive == null ? true : Boolean(body.isActive),
       },
@@ -111,12 +137,24 @@ export async function PATCH(req: NextRequest) {
     const data: {
       name?: string;
       slug?: string;
+      productType?: ProductType;
       basePrice?: number;
       isActive?: boolean;
     } = {};
 
     if (body.name != null) data.name = String(body.name).trim();
     if (body.slug != null) data.slug = String(body.slug).trim();
+
+    if (body.productType != null) {
+      const productType = parseProductType(body.productType);
+      if (!productType) {
+        return NextResponse.json(
+          { ok: false, error: "PRODUCT_TYPE_INVALID" },
+          { status: 400 }
+        );
+      }
+      data.productType = productType;
+    }
 
     if (body.basePrice != null) {
       const p = Number(body.basePrice);
