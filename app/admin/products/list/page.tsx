@@ -64,7 +64,7 @@ export default async function AdminProductsPage({ searchParams }: PageProps) {
     counts.find((item) => item.productType === ProductType.COFFEE)?._count._all ?? 0;
 
   return (
-    <main style={{ padding: 16, maxWidth: 1180, margin: "0 auto" }}>
+    <div style={{ padding: 16, maxWidth: 1180, margin: "0 auto" }}>
       <div
         style={{
           display: "flex",
@@ -181,26 +181,14 @@ export default async function AdminProductsPage({ searchParams }: PageProps) {
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
           <thead>
             <tr style={{ background: "#fafafa", textAlign: "left" }}>
-              <th style={{ padding: 12, borderBottom: "1px solid #eee", width: 96 }}>
-                圖片
-              </th>
-              <th style={{ padding: 12, borderBottom: "1px solid #eee", width: 80 }}>
-                ID
-              </th>
-              <th style={{ padding: 12, borderBottom: "1px solid #eee", width: 110 }}>
-                分類
-              </th>
+              <th style={{ padding: 12, borderBottom: "1px solid #eee", width: 96 }}>圖片</th>
+              <th style={{ padding: 12, borderBottom: "1px solid #eee", width: 80 }}>ID</th>
+              <th style={{ padding: 12, borderBottom: "1px solid #eee", width: 110 }}>分類</th>
               <th style={{ padding: 12, borderBottom: "1px solid #eee" }}>名稱</th>
               <th style={{ padding: 12, borderBottom: "1px solid #eee" }}>Slug</th>
-              <th style={{ padding: 12, borderBottom: "1px solid #eee", width: 120 }}>
-                價格
-              </th>
-              <th style={{ padding: 12, borderBottom: "1px solid #eee", width: 120 }}>
-                狀態
-              </th>
-              <th style={{ padding: 12, borderBottom: "1px solid #eee", width: 280 }}>
-                操作
-              </th>
+              <th style={{ padding: 12, borderBottom: "1px solid #eee", width: 120 }}>價格</th>
+              <th style={{ padding: 12, borderBottom: "1px solid #eee", width: 120 }}>狀態</th>
+              <th style={{ padding: 12, borderBottom: "1px solid #eee", width: 280 }}>操作</th>
             </tr>
           </thead>
 
@@ -323,6 +311,6 @@ export default async function AdminProductsPage({ searchParams }: PageProps) {
           </tbody>
         </table>
       </div>
-    </main>
+    </div>
   );
 }
