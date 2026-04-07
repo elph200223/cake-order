@@ -275,9 +275,6 @@ export default async function AdminProductsPage({ searchParams }: PageProps) {
 
                   <td style={{ padding: 12, borderBottom: "1px solid #f1f1f1", fontWeight: 700 }}>
                     <div>{p.name}</div>
-                    {cover?.isCover ? (
-                      <div style={{ marginTop: 6, fontSize: 12, color: "#666" }}>已設定封面</div>
-                    ) : null}
                   </td>
 
                   <td style={{ padding: 12, borderBottom: "1px solid #f1f1f1", opacity: 0.85 }}>

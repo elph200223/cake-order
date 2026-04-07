@@ -70,8 +70,7 @@ export default function ProductRowActions({
       const params = new URLSearchParams(searchParams.toString());
       params.set("action", "deleted");
       params.set("t", String(Date.now()));
-      router.replace(`${pathname}?${params.toString()}`);
-      router.refresh();
+      window.location.href = `${pathname}?${params.toString()}`;
     } catch (error: unknown) {
       alert(error instanceof Error ? error.message : "刪除失敗");
       setBusy(false);
