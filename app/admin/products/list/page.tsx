@@ -2,12 +2,14 @@ import Image from "next/image";
 import Link from "next/link";
 import { ProductType } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import ProductRowActions from "./ProductRowActions";
 
 export const dynamic = "force-dynamic";
 
 type PageProps = {
   searchParams?: Promise<{
     type?: string;
+    action?: string;
   }>;
 };
 
@@ -29,6 +31,7 @@ function getFrontendPath(productType: ProductType, slug: string) {
 export default async function AdminProductsPage({ searchParams }: PageProps) {
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const selectedType = parseProductType(resolvedSearchParams?.type);
+  const action = resolvedSearchParams?.action;
 
   const products = await prisma.product.findMany({
     where: selectedType
@@ -150,6 +153,23 @@ export default async function AdminProductsPage({ searchParams }: PageProps) {
         </Link>
       </div>
 
+      {action === "deleted" ? (
+        <div
+          style={{
+            marginTop: 12,
+            padding: "10px 12px",
+            borderRadius: 10,
+            border: "1px solid #e8d7a0",
+            background: "#fff8df",
+            color: "#7a5b00",
+            fontSize: 14,
+            fontWeight: 700,
+          }}
+        >
+          ✅ 品項已刪除
+        </div>
+      ) : null}
+
       <div
         style={{
           marginTop: 14,
@@ -178,7 +198,7 @@ export default async function AdminProductsPage({ searchParams }: PageProps) {
               <th style={{ padding: 12, borderBottom: "1px solid #eee", width: 120 }}>
                 狀態
               </th>
-              <th style={{ padding: 12, borderBottom: "1px solid #eee", width: 180 }}>
+              <th style={{ padding: 12, borderBottom: "1px solid #eee", width: 280 }}>
                 操作
               </th>
             </tr>
@@ -285,22 +305,12 @@ export default async function AdminProductsPage({ searchParams }: PageProps) {
                   </td>
 
                   <td style={{ padding: 12, borderBottom: "1px solid #f1f1f1" }}>
-                    <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                      <Link
-                        href={`/admin/products/${p.id}`}
-                        style={{ textDecoration: "underline", fontWeight: 700 }}
-                      >
-                        編輯
-                      </Link>
-
-                      <Link
-                        href={frontendPath}
-                        target="_blank"
-                        style={{ textDecoration: "underline", fontWeight: 700 }}
-                      >
-                        前台
-                      </Link>
-                    </div>
+                    <ProductRowActions
+                      productId={p.id}
+                      productName={p.name}
+                      isActive={p.isActive}
+                      frontendPath={frontendPath}
+                    />
                   </td>
                 </tr>
               );
