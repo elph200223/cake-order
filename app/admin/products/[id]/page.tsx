@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import ProductBasicFormSection, {
   type ProductType,
 } from "./ProductBasicFormSection";
@@ -92,7 +92,6 @@ function parseId(raw: string | string[] | undefined): number | null {
 }
 
 export default function AdminEditProductPage() {
-  const router = useRouter();
   const params = useParams<{ id?: string | string[] }>();
   const id = parseId(params?.id);
 
@@ -242,11 +241,11 @@ export default function AdminEditProductPage() {
 
   async function deleteProduct() {
     setMsg("");
-    setDeletingProduct(true);
 
     try {
       if (id == null) throw new Error("ID 不正確");
       if (!confirm("確定要刪除這個商品？（不可復原）")) return;
+      setDeletingProduct(true);
 
       const res = await fetch(`/api/admin/products/${id}`, { method: "DELETE" });
       const raw: unknown = await res.json().catch(() => null);
@@ -255,8 +254,8 @@ export default function AdminEditProductPage() {
         throw new Error(String(data?.detail ?? data?.error ?? "DELETE_FAILED"));
       }
 
-      router.replace("/admin/products/list");
-      router.refresh();
+      // Use full navigation to avoid stale App Router cache after mutation.
+      window.location.href = `/admin/products/list?deleted=1&t=${Date.now()}`;
     } catch (error: unknown) {
       setMsg(error instanceof Error ? error.message : "刪除失敗");
     } finally {
