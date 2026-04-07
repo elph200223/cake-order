@@ -1,4 +1,5 @@
 import { ProductType } from "@prisma/client";
+import { revalidatePath } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
@@ -205,9 +206,41 @@ export async function DELETE(req: NextRequest) {
       );
     }
 
-    await prisma.product.delete({
+    const product = await prisma.product.findUnique({
       where: { id },
+      select: { slug: true, productType: true },
     });
+
+    if (!product) {
+      return NextResponse.json(
+        { ok: false, error: "NOT_FOUND" },
+        { status: 404 }
+      );
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.productOptionGroup.deleteMany({
+        where: { productId: id },
+      });
+
+      await tx.productImage.deleteMany({
+        where: { productId: id },
+      });
+
+      await tx.product.delete({
+        where: { id },
+      });
+    });
+
+    revalidatePath("/admin/products");
+    revalidatePath("/admin/products/list");
+    if (product.productType === ProductType.COFFEE) {
+      revalidatePath("/coffee");
+      revalidatePath(`/coffee/${product.slug}`);
+    } else {
+      revalidatePath("/cakes");
+      revalidatePath(`/cakes/${product.slug}`);
+    }
 
     return NextResponse.json({ ok: true });
   } catch (error: unknown) {

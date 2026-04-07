@@ -29,8 +29,10 @@ export default function ProductRowActions({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [busy, setBusy] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
 
   async function toggleActive() {
+    setErrorMsg("");
     setBusy(true);
     try {
       const res = await fetch(`/api/admin/products/${productId}`, {
@@ -47,24 +49,44 @@ export default function ProductRowActions({
       alert(`✅ 已${isActive ? "下架" : "上架"}：${productName}`);
       router.refresh();
     } catch (error: unknown) {
-      alert(error instanceof Error ? error.message : "操作失敗");
+      const message = error instanceof Error ? error.message : "操作失敗";
+      setErrorMsg(message);
+      alert(message);
     } finally {
       setBusy(false);
     }
   }
 
+  async function runDeleteRequest(url: string) {
+    const res = await fetch(url, { method: "DELETE" });
+    const rawText = await res.text().catch(() => "");
+    let rawJson: unknown = null;
+    if (rawText) {
+      try {
+        rawJson = JSON.parse(rawText);
+      } catch {
+        rawJson = null;
+      }
+    }
+    const data = isMutationResponse(rawJson) ? rawJson : null;
+
+    if (res.ok && data?.ok === true) return;
+    throw new Error(
+      String(data?.detail ?? data?.error ?? rawText || `DELETE_FAILED_${res.status}`)
+    );
+  }
+
   async function deleteProduct() {
+    setErrorMsg("");
     if (!confirm(`確定刪除「${productName}」？此操作不可復原。`)) return;
 
     setBusy(true);
     try {
-      const res = await fetch(`/api/admin/products/${productId}`, {
-        method: "DELETE",
-      });
-      const raw: unknown = await res.json().catch(() => null);
-      const data = isMutationResponse(raw) ? raw : null;
-      if (!data || data.ok !== true) {
-        throw new Error(String(data?.detail ?? data?.error ?? "DELETE_FAILED"));
+      // Keep a fallback to the legacy query-string endpoint if needed.
+      try {
+        await runDeleteRequest(`/api/admin/products/${productId}`);
+      } catch {
+        await runDeleteRequest(`/api/admin/products?id=${productId}`);
       }
 
       const params = new URLSearchParams(searchParams.toString());
@@ -72,7 +94,9 @@ export default function ProductRowActions({
       params.set("t", String(Date.now()));
       window.location.href = `${pathname}?${params.toString()}`;
     } catch (error: unknown) {
-      alert(error instanceof Error ? error.message : "刪除失敗");
+      const message = error instanceof Error ? error.message : "刪除失敗";
+      setErrorMsg(message);
+      alert(message);
       setBusy(false);
     }
   }
@@ -119,6 +143,8 @@ export default function ProductRowActions({
       >
         {busy ? "處理中…" : "刪除"}
       </button>
+
+      {errorMsg ? <span style={{ color: "#b00020", fontSize: 12 }}>{errorMsg}</span> : null}
     </div>
   );
 }
