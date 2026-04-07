@@ -71,9 +71,8 @@ export default function ProductRowActions({
     const data = isMutationResponse(rawJson) ? rawJson : null;
 
     if (res.ok && data?.ok === true) return;
-    throw new Error(
-      String(data?.detail ?? data?.error ?? rawText || `DELETE_FAILED_${res.status}`)
-    );
+    const fallback = rawText || `DELETE_FAILED_${res.status}`;
+    throw new Error(String(data?.detail ?? data?.error ?? fallback));
   }
 
   async function deleteProduct() {
