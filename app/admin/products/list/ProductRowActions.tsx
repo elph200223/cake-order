@@ -30,6 +30,7 @@ export default function ProductRowActions({
   const searchParams = useSearchParams();
   const [busy, setBusy] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const [showConfirm, setShowConfirm] = useState(false);
 
   async function toggleActive() {
     setErrorMsg("");
@@ -77,8 +78,6 @@ export default function ProductRowActions({
 
   async function deleteProduct() {
     setErrorMsg("");
-    if (!confirm(`確定刪除「${productName}」？此操作不可復原。`)) return;
-
     setBusy(true);
     try {
       // Keep a fallback to the legacy query-string endpoint if needed.
@@ -91,7 +90,8 @@ export default function ProductRowActions({
       const params = new URLSearchParams(searchParams.toString());
       params.set("action", "deleted");
       params.set("t", String(Date.now()));
-      window.location.href = `${pathname}?${params.toString()}`;
+      router.push(`${pathname}?${params.toString()}`);
+      setBusy(false);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "刪除失敗";
       setErrorMsg(message);
@@ -129,19 +129,38 @@ export default function ProductRowActions({
       <button
         type="button"
         disabled={busy}
-        onClick={deleteProduct}
+        onClick={showConfirm ? deleteProduct : () => setShowConfirm(true)}
         style={{
           border: "1px solid #d33",
           borderRadius: 10,
           padding: "6px 10px",
-          background: "#fff",
-          color: "#d33",
+          background: showConfirm ? "#d33" : "#fff",
+          color: showConfirm ? "#fff" : "#d33",
           fontWeight: 800,
           cursor: busy ? "not-allowed" : "pointer",
         }}
       >
-        {busy ? "處理中…" : "刪除"}
+        {busy ? "處理中…" : showConfirm ? "確認刪除" : "刪除"}
       </button>
+
+      {showConfirm && !busy && (
+        <button
+          type="button"
+          onClick={() => setShowConfirm(false)}
+          style={{
+            border: "1px solid #666",
+            borderRadius: 10,
+            padding: "6px 10px",
+            background: "#fff",
+            color: "#666",
+            fontWeight: 800,
+            cursor: "pointer",
+            marginLeft: 8,
+          }}
+        >
+          取消
+        </button>
+      )}
 
       {errorMsg ? <span style={{ color: "#b00020", fontSize: 12 }}>{errorMsg}</span> : null}
     </div>
