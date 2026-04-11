@@ -80,7 +80,7 @@ export function ReservationForm() {
       }
 
       const text = formatLineText({ customerName, phone, adults, children, requestDate, requestTime, note });
-      const url = `https://line.me/R/oaMessage/${encodeURIComponent(LINE_OA_ID)}?text=${encodeURIComponent(text)}`;
+      const url = `https://line.me/R/oaMessage/${LINE_OA_ID}?text=${encodeURIComponent(text)}`;
       setLineUrl(url);
       setSubmitted(true);
 
