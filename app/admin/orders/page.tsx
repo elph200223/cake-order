@@ -7,6 +7,7 @@ import {
   getOrderStatusLabel,
   normalizeOrderStatusFilter,
 } from "@/lib/order-status";
+import { WalkInOrderButton } from "./WalkInOrderModal";
 
 type Props = {
   searchParams: Promise<{
@@ -94,6 +95,7 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
             可用訂單編號、客人姓名、電話、Email 搜尋，並依狀態篩選。
           </p>
         </div>
+        <WalkInOrderButton />
       </div>
 
       <section className="mb-6 rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
