@@ -162,6 +162,14 @@ export async function POST(req: NextRequest) {
       const text = event.message.text;
       const userId = event.source.userId;
 
+      // 特殊指令：回覆自己的 userId
+      if (text.trim() === "我的ID") {
+        if (event.replyToken) {
+          await replyText(event.replyToken, `您的 LINE userId 是：\n${userId}`);
+        }
+        continue;
+      }
+
       // 只處理帶有訂位申請標記的訊息
       if (!text.includes("【訂位申請】")) continue;
 
