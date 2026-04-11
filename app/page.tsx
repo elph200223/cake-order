@@ -6,7 +6,7 @@ const actionItems = [
   { label: "訂蛋糕", href: "/cakes", enabled: true },
   { label: "訂咖啡", href: "/coffee", enabled: true },
   { label: "查詢訂單", href: "/orders", enabled: true },
-  { label: "訂位（尚未開放）", href: "", enabled: false },
+  { label: "訂位", href: "/reservation", enabled: true },
 ];
 
 function InstagramIcon() {
