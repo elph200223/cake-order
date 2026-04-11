@@ -54,6 +54,8 @@ export function ReservationForm() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [lineUrl, setLineUrl] = useState("");
+  const [lineText, setLineText] = useState("");
+  const [copied, setCopied] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [error, setError] = useState("");
 
@@ -80,14 +82,15 @@ export function ReservationForm() {
       }
 
       const text = formatLineText({ customerName, phone, adults, children, requestDate, requestTime, note });
-      const oaId = LINE_OA_ID.startsWith("@") ? LINE_OA_ID.slice(1) : LINE_OA_ID;
-      const url = `https://line.me/R/oaMessage/${oaId}?text=${encodeURIComponent(text)}`;
-      setLineUrl(url);
+      // 使用 ti/p 格式開啟 LINE 聊天（支援從外部瀏覽器跳轉）
+      const chatUrl = `https://line.me/R/ti/p/${encodeURIComponent(LINE_OA_ID)}`;
+      setLineUrl(chatUrl);
+      setLineText(text);
       setSubmitted(true);
 
-      // 手機才自動跳轉，電腦會跳轉失敗所以改顯示 QR code
+      // 手機自動跳轉開啟 LINE 聊天
       if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
-        window.location.href = url;
+        window.location.href = chatUrl;
       }
     } catch {
       setError("網路錯誤，請再試一次。");
@@ -96,48 +99,56 @@ export function ReservationForm() {
     }
   };
 
-  if (submitted) {
-    if (isMobile) {
-      return (
-        <div className="rounded-2xl border border-neutral-200 bg-white p-8 text-center shadow-sm">
-          <div className="mb-4 text-4xl">🎉</div>
-          <h2 className="text-xl font-bold text-neutral-900">訂位申請已送出！</h2>
-          <p className="mt-3 text-sm leading-7 text-neutral-600">
-            LINE 應該已自動開啟，請在對話框中按「送出」完成訂位申請。
-            <br />
-            我們收到後會盡快確認並用 LINE 回覆您。
-          </p>
-          <a
-            href={lineUrl}
-            className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-[#06C755] px-6 py-3 text-sm font-semibold text-white hover:opacity-90"
-          >
-            前往 LINE 送出訂位
-          </a>
-        </div>
-      );
-    }
+  async function handleCopy() {
+    await navigator.clipboard.writeText(lineText);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
 
-    // 電腦版：顯示 QR code
+  if (submitted) {
     return (
-      <div className="rounded-2xl border border-neutral-200 bg-white p-8 text-center shadow-sm">
-        <div className="mb-4 text-4xl">🎉</div>
-        <h2 className="text-xl font-bold text-neutral-900">訂位申請已送出！</h2>
-        <p className="mt-3 text-sm leading-7 text-neutral-600">
-          請用手機掃描下方 QR code，在 LINE 對話框中按「送出」完成訂位申請。
+      <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
+        <h2 className="text-lg font-bold text-neutral-900">訂位資料已送出！</h2>
+        <p className="mt-2 text-sm leading-6 text-neutral-600">
+          請複製下方文字，再開啟 LINE 貼上傳送給我們，完成訂位申請。
         </p>
-        <div className="mt-6 flex justify-center">
-          <div className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm inline-block">
-            <QRCodeSVG value={lineUrl} size={200} />
-          </div>
+
+        {/* 預填文字 */}
+        <div className="mt-4 rounded-xl border border-neutral-200 bg-neutral-50 p-4">
+          <pre className="whitespace-pre-wrap text-sm leading-6 text-neutral-800">{lineText}</pre>
         </div>
-        <p className="mt-4 text-xs text-neutral-400">
-          掃描後會直接開啟 LINE 並帶入您的訂位資料
-        </p>
-        {LINE_OA_ID && (
-          <p className="mt-2 text-xs text-neutral-400">
-            或搜尋 LINE 官方帳號：<strong>{LINE_OA_ID}</strong>
-          </p>
-        )}
+        <button
+          onClick={handleCopy}
+          className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-neutral-300 bg-white px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50"
+        >
+          {copied ? "已複製！" : "複製訂位資料"}
+        </button>
+
+        {/* 開啟 LINE */}
+        <div className="mt-5 border-t border-neutral-100 pt-5">
+          {isMobile ? (
+            <a
+              href={lineUrl}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[#06C755] py-3 text-sm font-semibold text-white hover:opacity-90"
+            >
+              開啟 LINE 對話
+            </a>
+          ) : (
+            <>
+              <p className="mb-3 text-sm text-neutral-500">用手機掃描 QR code 開啟 LINE：</p>
+              <div className="flex justify-center">
+                <div className="inline-block rounded-xl border border-neutral-200 bg-white p-3">
+                  <QRCodeSVG value={lineUrl} size={180} />
+                </div>
+              </div>
+            </>
+          )}
+          {LINE_OA_ID && (
+            <p className="mt-3 text-center text-xs text-neutral-400">
+              或搜尋 LINE 官方帳號：<strong>{LINE_OA_ID}</strong>
+            </p>
+          )}
+        </div>
       </div>
     );
   }
