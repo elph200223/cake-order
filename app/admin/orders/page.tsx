@@ -16,15 +16,19 @@ type Props = {
     status?: string;
     dateFrom?: string;
     dateTo?: string;
+    pickupFrom?: string;
+    pickupTo?: string;
   }>;
 };
 
-function buildFilterHref(nextStatus: OrderStatusFilter, q: string, dateFrom: string, dateTo: string) {
+function buildFilterHref(nextStatus: OrderStatusFilter, q: string, dateFrom: string, dateTo: string, pickupFrom: string, pickupTo: string) {
   const params = new URLSearchParams();
   if (q.trim()) params.set("q", q.trim());
   if (nextStatus !== "ALL") params.set("status", nextStatus);
   if (dateFrom) params.set("dateFrom", dateFrom);
   if (dateTo) params.set("dateTo", dateTo);
+  if (pickupFrom) params.set("pickupFrom", pickupFrom);
+  if (pickupTo) params.set("pickupTo", pickupTo);
   const qs = params.toString();
   return qs ? `/admin/orders?${qs}` : "/admin/orders";
 }
@@ -35,6 +39,10 @@ function parseDateParam(raw: string | undefined): Date | undefined {
   return isNaN(d.getTime()) ? undefined : d;
 }
 
+function isValidDateStr(raw: string): boolean {
+  return /^\d{4}-\d{2}-\d{2}$/.test(raw);
+}
+
 export default async function AdminOrdersPage({ searchParams }: Props) {
   const params = await searchParams;
 
@@ -42,9 +50,10 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
   const status = normalizeOrderStatusFilter((params.status || "").trim());
   const dateFrom = (params.dateFrom || "").trim();
   const dateTo = (params.dateTo || "").trim();
+  const pickupFrom = (params.pickupFrom || "").trim();
+  const pickupTo = (params.pickupTo || "").trim();
 
   const fromDate = parseDateParam(dateFrom);
-  // dateTo: include the full day, so set to end of day
   const toDate = parseDateParam(dateTo)
     ? (() => { const d = new Date(dateTo); d.setHours(23, 59, 59, 999); return d; })()
     : undefined;
@@ -58,9 +67,20 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
       }
     : {};
 
+  // pickupDate is a String field (YYYY-MM-DD), gte/lte works lexicographically
+  const pickupFilter = pickupFrom || pickupTo
+    ? {
+        pickupDate: {
+          ...(isValidDateStr(pickupFrom) ? { gte: pickupFrom } : {}),
+          ...(isValidDateStr(pickupTo) ? { lte: pickupTo } : {}),
+        },
+      }
+    : {};
+
   const baseWhere = {
     ...(status !== "ALL" ? { status } : {}),
     ...dateFilter,
+    ...pickupFilter,
     ...(q
       ? {
           OR: [
@@ -73,6 +93,8 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
       : {}),
   };
 
+  const hasDateFilter = Boolean(fromDate || toDate || pickupFrom || pickupTo);
+
   // Run orders fetch and PAID aggregate in parallel
   const [orders, paidAggregate] = await Promise.all([
     prisma.order.findMany({
@@ -83,16 +105,15 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
       },
       take: 200,
     }),
-    (fromDate || toDate)
+    hasDateFilter
       ? prisma.order.aggregate({
-          where: { ...dateFilter, status: "PAID" },
+          where: { ...dateFilter, ...pickupFilter, status: "PAID" },
           _sum: { totalAmount: true },
           _count: { id: true },
         })
       : null,
   ]);
 
-  const hasDateFilter = Boolean(fromDate || toDate);
   const paidTotal = paidAggregate?._sum?.totalAmount ?? 0;
   const paidCount = paidAggregate?._count?.id ?? 0;
 
@@ -164,8 +185,8 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
             </div>
           </div>
 
-          {/* 日期範圍 */}
-          <div className="grid gap-4 md:grid-cols-[1fr_1fr_auto]">
+          {/* 下單日期範圍 */}
+          <div className="grid gap-4 md:grid-cols-2">
             <div>
               <label htmlFor="dateFrom" className="mb-2 block text-sm font-medium text-neutral-800">
                 下單日期（起）
@@ -190,6 +211,34 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
                 className="w-full rounded-xl border border-neutral-300 px-4 py-3 text-sm outline-none transition focus:border-neutral-500"
               />
             </div>
+          </div>
+
+          {/* 取貨日期範圍 */}
+          <div className="grid gap-4 md:grid-cols-[1fr_1fr_auto]">
+            <div>
+              <label htmlFor="pickupFrom" className="mb-2 block text-sm font-medium text-neutral-800">
+                取貨日期（起）
+              </label>
+              <input
+                id="pickupFrom"
+                name="pickupFrom"
+                type="date"
+                defaultValue={pickupFrom}
+                className="w-full rounded-xl border border-neutral-300 px-4 py-3 text-sm outline-none transition focus:border-neutral-500"
+              />
+            </div>
+            <div>
+              <label htmlFor="pickupTo" className="mb-2 block text-sm font-medium text-neutral-800">
+                取貨日期（迄）
+              </label>
+              <input
+                id="pickupTo"
+                name="pickupTo"
+                type="date"
+                defaultValue={pickupTo}
+                className="w-full rounded-xl border border-neutral-300 px-4 py-3 text-sm outline-none transition focus:border-neutral-500"
+              />
+            </div>
             <div className="flex items-end">
               <Link
                 href="/admin/orders"
@@ -203,7 +252,7 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
 
         <div className="mt-4 flex flex-wrap gap-2">
           <Link
-            href={buildFilterHref("ALL", q, dateFrom, dateTo)}
+            href={buildFilterHref("ALL", q, dateFrom, dateTo, pickupFrom, pickupTo)}
             className={`inline-flex items-center rounded-full px-3 py-1.5 text-sm ${
               status === "ALL"
                 ? "bg-neutral-900 text-white"
@@ -216,7 +265,7 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
           {ORDER_STATUS_OPTIONS.map((option) => (
             <Link
               key={option.value}
-              href={buildFilterHref(option.value, q, dateFrom, dateTo)}
+              href={buildFilterHref(option.value, q, dateFrom, dateTo, pickupFrom, pickupTo)}
               className={`inline-flex items-center rounded-full px-3 py-1.5 text-sm ${
                 status === option.value
                   ? "bg-neutral-900 text-white"
@@ -231,15 +280,20 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
 
       {/* 金額統計（只在有日期範圍時顯示） */}
       {hasDateFilter && (
-        <section className="mb-6 grid gap-4 sm:grid-cols-2">
+        <section className="mb-6">
           <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
             <p className="text-sm text-neutral-500">
-              已付款金額
-              {dateFrom && dateTo
-                ? `（${dateFrom} ～ ${dateTo}）`
-                : dateFrom
-                ? `（${dateFrom} 起）`
-                : `（～ ${dateTo}）`}
+              已付款金額合計（符合篩選條件）
+              {(dateFrom || dateTo) && (
+                <span className="ml-2 text-neutral-400">
+                  下單：{dateFrom || "—"} ～ {dateTo || "—"}
+                </span>
+              )}
+              {(pickupFrom || pickupTo) && (
+                <span className="ml-2 text-neutral-400">
+                  取貨：{pickupFrom || "—"} ～ {pickupTo || "—"}
+                </span>
+              )}
             </p>
             <p className="mt-2 text-3xl font-bold tracking-tight text-neutral-900">
               NT$ {paidTotal.toLocaleString()}
