@@ -1,33 +1,39 @@
 import Link from "next/link";
 
+const NAV_ITEMS = [
+  { title: "後台首頁", href: "/admin" },
+  { title: "訂單列表", href: "/admin/orders" },
+  { title: "商品管理", href: "/admin/products" },
+  { title: "選項群組管理", href: "/admin/option-groups" },
+  { title: "店休日管理", href: "/admin/cakes" },
+  { title: "版面設定", href: "/admin/site-images" },
+];
+
 export default function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <div style={{ display: "flex", minHeight: "100vh" }}>
-      <aside
-        style={{
-          width: 220,
-          borderRight: "1px solid #ddd",
-          padding: 16,
-          background: "#fafafa",
-        }}
-      >
-        <h2 style={{ fontSize: 18, marginBottom: 16 }}>後台管理</h2>
-
-        <nav style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          <Link href="/admin">首頁</Link>
-          <Link href="/admin/orders">訂單管理</Link>
-          <Link href="/admin/products">商品管理</Link>
-          <Link href="/admin/pickup-settings">取貨設定</Link>
-          <Link href="/admin/payments">金流管理</Link>
-          <Link href="/admin/settings">系統設定</Link>
+    <div className="flex min-h-screen">
+      <aside className="w-52 shrink-0 border-r border-neutral-200 bg-neutral-50 px-4 py-6">
+        <p className="mb-5 text-xs font-semibold tracking-widest text-neutral-400">
+          ADMIN
+        </p>
+        <nav className="flex flex-col gap-1">
+          {NAV_ITEMS.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="rounded-lg px-3 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-200 hover:text-neutral-900"
+            >
+              {item.title}
+            </Link>
+          ))}
         </nav>
       </aside>
 
-      <main style={{ flex: 1, padding: 24 }}>{children}</main>
+      <main className="min-w-0 flex-1">{children}</main>
     </div>
   );
 }
