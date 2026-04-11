@@ -2,6 +2,7 @@ import { ProductType } from "@prisma/client";
 import Image from "next/image";
 import Link from "next/link";
 import { getCatalogProductsByType } from "@/lib/catalog";
+import CakesPageNav from "@/app/cakes/CakesPageNav";
 
 export const dynamic = "force-dynamic";
 
@@ -34,6 +35,7 @@ export default async function CoffeePage() {
         </header>
 
         <div className="pt-6">
+          <CakesPageNav />
           {products.length === 0 ? (
             <section className="border border-stone-200 bg-white p-10 text-center shadow-sm">
               <h2 className="text-lg font-semibold tracking-[0.06em] text-stone-900">
