@@ -17,6 +17,7 @@
     "next": "15.2.8",
     "nodemailer": "^6.10.1",
     "prisma": "^6.8.0",
+    "qrcode.react": "^4.2.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "sharp": "^0.34.5",

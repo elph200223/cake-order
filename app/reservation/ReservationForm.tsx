@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { QRCodeSVG } from "qrcode.react";
 
 const WEEKDAYS = ["日", "一", "二", "三", "四", "五", "六"];
 
@@ -53,7 +54,12 @@ export function ReservationForm() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [lineUrl, setLineUrl] = useState("");
+  const [isMobile, setIsMobile] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    setIsMobile(/Android|iPhone|iPad|iPod/i.test(navigator.userAgent));
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,8 +84,10 @@ export function ReservationForm() {
       setLineUrl(url);
       setSubmitted(true);
 
-      // 自動開啟 LINE（手機有效）
-      window.location.href = url;
+      // 手機才自動跳轉，電腦會跳轉失敗所以改顯示 QR code
+      if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+        window.location.href = url;
+      }
     } catch {
       setError("網路錯誤，請再試一次。");
     } finally {
@@ -88,26 +96,45 @@ export function ReservationForm() {
   };
 
   if (submitted) {
+    if (isMobile) {
+      return (
+        <div className="rounded-2xl border border-neutral-200 bg-white p-8 text-center shadow-sm">
+          <div className="mb-4 text-4xl">🎉</div>
+          <h2 className="text-xl font-bold text-neutral-900">訂位申請已送出！</h2>
+          <p className="mt-3 text-sm leading-7 text-neutral-600">
+            LINE 應該已自動開啟，請在對話框中按「送出」完成訂位申請。
+            <br />
+            我們收到後會盡快確認並用 LINE 回覆您。
+          </p>
+          <a
+            href={lineUrl}
+            className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-[#06C755] px-6 py-3 text-sm font-semibold text-white hover:opacity-90"
+          >
+            前往 LINE 送出訂位
+          </a>
+        </div>
+      );
+    }
+
+    // 電腦版：顯示 QR code
     return (
       <div className="rounded-2xl border border-neutral-200 bg-white p-8 text-center shadow-sm">
         <div className="mb-4 text-4xl">🎉</div>
         <h2 className="text-xl font-bold text-neutral-900">訂位申請已送出！</h2>
         <p className="mt-3 text-sm leading-7 text-neutral-600">
-          LINE 應該已自動開啟，請在對話框中按「送出」完成訂位申請。
-          <br />
-          我們收到後會盡快確認並用 LINE 回覆您。
+          請用手機掃描下方 QR code，在 LINE 對話框中按「送出」完成訂位申請。
         </p>
-
-        <a
-          href={lineUrl}
-          className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-[#06C755] px-6 py-3 text-sm font-semibold text-white hover:opacity-90"
-        >
-          <span>前往 LINE 送出訂位</span>
-        </a>
-
+        <div className="mt-6 flex justify-center">
+          <div className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm inline-block">
+            <QRCodeSVG value={lineUrl} size={200} />
+          </div>
+        </div>
+        <p className="mt-4 text-xs text-neutral-400">
+          掃描後會直接開啟 LINE 並帶入您的訂位資料
+        </p>
         {LINE_OA_ID && (
-          <p className="mt-4 text-xs text-neutral-400">
-            LINE 未開啟？請搜尋官方帳號：<strong>{LINE_OA_ID}</strong>
+          <p className="mt-2 text-xs text-neutral-400">
+            或搜尋 LINE 官方帳號：<strong>{LINE_OA_ID}</strong>
           </p>
         )}
       </div>
