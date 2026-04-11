@@ -1,6 +1,7 @@
 import { ProductType } from "@prisma/client";
 import { notFound } from "next/navigation";
 import { getCatalogProductBySlugAndType } from "@/lib/catalog";
+import CakesPageNav from "@/app/cakes/CakesPageNav";
 import CakeOptionSelector from "@/app/cakes/[slug]/CakeOptionSelector";
 import ProductImageGallery from "@/app/cakes/[slug]/ProductImageGallery";
 
@@ -47,6 +48,10 @@ export default async function CoffeeDetailPage({
           <h1 className="mt-4 font-serif text-2xl font-medium tracking-[0.08em] text-neutral-900">
             咖啡訂購
           </h1>
+        </div>
+
+        <div className="mt-8">
+          <CakesPageNav />
         </div>
 
         <section className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[380px_minmax(0,1fr)] lg:items-start lg:gap-8">
