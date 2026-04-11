@@ -7,6 +7,7 @@ const NAV_ITEMS = [
   { title: "選項群組管理", href: "/admin/option-groups" },
   { title: "店休日管理", href: "/admin/cakes" },
   { title: "版面設定", href: "/admin/site-images" },
+  { title: "訂位管理", href: "/admin/reservations" },
 ];
 
 export default function AdminLayout({

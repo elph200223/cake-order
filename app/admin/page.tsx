@@ -26,6 +26,11 @@ const adminItems = [
     description: "查看與處理訂單",
     href: "/admin/orders",
   },
+  {
+    title: "訂位管理",
+    description: "查看訂位記錄、設定自動回覆文字",
+    href: "/admin/reservations",
+  },
 ];
 
 export default function AdminHomePage() {

@@ -13,6 +13,33 @@ enum OrderStatus {
   CANCELLED
 }
 
+enum ReservationStatus {
+  PENDING
+  CONFIRMED
+  REJECTED
+}
+
+model Reservation {
+  id           Int               @id @default(autoincrement())
+  lineUserId   String?
+  customerName String
+  phone        String
+  adults       Int               @default(1)
+  children     Int               @default(0)
+  requestDate  String
+  requestTime  String
+  note         String            @default("")
+  status       ReservationStatus @default(PENDING)
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+}
+
+model ReservationSetting {
+  id             Int    @id @default(autoincrement())
+  confirmMessage String @default("您好！您的訂位已確認，期待您的到來！如有任何問題歡迎隨時詢問 🙏")
+  rejectMessage  String @default("您好！非常抱歉，您所希望的時段目前已滿，如有需要請再與我們聯繫，謝謝您的理解 🙏")
+}
+
 enum SiteImageSlot {
   HOME_HERO
 }
