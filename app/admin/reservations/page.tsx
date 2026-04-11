@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { SettingsForm } from "./SettingsForm";
+import { ReservationActionButtons } from "./ReservationActionButtons";
 
 const STATUS_LABEL: Record<string, string> = {
   PENDING: "待確認",
@@ -66,6 +67,7 @@ export default async function AdminReservationsPage() {
                   <th className="border-b border-neutral-200 px-4 py-3 font-semibold text-neutral-700">LINE 綁定</th>
                   <th className="border-b border-neutral-200 px-4 py-3 font-semibold text-neutral-700">狀態</th>
                   <th className="border-b border-neutral-200 px-4 py-3 font-semibold text-neutral-700">建立時間</th>
+                  <th className="border-b border-neutral-200 px-4 py-3 font-semibold text-neutral-700">操作</th>
                 </tr>
               </thead>
               <tbody>
@@ -94,6 +96,13 @@ export default async function AdminReservationsPage() {
                     </td>
                     <td className="border-b border-neutral-100 px-4 py-3 text-neutral-400 whitespace-nowrap">
                       {r.createdAt.toLocaleDateString("zh-TW")}
+                    </td>
+                    <td className="border-b border-neutral-100 px-4 py-3">
+                      <ReservationActionButtons
+                        reservationId={r.id}
+                        status={r.status}
+                        hasLineUser={!!r.lineUserId}
+                      />
                     </td>
                   </tr>
                 ))}
