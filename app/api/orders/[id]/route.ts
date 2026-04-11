@@ -14,6 +14,49 @@ function isAllowedStatus(value: string): value is AllowedStatus {
   return ALLOWED_STATUS.includes(value as AllowedStatus);
 }
 
+export async function DELETE(
+  _req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const orderId = parseOrderId(id);
+
+    if (!orderId) {
+      return NextResponse.json(
+        { ok: false, error: "ORDER_ID_INVALID" },
+        { status: 400 }
+      );
+    }
+
+    const existing = await prisma.order.findUnique({
+      where: { id: orderId },
+      select: { id: true },
+    });
+
+    if (!existing) {
+      return NextResponse.json(
+        { ok: false, error: "ORDER_NOT_FOUND" },
+        { status: 404 }
+      );
+    }
+
+    await prisma.$transaction([
+      prisma.orderItem.deleteMany({ where: { orderId } }),
+      prisma.order.delete({ where: { id: orderId } }),
+    ]);
+
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    console.error("DELETE /api/orders/[id] error", error);
+
+    return NextResponse.json(
+      { ok: false, error: "DELETE_ORDER_FAILED" },
+      { status: 500 }
+    );
+  }
+}
+
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }

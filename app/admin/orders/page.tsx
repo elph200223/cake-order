@@ -8,6 +8,7 @@ import {
   normalizeOrderStatusFilter,
 } from "@/lib/order-status";
 import { WalkInOrderButton } from "./WalkInOrderModal";
+import { DeleteOrderButton } from "./DeleteOrderButton";
 
 type Props = {
   searchParams: Promise<{
@@ -242,6 +243,7 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
                   <th className="border-b border-neutral-200 px-4 py-3 font-semibold text-neutral-700">
                     備註
                   </th>
+                  <th className="border-b border-neutral-200 px-4 py-3" />
                 </tr>
               </thead>
 
@@ -281,6 +283,9 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
                     </td>
                     <td className="border-b border-neutral-100 px-4 py-4 text-neutral-800">
                       {order.note?.trim() ? order.note : "—"}
+                    </td>
+                    <td className="border-b border-neutral-100 px-4 py-4">
+                      <DeleteOrderButton orderId={order.id} orderNo={order.orderNo} />
                     </td>
                   </tr>
                 ))}
