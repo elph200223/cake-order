@@ -74,19 +74,17 @@ export function ReservationForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ customerName, phone, adults, children, requestDate, requestTime, note }),
       });
-      const data = (await res.json()) as { ok: boolean; error?: string };
+      const data = (await res.json()) as { ok: boolean; reservation?: { id: number }; error?: string };
 
       if (!data.ok) {
         setError("送出失敗，請再試一次。");
         return;
       }
 
-      const text = formatLineText({ customerName, phone, adults, children, requestDate, requestTime, note });
-      // LIFF URL：在 LINE 內開啟並自動傳送訂位資料
-      const liffUrl = `https://liff.line.me/${LIFF_ID}?text=${encodeURIComponent(text)}`;
+      // LIFF URL：帶訂位 ID，在 LINE 內取得 userId 並綁定
+      const liffUrl = `https://liff.line.me/${LIFF_ID}?rid=${data.reservation?.id ?? ""}`;
 
       setLineUrl(liffUrl);
-      setLineText(text);
       setSubmitted(true);
     } catch {
       setError("網路錯誤，請再試一次。");
