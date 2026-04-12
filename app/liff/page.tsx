@@ -25,14 +25,25 @@ export default function LiffPage() {
           return;
         }
 
+        // 尚未登入 → 觸發授權流程（會自動帶回原 URL）
+        if (!liff.isLoggedIn()) {
+          liff.login();
+          return;
+        }
+
         setStatus("sending");
         await liff.sendMessages([{ type: "text", text: t }]);
         setStatus("success");
 
-        // 自動關閉 LIFF 視窗
         setTimeout(() => liff.closeWindow(), 1500);
       } catch (e: unknown) {
         const msg = e instanceof Error ? e.message : String(e);
+        // 權限不足 → 重新觸發授權
+        if (msg.includes("permission") || msg.includes("grant")) {
+          const liff = (await import("@line/liff")).default;
+          liff.login();
+          return;
+        }
         setErrorMsg(msg);
         setStatus("error");
       }
