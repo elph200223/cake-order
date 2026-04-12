@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { SettingsForm } from "./SettingsForm";
 import { ReservationActionButtons } from "./ReservationActionButtons";
 
+export const dynamic = "force-dynamic";
+
 const STATUS_LABEL: Record<string, string> = {
   PENDING: "待確認",
   CONFIRMED: "已確認",

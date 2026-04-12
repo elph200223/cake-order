@@ -53,3 +53,21 @@ export async function PATCH(
 
   return NextResponse.json({ ok: true });
 }
+
+export async function DELETE(
+  _req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+  const reservationId = parseInt(id, 10);
+  if (isNaN(reservationId)) {
+    return NextResponse.json({ error: "Invalid id" }, { status: 400 });
+  }
+  try {
+    await prisma.reservation.delete({ where: { id: reservationId } });
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    console.error("DELETE reservation error", error);
+    return NextResponse.json({ error: "Delete failed" }, { status: 500 });
+  }
+}

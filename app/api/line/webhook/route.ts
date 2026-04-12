@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 
 const CHANNEL_SECRET = process.env.LINE_CHANNEL_SECRET ?? "";
 const ACCESS_TOKEN = process.env.LINE_CHANNEL_ACCESS_TOKEN ?? "";
+const GROUP_ID = process.env.LINE_GROUP_ID ?? "";
 
 // ── LINE API helpers ────────────────────────────────────────────
 
@@ -72,7 +73,7 @@ export async function POST(req: NextRequest) {
     events: {
       type: string;
       replyToken?: string;
-      source: { userId: string };
+      source: { type: string; userId: string; groupId?: string; roomId?: string };
       message?: { type: string; text: string };
       postback?: { data: string };
     }[];
@@ -88,6 +89,15 @@ export async function POST(req: NextRequest) {
       if (text.trim() === "我的ID") {
         if (event.replyToken) {
           await replyText(event.replyToken, `您的 LINE userId 是：\n${userId}`);
+        }
+        continue;
+      }
+
+      // 特殊指令：回覆群組 ID
+      if (text.trim() === "群組ID") {
+        const groupId = event.source.groupId ?? event.source.roomId ?? "（非群組環境）";
+        if (event.replyToken) {
+          await replyText(event.replyToken, `群組 ID 是：\n${groupId}\n來源類型：${event.source.type}`);
         }
         continue;
       }
@@ -124,6 +134,50 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // ── 店主按確認／拒絕按鈕（postback event）──
+    if (event.type === "postback" && event.postback?.data) {
+      const userId = event.source.userId;
+
+      // 只接受從群組來的 postback
+      if (GROUP_ID && event.source.groupId !== GROUP_ID) continue;
+
+      const params = new URLSearchParams(event.postback.data);
+      const action = params.get("action");
+      const id = Number(params.get("id"));
+
+      if (!action || !id || (action !== "confirm" && action !== "reject")) continue;
+
+      // 檢查是否已處理
+      const existing = await prisma.reservation.findUnique({ where: { id } });
+      if (!existing) continue;
+      if (existing.status !== "PENDING") {
+        const alreadyLabel = existing.status === "CONFIRMED" ? "已確認" : "已拒絕";
+        if (event.replyToken) {
+          await replyText(event.replyToken, `此訂位已處理（${alreadyLabel}），不會重複傳送訊息。`);
+        }
+        continue;
+      }
+
+      const newStatus = action === "confirm" ? "CONFIRMED" : "REJECTED";
+      const { confirmMessage, rejectMessage } = await getSetting();
+
+      const reservation = await prisma.reservation.update({
+        where: { id },
+        data: { status: newStatus },
+      });
+
+      // 推送回覆給客人
+      if (reservation.lineUserId) {
+        const message = action === "confirm" ? confirmMessage : rejectMessage;
+        await pushText(reservation.lineUserId, message);
+      }
+
+      // 告知店主已送出
+      if (event.replyToken) {
+        const done = action === "confirm" ? "已傳送確認訊息給客人 ✅" : "已傳送拒絕訊息給客人 ❌";
+        await replyText(event.replyToken, done);
+      }
+    }
   }
 
   return NextResponse.json({ ok: true });

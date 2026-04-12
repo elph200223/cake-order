@@ -14,6 +14,17 @@ function generateTimes() {
   return times;
 }
 
+async function fetchBlockedDates(): Promise<string[]> {
+  try {
+    const res = await fetch("/api/pickup-block-dates");
+    const data = await res.json() as { ok: boolean; blockedDates?: { date: string }[] };
+    if (!data.ok || !data.blockedDates) return [];
+    return data.blockedDates.map((d) => d.date);
+  } catch {
+    return [];
+  }
+}
+
 function tomorrowString() {
   const d = new Date();
   d.setDate(d.getDate() + 1);
@@ -58,14 +69,20 @@ export function ReservationForm() {
   const [lineText, setLineText] = useState("");
   const [isMobile, setIsMobile] = useState(false);
   const [error, setError] = useState("");
+  const [blockedDates, setBlockedDates] = useState<string[]>([]);
 
   useEffect(() => {
     setIsMobile(/Android|iPhone|iPad|iPod/i.test(navigator.userAgent));
+    fetchBlockedDates().then(setBlockedDates);
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    if (blockedDates.includes(requestDate)) {
+      setError("該日期為公休日，請選擇其他日期。");
+      return;
+    }
     setSubmitting(true);
 
     try {
@@ -83,6 +100,11 @@ export function ReservationForm() {
 
       // LIFF URL：帶訂位 ID，在 LINE 內取得 userId 並綁定
       const liffUrl = `https://liff.line.me/${LIFF_ID}?rid=${data.reservation?.id ?? ""}`;
+
+      if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+        window.location.href = liffUrl;
+        return;
+      }
 
       setLineUrl(liffUrl);
       setSubmitted(true);
@@ -171,6 +193,10 @@ export function ReservationForm() {
           </div>
         </div>
 
+        <div className="sm:col-span-2 rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800 leading-6">
+          訂位最多 <strong>4 人</strong>。本店環境偏安靜，如有小朋友同行，請評估是否適合後再行預約。
+        </div>
+
         <div>
           <label className="mb-1.5 block text-sm font-medium text-neutral-800">希望日期 *</label>
           <input
@@ -178,9 +204,19 @@ export function ReservationForm() {
             required
             min={tomorrowString()}
             value={requestDate}
-            onChange={(e) => setRequestDate(e.target.value)}
-            className="w-full rounded-xl border border-neutral-300 px-4 py-2.5 text-sm outline-none focus:border-neutral-500"
+            onChange={(e) => {
+              setRequestDate(e.target.value);
+              if (blockedDates.includes(e.target.value)) {
+                setError("該日期為公休日，請選擇其他日期。");
+              } else {
+                setError("");
+              }
+            }}
+            className={`w-full rounded-xl border px-4 py-2.5 text-sm outline-none focus:border-neutral-500 ${blockedDates.includes(requestDate) ? "border-red-400" : "border-neutral-300"}`}
           />
+          {blockedDates.includes(requestDate) && (
+            <p className="mt-1 text-xs text-red-500">此日期為公休日</p>
+          )}
         </div>
 
         <div>
