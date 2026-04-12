@@ -41,6 +41,7 @@ function formatLineText(data: {
 }
 
 const LINE_OA_ID = process.env.NEXT_PUBLIC_LINE_OA_ID ?? "";
+const LIFF_ID = process.env.NEXT_PUBLIC_LIFF_ID ?? "";
 const TIMES = generateTimes();
 
 export function ReservationForm() {
@@ -81,11 +82,10 @@ export function ReservationForm() {
       }
 
       const text = formatLineText({ customerName, phone, adults, children, requestDate, requestTime, note });
-      // line:// URI scheme：@ 不能 encode，去掉 @ 前綴
-      const cleanId = LINE_OA_ID.replace(/^@/, "");
-      const lineUri = `line://oaMessage/${cleanId}?text=${encodeURIComponent(text)}`;
+      // LIFF URL：在 LINE 內開啟並自動傳送訂位資料
+      const liffUrl = `https://liff.line.me/${LIFF_ID}?text=${encodeURIComponent(text)}`;
 
-      setLineUrl(lineUri);
+      setLineUrl(liffUrl);
       setLineText(text);
       setSubmitted(true);
     } catch {
@@ -103,21 +103,21 @@ export function ReservationForm() {
           請點下方按鈕，直接開啟 LINE 並帶入您的訂位資料，確認後送出即完成申請。
         </p>
 
-        {/* 主要按鈕：手機直接點、電腦也可點（有 LINE 桌機版） */}
-        <a
-          href={lineUrl}
-          className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[#06C755] py-3.5 text-sm font-semibold text-white hover:opacity-90"
-        >
-          開啟 LINE 傳送訂位申請
-        </a>
-
-        {/* 電腦版：加顯示 QR code，手機掃描後同樣帶入文字 */}
-        {!isMobile && (
-          <div className="mt-5 border-t border-neutral-100 pt-5 text-center">
-            <p className="mb-3 text-sm text-neutral-500">或用手機掃描，直接在 LINE 帶入訂位內容：</p>
+        {/* 手機：直接點開 LINE 自動送出 */}
+        {isMobile ? (
+          <a
+            href={lineUrl}
+            className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[#06C755] py-3.5 text-sm font-semibold text-white hover:opacity-90"
+          >
+            開啟 LINE 自動送出訂位申請
+          </a>
+        ) : (
+          /* 電腦：QR code，手機掃描後在 LINE 自動送出 */
+          <div className="mt-5 text-center">
+            <p className="mb-3 text-sm text-neutral-600">用手機掃描，自動在 LINE 送出訂位申請：</p>
             <div className="flex justify-center">
               <div className="inline-block rounded-xl border border-neutral-200 bg-white p-3">
-                <QRCodeSVG value={lineUrl} size={180} />
+                <QRCodeSVG value={lineUrl} size={200} />
               </div>
             </div>
           </div>
