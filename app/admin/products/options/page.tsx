@@ -245,14 +245,16 @@ export default function AdminProductOptionsMatrixPage() {
           border: "1px solid #e5e5e5",
           borderRadius: 18,
           overflow: "hidden",
+          overflowX: "auto",
         }}
       >
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: `280px repeat(${Math.max(groups.length, 1)}, minmax(180px, 1fr))`,
+            gridTemplateColumns: `280px repeat(${Math.max(groups.length, 1)}, 80px)`,
             background: "#fafafa",
             borderBottom: "1px solid #eee",
+            minWidth: "max-content",
           }}
         >
           <div style={{ padding: 18, fontWeight: 900 }}>商品</div>
@@ -294,7 +296,8 @@ export default function AdminProductOptionsMatrixPage() {
               key={p.id}
               style={{
                 display: "grid",
-                gridTemplateColumns: `280px repeat(${groups.length}, minmax(180px, 1fr))`,
+                gridTemplateColumns: `280px repeat(${groups.length}, 80px)`,
+              minWidth: "max-content",
                 borderBottom: "1px solid #f5f5f5",
               }}
             >
