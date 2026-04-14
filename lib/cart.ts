@@ -6,6 +6,8 @@ export type CartOptionItem = {
   optionId: number;
   optionName: string;
   priceDelta: number;
+  priceType?: string;
+  priceMultiplier?: number;
 };
 
 export type CartItem = {
@@ -45,10 +47,18 @@ export function createCartItemId(input: Pick<AddCartItemInput, "productId" | "op
 }
 
 function getUnitPrice(input: Pick<AddCartItemInput, "basePrice" | "options">) {
-  return (
-    input.basePrice +
-    input.options.reduce((sum, option) => sum + option.priceDelta, 0)
-  );
+  let multiplierProduct = 1.0;
+  let deltaSum = 0;
+
+  for (const option of input.options) {
+    if (option.priceType === "multiplier") {
+      multiplierProduct *= option.priceMultiplier ?? 1;
+    } else {
+      deltaSum += option.priceDelta;
+    }
+  }
+
+  return Math.round(input.basePrice * multiplierProduct) + deltaSum;
 }
 
 function normalizeQuantity(quantity: number) {
@@ -158,8 +168,7 @@ export function setCartItemQuantity(itemId: string, quantity: number): CartState
   const items = cart.items.map((item) => {
     if (item.id !== itemId) return item;
 
-    const unitPrice =
-      item.basePrice + item.options.reduce((sum, option) => sum + option.priceDelta, 0);
+    const unitPrice = getUnitPrice(item);
 
     return {
       ...item,

@@ -1,5 +1,6 @@
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
 }
 
 datasource db {
@@ -114,11 +115,13 @@ model OptionGroup {
 }
 
 model Option {
-  id            Int         @id @default(autoincrement())
-  name          String
-  priceDelta    Int         @default(0)
-  optionGroup   OptionGroup @relation(fields: [optionGroupId], references: [id])
-  optionGroupId Int
+  id             Int         @id @default(autoincrement())
+  name           String
+  priceDelta     Int         @default(0)
+  priceType      String      @default("delta")       // delta | multiplier
+  priceMultiplier Float      @default(1.0)
+  optionGroup    OptionGroup @relation(fields: [optionGroupId], references: [id])
+  optionGroupId  Int
 
   sort      Int      @default(0)
   isActive  Boolean  @default(true)

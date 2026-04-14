@@ -7,6 +7,8 @@ export type OptionRowOption = {
   optionGroupId: number;
   name: string;
   priceDelta: number;
+  priceType: string;
+  priceMultiplier: number;
   sort: number;
   isActive: boolean;
 };
@@ -31,7 +33,9 @@ export default function OptionRow({
   setMsg: (msg: string) => void;
 }) {
   const [name, setName] = useState(option.name);
+  const [priceType, setPriceType] = useState(option.priceType ?? "delta");
   const [priceDelta, setPriceDelta] = useState(String(option.priceDelta));
+  const [priceMultiplier, setPriceMultiplier] = useState(String(option.priceMultiplier ?? 1));
   const [sort, setSort] = useState(String(option.sort));
   const [isActive, setIsActive] = useState(Boolean(option.isActive));
   const [busy, setBusy] = useState(false);
@@ -54,9 +58,11 @@ export default function OptionRow({
       if (!trimmed) throw new Error("選項名稱不能空白");
 
       const pd = Number(priceDelta);
+      const pm = Number(priceMultiplier);
       const s = Number(sort);
 
       if (!Number.isFinite(pd)) throw new Error("priceDelta 不正確");
+      if (!Number.isFinite(pm) || pm <= 0) throw new Error("乘數必須大於 0");
       if (!Number.isFinite(s)) throw new Error("sort 不正確");
 
       const res = await fetch(`/api/admin/options/${option.id}`, {
@@ -64,7 +70,9 @@ export default function OptionRow({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: trimmed,
+          priceType,
           priceDelta: Math.trunc(pd),
+          priceMultiplier: pm,
           sort: Math.trunc(s),
           isActive,
         }),
@@ -122,12 +130,67 @@ export default function OptionRow({
       </td>
 
       <td style={{ padding: 12, borderBottom: "1px solid #f1f1f1" }}>
-        <input
-          value={priceDelta}
-          onChange={(e) => setPriceDelta(e.target.value)}
-          style={inputStyle}
-          inputMode="numeric"
-        />
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <div style={{ display: "flex", gap: 4 }}>
+            <button
+              type="button"
+              onClick={() => setPriceType("delta")}
+              style={{
+                flex: 1,
+                padding: "4px 0",
+                borderRadius: 8,
+                border: "1px solid #ccc",
+                background: priceType === "delta" ? "#222" : "#fff",
+                color: priceType === "delta" ? "#fff" : "#444",
+                fontSize: 12,
+                fontWeight: 700,
+                cursor: "pointer",
+              }}
+            >
+              加減金額
+            </button>
+            <button
+              type="button"
+              onClick={() => setPriceType("multiplier")}
+              style={{
+                flex: 1,
+                padding: "4px 0",
+                borderRadius: 8,
+                border: "1px solid #ccc",
+                background: priceType === "multiplier" ? "#222" : "#fff",
+                color: priceType === "multiplier" ? "#fff" : "#444",
+                fontSize: 12,
+                fontWeight: 700,
+                cursor: "pointer",
+              }}
+            >
+              乘數
+            </button>
+          </div>
+
+          {priceType === "delta" ? (
+            <input
+              value={priceDelta}
+              onChange={(e) => setPriceDelta(e.target.value)}
+              style={inputStyle}
+              inputMode="numeric"
+              placeholder="例：100 或 -50"
+            />
+          ) : (
+            <input
+              value={priceMultiplier}
+              onChange={(e) => setPriceMultiplier(e.target.value)}
+              style={inputStyle}
+              inputMode="decimal"
+              placeholder="例：2 或 0.9 或 0.5"
+            />
+          )}
+          <div style={{ fontSize: 11, color: "#999" }}>
+            {priceType === "delta"
+              ? "在基礎價格上加減固定金額"
+              : `基礎價格 × ${priceMultiplier || "?"}`}
+          </div>
+        </div>
       </td>
 
       <td style={{ padding: 12, borderBottom: "1px solid #f1f1f1" }}>

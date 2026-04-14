@@ -5,6 +5,8 @@ type OptionPostBody = {
   optionGroupId?: unknown;
   name?: unknown;
   priceDelta?: unknown;
+  priceType?: unknown;
+  priceMultiplier?: unknown;
   sort?: unknown;
   isActive?: unknown;
 };
@@ -64,6 +66,8 @@ export async function POST(req: NextRequest) {
     const optionGroupId = Number(body.optionGroupId);
     const name = String(body.name ?? "").trim();
     const priceDelta = Number(body.priceDelta ?? 0);
+    const priceType = String(body.priceType ?? "delta");
+    const priceMultiplier = Number(body.priceMultiplier ?? 1.0);
     const sort = Number(body.sort ?? 0);
     const isActive = Boolean(body.isActive ?? true);
 
@@ -105,6 +109,8 @@ export async function POST(req: NextRequest) {
         optionGroupId,
         name,
         priceDelta,
+        priceType,
+        priceMultiplier,
         sort,
         isActive,
       },

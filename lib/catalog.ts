@@ -5,6 +5,8 @@ export type CatalogOption = {
   id: number;
   name: string;
   priceDelta: number;
+  priceType: string;
+  priceMultiplier: number;
   sort: number;
 };
 
@@ -153,6 +155,8 @@ type ProductDetailQueryResult = {
         id: number;
         name: string;
         priceDelta: number;
+        priceType: string;
+        priceMultiplier: number;
         sort: number;
         isActive: boolean;
       }[];
@@ -216,6 +220,8 @@ export async function getCatalogProductBySlugAndType(
                   id: true,
                   name: true,
                   priceDelta: true,
+                  priceType: true,
+                  priceMultiplier: true,
                   sort: true,
                   isActive: true,
                 },
@@ -252,6 +258,8 @@ export async function getCatalogProductBySlugAndType(
           id: option.id,
           name: option.name,
           priceDelta: option.priceDelta,
+          priceType: option.priceType,
+          priceMultiplier: option.priceMultiplier,
           sort: option.sort,
         })),
     }));

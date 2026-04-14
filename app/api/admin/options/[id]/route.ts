@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 type OptionPatchBody = {
   name?: unknown;
   priceDelta?: unknown;
+  priceType?: unknown;
+  priceMultiplier?: unknown;
   sort?: unknown;
   isActive?: unknown;
 };
@@ -63,12 +65,16 @@ export async function PATCH(
     const data: {
       name?: string;
       priceDelta?: number;
+      priceType?: string;
+      priceMultiplier?: number;
       sort?: number;
       isActive?: boolean;
     } = {};
 
     if (body.name != null) data.name = String(body.name).trim();
     if (body.priceDelta != null) data.priceDelta = Number(body.priceDelta);
+    if (body.priceType != null) data.priceType = String(body.priceType);
+    if (body.priceMultiplier != null) data.priceMultiplier = Number(body.priceMultiplier);
     if (body.sort != null) data.sort = Number(body.sort);
     if (body.isActive != null) data.isActive = Boolean(body.isActive);
 

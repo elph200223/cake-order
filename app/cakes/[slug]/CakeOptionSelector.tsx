@@ -20,6 +20,8 @@ type DraftCartOptionItem = {
   optionId: number;
   optionName: string;
   priceDelta: number;
+  priceType: string;
+  priceMultiplier: number;
 };
 
 type DraftCartItem = {
@@ -124,18 +126,22 @@ export default function CakeOptionSelector({
   const [submitTone, setSubmitTone] = useState<"success" | "error" | "">("");
 
   const totalPrice = useMemo(() => {
-    let total = basePrice;
+    let multiplierProduct = 1.0;
+    let deltaSum = 0;
 
     for (const group of optionGroups) {
       const selectedIds = selected[group.id] ?? [];
       for (const option of group.options) {
-        if (selectedIds.includes(option.id)) {
-          total += option.priceDelta;
+        if (!selectedIds.includes(option.id)) continue;
+        if (option.priceType === "multiplier") {
+          multiplierProduct *= option.priceMultiplier;
+        } else {
+          deltaSum += option.priceDelta;
         }
       }
     }
 
-    return total;
+    return Math.round(basePrice * multiplierProduct) + deltaSum;
   }, [basePrice, optionGroups, selected]);
 
   const groupErrors = useMemo(() => {
@@ -167,6 +173,8 @@ export default function CakeOptionSelector({
           optionId: option.id,
           optionName: option.name,
           priceDelta: option.priceDelta,
+          priceType: option.priceType,
+          priceMultiplier: option.priceMultiplier,
         });
       }
     }

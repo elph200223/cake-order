@@ -9,6 +9,8 @@ type Option = {
   optionGroupId: number;
   name: string;
   priceDelta: number;
+  priceType: string;
+  priceMultiplier: number;
   sort: number;
   isActive: boolean;
 };
@@ -67,7 +69,9 @@ export default function AdminOptionGroupDetailPage({
   const [deletingGroup, setDeletingGroup] = useState(false);
 
   const [newName, setNewName] = useState("");
+  const [newPriceType, setNewPriceType] = useState("delta");
   const [newPriceDelta, setNewPriceDelta] = useState("0");
+  const [newPriceMultiplier, setNewPriceMultiplier] = useState("1");
   const [newSort, setNewSort] = useState("0");
   const [newActive, setNewActive] = useState(true);
   const [creatingOption, setCreatingOption] = useState(false);
@@ -209,9 +213,11 @@ export default function AdminOptionGroupDetailPage({
       if (!name) throw new Error("請輸入選項名稱");
 
       const priceDelta = Number(newPriceDelta);
+      const priceMultiplier = Number(newPriceMultiplier);
       const sort = Number(newSort);
 
       if (!Number.isFinite(priceDelta)) throw new Error("priceDelta 不正確");
+      if (!Number.isFinite(priceMultiplier) || priceMultiplier <= 0) throw new Error("乘數必須大於 0");
       if (!Number.isFinite(sort)) throw new Error("sort 不正確");
 
       const res = await fetch(`/api/admin/options`, {
@@ -220,7 +226,9 @@ export default function AdminOptionGroupDetailPage({
         body: JSON.stringify({
           optionGroupId: groupId,
           name,
+          priceType: newPriceType,
           priceDelta: Math.trunc(priceDelta),
+          priceMultiplier,
           sort: Math.trunc(sort),
           isActive: newActive,
         }),
@@ -234,7 +242,9 @@ export default function AdminOptionGroupDetailPage({
       }
 
       setNewName("");
+      setNewPriceType("delta");
       setNewPriceDelta("0");
+      setNewPriceMultiplier("1");
       setNewSort("0");
       setNewActive(true);
 
@@ -398,7 +408,7 @@ export default function AdminOptionGroupDetailPage({
       >
         <div style={{ fontWeight: 900, marginBottom: 10 }}>新增選項</div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 140px 120px auto", gap: 10 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 200px 120px auto", gap: 10 }}>
           <div>
             <label style={{ display: "block", marginBottom: 6, fontSize: 13 }}>名稱</label>
             <input
@@ -409,13 +419,63 @@ export default function AdminOptionGroupDetailPage({
           </div>
 
           <div>
-            <label style={{ display: "block", marginBottom: 6, fontSize: 13 }}>priceDelta</label>
-            <input
-              value={newPriceDelta}
-              onChange={(e) => setNewPriceDelta(e.target.value)}
-              style={inputStyle}
-              inputMode="numeric"
-            />
+            <label style={{ display: "block", marginBottom: 6, fontSize: 13 }}>價格設定</label>
+            <div style={{ display: "flex", gap: 4, marginBottom: 6 }}>
+              <button
+                type="button"
+                onClick={() => setNewPriceType("delta")}
+                style={{
+                  flex: 1,
+                  padding: "5px 0",
+                  borderRadius: 8,
+                  border: "1px solid #ccc",
+                  background: newPriceType === "delta" ? "#222" : "#fff",
+                  color: newPriceType === "delta" ? "#fff" : "#444",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                }}
+              >
+                加減金額
+              </button>
+              <button
+                type="button"
+                onClick={() => setNewPriceType("multiplier")}
+                style={{
+                  flex: 1,
+                  padding: "5px 0",
+                  borderRadius: 8,
+                  border: "1px solid #ccc",
+                  background: newPriceType === "multiplier" ? "#222" : "#fff",
+                  color: newPriceType === "multiplier" ? "#fff" : "#444",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                }}
+              >
+                乘數
+              </button>
+            </div>
+            {newPriceType === "delta" ? (
+              <input
+                value={newPriceDelta}
+                onChange={(e) => setNewPriceDelta(e.target.value)}
+                style={inputStyle}
+                inputMode="numeric"
+                placeholder="例：100 或 -50"
+              />
+            ) : (
+              <input
+                value={newPriceMultiplier}
+                onChange={(e) => setNewPriceMultiplier(e.target.value)}
+                style={inputStyle}
+                inputMode="decimal"
+                placeholder="例：2 或 0.9 或 0.5"
+              />
+            )}
+            <div style={{ fontSize: 11, color: "#999", marginTop: 4 }}>
+              {newPriceType === "delta" ? "在基礎價格上加減固定金額" : `基礎價格 × ${newPriceMultiplier || "?"}`}
+            </div>
           </div>
 
           <div>
@@ -466,7 +526,7 @@ export default function AdminOptionGroupDetailPage({
               <tr style={{ background: "#fafafa", textAlign: "left" }}>
                 <th style={{ padding: 12, borderBottom: "1px solid #eee", width: 70 }}>ID</th>
                 <th style={{ padding: 12, borderBottom: "1px solid #eee" }}>名稱</th>
-                <th style={{ padding: 12, borderBottom: "1px solid #eee", width: 130 }}>priceDelta</th>
+                <th style={{ padding: 12, borderBottom: "1px solid #eee", width: 200 }}>價格設定</th>
                 <th style={{ padding: 12, borderBottom: "1px solid #eee", width: 100 }}>sort</th>
                 <th style={{ padding: 12, borderBottom: "1px solid #eee", width: 100 }}>active</th>
                 <th style={{ padding: 12, borderBottom: "1px solid #eee", width: 180 }}>操作</th>
