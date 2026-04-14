@@ -31,6 +31,11 @@ const adminItems = [
     description: "查看訂位記錄、設定自動回覆文字",
     href: "/admin/reservations",
   },
+  {
+    title: "咖啡品種風味指南",
+    description: "阿拉比卡品種風味分布圖（個人用）",
+    href: "/coffee-guide",
+  },
 ];
 
 export default function AdminHomePage() {
