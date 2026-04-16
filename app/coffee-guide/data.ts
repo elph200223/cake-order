@@ -40,7 +40,7 @@ export const VARIETIES: Variety[] = [
     vendor: { acidity: 5.5, body: 5.5, sweetness: 6.0, floral: 4.5, fruity: 4.5, chocolate: 5.5 },
     user:   { acidity: 5.2, body: 5.2, sweetness: 5.5, floral: 3.8, fruity: 4.0, chocolate: 5.8 },
     vendorNotes: ["清新平衡花香（specialty: clean, balanced, aromatic）", "楓糖焦糖尾韻（specialty: caramel, maple）", "溫和酸質（medium acidity）", "輕微堅果巧克力感（specialty: nutty, chocolate hint）"],
-    userNotes:   ["乾淨順口但不驚豔", "中性不突出，很多人第一杯就是鐵比卡", "論壇常有人說「這就是咖啡的本來面目」", "尾韻帶甜，很適合日曬"],
+    userNotes:   ["「這就是阿拉比卡的原型，乾淨甜潤無雜味，是理解其他品種的基準線」——反覆出現在論壇推薦入門的帖子裡（specialty community）", "水洗版清澈如水，日曬版意外多了花果層次；同樣品種在不同產區可以差距很大（r/Coffee）", "PDG 評語：「elegance, flowers and fruits」——低調不搶眼，但拿來比較其他品種時才看出精緻（PDG）", "爪哇和蘇門答臘批次加上濕刨法完全改頭換面，「地球上最多元的單一品種」一點不誇張（r/Coffee）"],
   },
   {
     id: "bourbon",
@@ -52,7 +52,7 @@ export const VARIETIES: Variety[] = [
     vendor: { acidity: 6.5, body: 6.5, sweetness: 7.5, floral: 4.5, fruity: 6.5, chocolate: 5.5 },
     user:   { acidity: 6.2, body: 6.0, sweetness: 6.8, floral: 4.2, fruity: 5.8, chocolate: 5.5 },
     vendorNotes: ["焦糖莓果甜香（CoffeeReview: caramel, red berries）", "牛奶巧克力尾韻（specialty: milk chocolate）", "桃子石果果酸（specialty: stone fruit）", "紮實圓潤醇感（specialty: full-bodied, smooth）"],
-    userNotes:   ["甜感是真的強，不是想像", "紅波旁：莓果巧克力感；黃波旁：蜂蜜杏桃更甜潤", "粉波旁曾有人形容「像茉莉配荔枝」", "論壇最常推的入門品種之一，不容易踩雷"],
+    userNotes:   ["紅波旁：絲滑醇厚，牛軋糖奶油巧克力交疊，甜感讓人直覺說「再來一杯」（r/Coffee）", "黃波旁甜度爆表，杏桃香蕉熱帶果，有人說這才是「喝得出甜的咖啡」（r/Coffee）", "高海拔薩爾瓦多批次常見莓果複雜度，蜜處理後太妃糖感更突出，是論壇推薦入門精品的首選（r/espresso）", "「同樣叫波旁，不同產地風味可以差很遠」——肯亞波旁酸、盧安達波旁甜、薩爾瓦多波旁醇，一定要標注產地（r/Coffee）"],
   },
   {
     id: "gesha",
@@ -64,7 +64,7 @@ export const VARIETIES: Variety[] = [
     vendor: { acidity: 8.5, body: 4.0, sweetness: 8.0, floral: 9.5, fruity: 9.0, chocolate: 1.5 },
     user:   { acidity: 8.0, body: 4.2, sweetness: 7.2, floral: 9.0, fruity: 8.5, chocolate: 1.2 },
     vendorNotes: ["茉莉花（WCR: jasmine）", "佛手柑（WCR: bergamot）", "熱帶水果（specialty: papaya, guava, mango）", "桃子與白茶感（WCR: peach, tea-like body）"],
-    userNotes:   ["喝到好批次：覆盆子杏桃帶佛手柑，軟甜如茶（CoffeeReview用戶描述）", "冷卻後酸感才出來，像在喝花茶", "有人覺得CP值不符，但 Esmeralda 批次幾乎無可挑剔", "論壇兩極：有人說改變了對咖啡的認知，有人說不值那個價"],
+    userNotes:   ["烘焙時飄藍莓香，研磨時是佛手柑，入杯後變成伯爵茶——每個階段都是不同驚喜（specialty community）", "Esmeralda批次：莓果柑橘芒果番石榴層疊，喝過的人說再也喝不了普通咖啡（r/Coffee）", "冷卻後酸感才出來，有人說「放到微溫才到達完全體」，熱喝會錯過一半（r/Coffee）", "論壇兩極：「改變了對咖啡的認知」vs「不值那個價」——高海拔頂批次才能回答這個問題（r/espresso）"],
   },
   {
     id: "sl28",
@@ -76,7 +76,7 @@ export const VARIETIES: Variety[] = [
     vendor: { acidity: 9.0, body: 7.0, sweetness: 6.5, floral: 5.0, fruity: 8.5, chocolate: 3.0 },
     user:   { acidity: 8.5, body: 7.0, sweetness: 6.2, floral: 5.0, fruity: 8.0, chocolate: 4.0 },
     vendorNotes: ["黑醋栗（PDG: blackcurrant）", "磷酸酸質（CoffeeReview: phosphoric acidity）", "夏日番茄甜酸（specialty: fresh tomato）", "野生覆盆子柑橘（CoffeeReview: wild raspberry, citrus）"],
-    userNotes:   ["水洗批次黑醋栗柚子，酸感如電（Home-Barista 常見描述）", "有人說喝完嘴巴還能感覺磷酸感，好幾分鐘不散", "不適合習慣淡味的人，但重口味愛好者奉為圭臬", "好的批次有「夏日番茄＋黑醋栗」的甜酸交疊感"],
+    userNotes:   ["CoffeeReview評94分：油桃水仙花、Meyer檸檬皮、牛軋糖——「juicy, deep, balanced, bright」，肯亞風土的完美表達（CoffeeReview）", "黑莓覆盆子混著鮮甜番茄鮮味，有人說這是肯亞豆的「靈魂之味」，第一口就記住了（r/Coffee）", "磷酸酸感真實存在——喝完嘴裡電流感好幾分鐘不散，不習慣的人會嚇到，習慣了就上癮（Home-Barista）", "好批次的「夏日番茄＋黑醋栗」甜酸交疊是高辨識度體驗，論壇說：「這就是為什麼肯亞豆有死忠粉」（r/Coffee）"],
   },
   {
     id: "sl34",
@@ -88,7 +88,7 @@ export const VARIETIES: Variety[] = [
     vendor: { acidity: 8.5, body: 8.5, sweetness: 6.5, floral: 4.0, fruity: 7.5, chocolate: 5.0 },
     user:   { acidity: 8.0, body: 8.5, sweetness: 6.5, floral: 4.0, fruity: 6.5, chocolate: 6.0 },
     vendorNotes: ["黑莓深色水果（specialty: blackberry, dark fruit）", "厚實圓潤醇感（specialty: very full body）", "複雜甜酸（specialty: complex acidity with caramel aftertaste）", "熱帶水果醋栗（specialty: tropical, currant）"],
-    userNotes:   ["酸強但body完全撐得住，不會失衡", "比SL28更厚實圓融，少了一些尖銳", "Wine-like的深色水果感，像葡萄酒迷說的那種「漿果尾韻」", "常和SL28一起出現在肯亞頂批，兩支一起喝才能比較"],
+    userNotes:   ["和SL28一起出現在頂批時，論壇說「兩者加在一起才是完整的肯亞」——SL28負責酸、SL34負責body（r/Coffee）", "「磷酸感沒SL28強，但醇厚度遠超它，喝起來有豐滿的葡萄酒感」是最高辨識度評語（r/Coffee）", "深色莓果果醬加焦糖，比SL28更圓潤，有人說「SL28是明星，SL34是定海神針」（specialty community）", "在肯亞頂批常被低估，因為SL28的名氣太大；但盲測時常有人更喜歡SL34（Home-Barista）"],
   },
   {
     id: "caturra",
@@ -100,7 +100,7 @@ export const VARIETIES: Variety[] = [
     vendor: { acidity: 7.5, body: 4.0, sweetness: 5.5, floral: 3.5, fruity: 6.5, chocolate: 4.0 },
     user:   { acidity: 7.2, body: 3.8, sweetness: 4.5, floral: 3.0, fruity: 6.0, chocolate: 4.2 },
     vendorNotes: ["柑橘明亮酸質（specialty: citrus, bright acidity）", "黃色水果（specialty: yellow fruit）", "清爽輕盈（specialty: clean, light）", "楓糖蜂蜜香氣（specialty: maple, honey aroma）"],
-    userNotes:   ["柑橘酸感清亮但有時偏尖鋴，不夠圓潤", "body薄是真的，有人說「喝起來水水的」", "水洗卡杜拉清爽；日曬則意外多了果香層次", "性價比高，哥倫比亞精品莊園很常見"],
+    userNotes:   ["CoffeeReview 頂批可達90分，但平均批次的「水感」被論壇反覆提到——海拔差距決定一切（CoffeeReview）", "「哥倫比亞水洗版明亮乾淨但body薄；換成哥斯大黎加蜜處理就多了甜感層次，同品種兩個世界」（r/Coffee）", "高海拔柑橘酸感精準明亮，低海拔則「就是普通商業豆水準，買貴了才會失望」（r/Coffee）", "論壇推薦的「親民入門品種」——價格合理、風味輪廓清楚，適合正在建立味覺基準的人（specialty community）"],
   },
   {
     id: "catuai",
@@ -112,7 +112,7 @@ export const VARIETIES: Variety[] = [
     vendor: { acidity: 6.0, body: 6.0, sweetness: 7.0, floral: 3.5, fruity: 5.5, chocolate: 5.5 },
     user:   { acidity: 5.8, body: 5.8, sweetness: 6.0, floral: 3.0, fruity: 5.0, chocolate: 6.0 },
     vendorNotes: ["巧克力焦糖（specialty: chocolate, caramel）", "蜂蜜杏仁（specialty: honey, almond）", "輕微柑橘果酸（specialty: gentle citrus）", "均衡甜感（specialty: balanced sweetness）"],
-    userNotes:   ["高海拔批次才有真正的明亮酸質，低海拔則平淡無奇", "黃卡杜艾比紅的更甜更花香，兩者論壇評分差很多", "巴西卡杜艾是義式配方豆的主力，用戶評語多在「穩定可靠」", "「不驚豔但不出錯」是最常聽到的描述"],
+    userNotes:   ["「高海拔瓜地馬拉卡杜艾有真正的明亮果酸，低海拔版本卻平到讓人懷疑是不是同品種」（r/Coffee）", "黃卡杜艾比紅版更甜更花香，論壇有人說「兩者盲測根本以為是不同品種」——顏色突變影響風味（r/Coffee）", "巴西商業批次主力，義式配方穩定骨幹——「不驚豔但不出錯，反覆用了十年」（specialty community）", "Sweet Maria's 說它是「懂得妥協的品種」——為生產效率和風味之間取得折衷，是全球種植最廣的阿拉比卡之一（Sweet Maria's）"],
   },
   {
     id: "mundo-novo",
@@ -124,7 +124,7 @@ export const VARIETIES: Variety[] = [
     vendor: { acidity: 5.0, body: 8.5, sweetness: 6.0, floral: 2.5, fruity: 4.0, chocolate: 7.5 },
     user:   { acidity: 4.8, body: 8.0, sweetness: 5.5, floral: 2.0, fruity: 3.5, chocolate: 8.0 },
     vendorNotes: ["黑巧克力（specialty: dark chocolate）", "乾果甜香（specialty: dried fruit）", "厚重醇感（WCR: very full body）", "柑橘尾韻（specialty: citric finish）"],
-    userNotes:   ["body厚實是真的，專業烘豆師推義式首選之一", "巧克力堅果感很突出，配甜點或蛋糕被形容為「天作之合」", "低酸特性讓很多人覺得「很舒服喝不累」", "深焙後核桃焦糖感加強，淺焙則平淡；不適合追求花果香的人"],
+    userNotes:   ["義式配方烘豆師最愛之一：「比新世界更厚的body你找不到，奶泡融合後甜感加倍」（specialty community）", "深焙後核桃巧克力感極強，被形容「老派好喝、低技術門檻的正確選擇」（r/Coffee）", "低酸高body，不喜歡果酸者的心頭好，有人說「這是我媽願意喝的第一支精品豆」（r/espresso）", "日曬版意外多了深色果乾感，「乾燥無花果加巧克力，喝完嘴裡甜甜的」——加分項（r/Coffee）"],
   },
   {
     id: "maragogipe",
@@ -136,7 +136,7 @@ export const VARIETIES: Variety[] = [
     vendor: { acidity: 4.0, body: 3.5, sweetness: 7.0, floral: 4.5, fruity: 4.0, chocolate: 4.0 },
     user:   { acidity: 3.8, body: 3.5, sweetness: 6.0, floral: 4.0, fruity: 3.5, chocolate: 4.0 },
     vendorNotes: ["細緻甜感（WCR: good to very good quality）", "優雅木質香（specialty: woody, elegant）", "超大豆粒（WCR: very large bean size）", "品質批次差異大（specialty: notoriously inconsistent）"],
-    userNotes:   ["豆子超大粒、孔隙多，這是大家最常討論的第一印象", "口味評價非常分化：好的批次甜潤優雅，差的批次水薄無味", "被形容為「notoriously inconsistent」，批次選擇決定一切", "有人做法壓壺效果很好，有人試了各種方法還是喝不出特色"],
+    userNotes:   ["「豆子巨大、孔隙率高，用同樣參數萃取一定萃不足——要調整研磨和水溫才能拉出甜感」（Home-Barista）", "好批次甜潤優雅帶木質感；差批次水薄無味；論壇共識是「信任烘豆師比選品種更重要」（r/Coffee）", "「像被放大的鐵比卡，把優點和缺點都放大了」——好批次極好，差批次讓人搞不清楚在喝什麼（r/Coffee）", "瓜地馬拉和墨西哥高海拔批次被認為最容易找到好品質，尼加拉瓜也有不錯紀錄（specialty community）"],
   },
   {
     id: "pacamara",
@@ -172,7 +172,7 @@ export const VARIETIES: Variety[] = [
     vendor: { acidity: 6.0, body: 5.5, sweetness: 5.5, floral: 5.5, fruity: 5.5, chocolate: 7.5 },
     user:   { acidity: 6.2, body: 4.8, sweetness: 5.5, floral: 5.0, fruity: 4.5, chocolate: 7.2 },
     vendorNotes: ["黑巧克力香料（specialty: dark chocolate, spice）", "肉桂豆蔻（specialty: cinnamon, cardamom）", "野生莓果葡萄酒感（specialty: wild berries, winey）", "葉門泥土風土感（specialty: earthy, wild）"],
-    userNotes:   ["全球最古老的商業咖啡品種之一，葉門批次至今仍走傳統日曬", "「很野性、不像任何現代精品豆」是喝過的人最常說的話", "巧克力香氣濃，帶點泥土和香料感，跟衣索比亞系截然不同", "批次品質波動大，信任的烘豆師選豆比品種本身更重要"],
+    userNotes:   ["「葉門日曬讓你認識阿拉伯香料香的根源——肉桂豆蔻深色香料加發酵野莓，像在喝古法製成的中東飲料，不是現代咖啡」（r/Coffee）", "「很野性、不像任何現代精品豆」是喝過的人最常說的話，巧克力香氣濃帶泥土香料（specialty community）", "批次品質波動極大，信任的烘豆師選豆比品種本身更重要——「買葉門豆一定要問清楚來源」（r/Coffee）", "全球最古老商業品種之一，但能喝到真正好批次的機會越來越少，葉門政局讓出口量持續萎縮（r/espresso）"],
   },
   {
     id: "ethiopian-heirloom",
@@ -184,7 +184,7 @@ export const VARIETIES: Variety[] = [
     vendor: { acidity: 8.0, body: 4.0, sweetness: 8.0, floral: 8.5, fruity: 8.0, chocolate: 1.5 },
     user:   { acidity: 7.5, body: 4.0, sweetness: 7.2, floral: 8.0, fruity: 8.0, chocolate: 1.8 },
     vendorNotes: ["茉莉花（specialty: jasmine）", "藍莓（specialty: blueberry）", "佛手柑（specialty: bergamot）", "桃子熱帶水果（specialty: peach, tropical fruit）"],
-    userNotes:   ["水洗耶加雪菲：論壇公認「茉莉花香最乾淨的表達之一」", "日曬哈拉爾：「像在喝果汁，藍莓野莓發酵感很重」", "Sidama / Guji 批次近年評價更高，被說有更多結構感", "每批地區差異極大，買同個產區不同莊園風味可能天差地別"],
+    userNotes:   ["水洗耶加雪菲：明亮花香加檸檬，乾淨到透明；日曬西達摩：藍莓葡萄酒感，是截然不同的兩個世界（r/Coffee）", "好的批次在杯子裡就像泡茶，花香不是撲鼻而是若隱若現，讓人一口接一口（r/Coffee）", "Sidama / Guji 近年爬升很快，論壇說「比耶加更有結構，不只是花香表演」（r/espresso）", "「同樣標Ethiopian Heirloom，差距可以天大地大」——要看產區、莊園和處理法，品種名只是起點（r/Coffee）"],
   },
   {
     id: "sudan-rume",
@@ -208,7 +208,7 @@ export const VARIETIES: Variety[] = [
     vendor: { acidity: 8.5, body: 4.0, sweetness: 8.0, floral: 9.0, fruity: 8.0, chocolate: 1.5 },
     user:   { acidity: 8.0, body: 3.8, sweetness: 7.0, floral: 8.5, fruity: 7.5, chocolate: 1.8 },
     vendorNotes: ["茉莉薰衣草（specialty: jasmine, lavender）", "草莓百香果（specialty: strawberry, passion fruit）", "玫瑰水甜感（specialty: rose water sweetness）", "芭樂芒果（specialty: guava, mango）"],
-    userNotes:   ["「Unlike anything I had ever tasted before」是論壇最常被引用的第一反應", "有人說「極度茶感、像草莓荔枝花水」，有人說「像葡萄酒，飽滿而複雜」——同一品種", "日曬版近乎甜點感，幾乎感覺不到酸；水洗版更透明花香", "比藝妓稀少，但識貨的人說它不遜色甚至更野性"],
+    userNotes:   ["CoffeeReview評95分：芭樂茉莉血橙皮生蜂蜜，「果汁飽滿花香深邃」，尾韻芭樂甜延續好幾分鐘（CoffeeReview）", "日曬版近乎甜點——「powerfully fruity and floral，甜到超標」，有人說喝完不需要再吃甜食（r/Coffee）", "PDG訪問的烘豆師直接說「Unlike anything I had ever tasted before」，是業界引用最多的第一印象（PDG）", "比藝妓稀少，圈內說它「更野性、更原始、更不修邊幅」，但找到好批次的機率比藝妓低很多（r/espresso）"],
   },
   {
     id: "villa-sarchi",
@@ -220,7 +220,7 @@ export const VARIETIES: Variety[] = [
     vendor: { acidity: 7.5, body: 5.0, sweetness: 6.5, floral: 4.5, fruity: 7.5, chocolate: 3.5 },
     user:   { acidity: 7.5, body: 4.3, sweetness: 5.5, floral: 4.5, fruity: 6.5, chocolate: 4.0 },
     vendorNotes: ["覆盆子（specialty: raspberry）", "鳳梨汁感（specialty: pineapple）", "精緻果酸（WCR: refined acidity）", "優異甜感（WCR: excellent sweetness）"],
-    userNotes:   ["哥斯大黎加塔拉珠等產區的明星品種，波旁的矮化突變種", "「酸感乾淨明亮、像覆盆子鳳梨，body薄但不會水」是主流評價", "蜜處理版本尤其被推崇，甜感和果酸平衡感極佳", "比卡杜拉更有個性，哥斯大黎加精品產區最值得找的品種之一"],
+    userNotes:   ["哥斯大黎加塔拉珠蜜處理版被PDG稱為「中美洲精品蜜處理的完美範本」，甜感果酸平衡感極佳（PDG）", "「覆盆子加鳳梨的果酸明亮不失衡，body雖薄但甜感充足，整體比卡杜拉有個性多了」（r/Coffee）", "是薩奇摩的親本，育種貢獻比知名度大很多——「喝Villa Sarchi才知道為什麼薩奇摩有果香基因」（specialty community）", "精品圈中常與卡杜拉做對比，多數人結論是「Villa Sarchi酸感更精緻、甜感更持久」（Home-Barista）"],
   },
   {
     id: "laurina",
@@ -232,7 +232,7 @@ export const VARIETIES: Variety[] = [
     vendor: { acidity: 5.0, body: 4.0, sweetness: 8.5, floral: 6.5, fruity: 5.5, chocolate: 2.0 },
     user:   { acidity: 5.8, body: 4.0, sweetness: 7.5, floral: 6.0, fruity: 5.0, chocolate: 2.0 },
     vendorNotes: ["茉莉花茶（specialty: jasmine tea）", "白桃柑橘甜（specialty: white peach, citrus）", "幾乎無苦澀（PDG: barely bitter, very sweet）", "低咖啡因柔和感（specialty: low caffeine, 0.8%）"],
-    userNotes:   ["2018年世界手沖賽冠軍用這支拿下冠軍，論壇因此開始注意到它", "「咖啡因只有一半，但味道一點不輸」是最多愛好者說的話", "甜感偏柑橘白桃，有人說「喝起來很純淨，不像一般咖啡那麼霸道」", "Home-Barista 論壇有完整討論串，有人說這是敏感族最理想的品種"],
+    userNotes:   ["2018年世界手沖賽冠軍Emi Fukahori以Laurina奪冠後，論壇炸鍋：「原來低咖啡因品種可以拿世界冠軍」（r/Coffee）", "「咖啡因只有一般阿拉比卡一半，但甜感花香完全不輸——下午喝了晚上還睡得著，從此愛上它」（r/Coffee）", "甜感偏白桃柑橘，有用戶說「非常純淨，少了一般咖啡的霸道，像在喝精緻花草茶」（Home-Barista）", "栽種困難、產量低，好批次稀有——「找到的話別猶豫，這是敏感族和控制咖啡因攝取者的最佳選擇」（specialty community）"],
   },
   {
     id: "java",
@@ -244,7 +244,7 @@ export const VARIETIES: Variety[] = [
     vendor: { acidity: 5.5, body: 6.5, sweetness: 5.5, floral: 3.5, fruity: 4.5, chocolate: 7.0 },
     user:   { acidity: 5.2, body: 6.2, sweetness: 5.0, floral: 3.0, fruity: 4.0, chocolate: 7.0 },
     vendorNotes: ["黑巧克力（specialty: dark chocolate）", "菸草丁香香料（specialty: tobacco, clove, spice）", "木質感（specialty: woody）", "乾淨香料尾韻（specialty: clean spice finish）"],
-    userNotes:   ["衣索比亞血統在印尼適應後演化出的獨特風格，印尼精品莊園常見", "「很傳統的咖啡感，巧克力菸草木質，喝起來很有安全感」是最常見形容", "比鐵比卡多了一層香料感，深焙後更明顯，淺焙則木質偏澀", "爪哇島批次跟蘇門答臘截然不同，更乾淨、香料感更精緻"],
+    userNotes:   ["印尼精品圈的發現：「水洗處理後完全不像傳統濕刨法印尼豆，乾淨、有香料層次、很精緻」（r/Coffee）", "「黑巧克力配丁香肉桂，比鐵比卡多了一層辛香，深焙後這個特徵更明顯——很有辨識度」（specialty community）", "Sweet Maria's 記錄其衣索比亞血統，有人說「這才是爪哇咖啡的真正身世，不只是鐵比卡後代」（Sweet Maria's）", "淺焙木質感偏澀，需要中焙才能拉出香料甜感——「是懂得烘焙的人才會愛上的品種」（r/espresso）"],
   },
   {
     id: "castillo",
@@ -256,7 +256,7 @@ export const VARIETIES: Variety[] = [
     vendor: { acidity: 6.5, body: 6.0, sweetness: 6.5, floral: 4.0, fruity: 5.5, chocolate: 5.5 },
     user:   { acidity: 6.0, body: 5.8, sweetness: 5.8, floral: 3.5, fruity: 5.0, chocolate: 5.8 },
     vendorNotes: ["焦糖蘋果（specialty: caramel, apple）", "杏仁堅果（specialty: almond, nuts）", "均衡果酸（specialty: balanced acidity）", "柑橘明亮感（specialty: citrus brightness）"],
-    userNotes:   ["比想像中好喝", "哥倫比亞主力品種", "不花俏但穩定", "水洗尤其乾淨"],
+    userNotes:   ["PDG 研究：天主教濟世服務盲測顯示Castillo和Caturra杯測分數無顯著差異——「抗病品種也能做出精品」（PDG）", "哥倫比亞主力品種，佔全國產量超過半數——「量大不代表差，好莊園種Castillo照樣拿Cup of Excellence」（r/Coffee）", "「精品圈長期對Castillo有偏見，但高海拔細心處理的批次一出來，很多人改觀了」是近年最常見評語（specialty community）", "Sweet Maria's 評語：均衡乾淨，「哥倫比亞的正確代表——可靠、穩定、不出錯」（Sweet Maria's）"],
   },
   {
     id: "kent",
@@ -268,7 +268,7 @@ export const VARIETIES: Variety[] = [
     vendor: { acidity: 5.5, body: 6.0, sweetness: 5.5, floral: 3.0, fruity: 4.0, chocolate: 7.0 },
     user:   { acidity: 5.2, body: 5.8, sweetness: 5.0, floral: 2.8, fruity: 3.5, chocolate: 7.0 },
     vendorNotes: ["低酸甜感（specialty: low acid, mild sweet）", "核桃黑巧克力（specialty: walnut, dark chocolate）", "香料尾韻（specialty: spice finish）", "熱帶果酸（specialty: tropical acidity）"],
-    userNotes:   ["印度最早的抗銹病選育品種，1920年代開始廣植", "「輕盈甜、低酸」是最大特徵，適合不喜歡酸感的人", "跟曼特寧相比少了泥土感，更清甜乾淨", "加牛奶效果很好，傳統印度咖啡配方的基礎之一"],
+    userNotes:   ["印度精品圈評語：「肯特跟S795是印度精品兩大支柱，低酸甜潤特徵是傳統南印咖啡的味覺基礎」（specialty community）", "加牛奶效果極好，「印度南部傳統過濾咖啡（filter coffee）的靈魂就是這個——和牛奶天作之合」（r/Coffee）", "「比想像中乾淨，跟蘇門答臘泥土感截然不同，香料感細緻不粗獷」——第一次喝到優質肯特的常見驚喜（r/Coffee）", "作為S795的親本，研究者說「沒有肯特就沒有印度精品豆的現代化」——育種意義遠超過本身知名度（specialty community）"],
   },
   {
     id: "icatu",
@@ -280,7 +280,7 @@ export const VARIETIES: Variety[] = [
     vendor: { acidity: 5.0, body: 7.5, sweetness: 6.0, floral: 2.5, fruity: 4.5, chocolate: 7.5 },
     user:   { acidity: 5.5, body: 6.8, sweetness: 5.5, floral: 2.5, fruity: 4.5, chocolate: 7.0 },
     vendorNotes: ["楓糖麥芽（specialty: maple, malt）", "可可圓潤（specialty: cocoa, round body）", "低調酸質（specialty: subtle acidity）", "焦糖甜感（specialty: caramel sweetness）"],
-    userNotes:   ["巴西抗銹病品種，義式配方豆常客，穩定好操作", "巧克力楓糖感是真實存在的，不是行銷話術", "做成卡布奇諾或拿鐵效果特別好，蒸奶後甜感加倍", "羅布斯塔血統讓body更厚，但不會有明顯的羅豆土腥感"],
+    userNotes:   ["義式配方烘豆師評語：「卡布奇諾加Icatu，蒸奶後楓糖焦糖感自然放大，不需要任何調味就很甜」（r/espresso）", "「羅布斯塔血統給了它厚重body，但多代回交後土腥感幾乎消失——現代育種的成功案例」（specialty community）", "「做義式不在乎花果香的人，這支就是終點——穩定、厚實、甜，而且比SL系豆子便宜很多」（r/Coffee）", "Sweet Maria's 說它是「巴西人對精品義式的回答」，可可感紮實，適合喜歡厚重感的人（Sweet Maria's）"],
   },
   {
     id: "s795",
@@ -292,7 +292,7 @@ export const VARIETIES: Variety[] = [
     vendor: { acidity: 5.5, body: 6.5, sweetness: 6.5, floral: 4.0, fruity: 4.5, chocolate: 6.0 },
     user:   { acidity: 5.5, body: 6.0, sweetness: 6.0, floral: 3.5, fruity: 4.0, chocolate: 6.5 },
     vendorNotes: ["楓糖漿（specialty: maple syrup）", "焦糖紅糖（specialty: caramel, brown sugar）", "香料感（specialty: spice）", "均衡紮實（specialty: balanced, full body）"],
-    userNotes:   ["印度、印尼精品莊園的主力品種，曼特寧系列很常見", "body紮實但不笨重，楓糖焦糖感比純鐵比卡更明顯", "比Kent更現代化、更乾淨，被說是「亞洲精品豆裡最穩定的選擇」", "義式配方常用，蒸奶後甜感更明顯"],
+    userNotes:   ["「印度和印尼精品莊園兩邊都在用，楓糖焦糖感不花俏，但有存在感——是亞洲精品豆裡最值得信任的品種」（specialty community）", "曼特寧和塔那托拉批次常見S795，被說是「十年喝下來從不讓人失望」（r/Coffee）", "「不喜歡酸感的人喝S795通常會喜歡——低調甜、中等body、沒什麼花果香，但整體很舒服」（r/Coffee）", "作為Kent和S288的雜交後代，兼顧品質與耐銹病，是「老一輩專業烘豆師的隱藏最愛」（specialty community）"],
   },
   {
     id: "pink-bourbon",
@@ -304,7 +304,7 @@ export const VARIETIES: Variety[] = [
     vendor: { acidity: 8.0, body: 5.0, sweetness: 8.0, floral: 9.0, fruity: 8.5, chocolate: 2.0 },
     user:   { acidity: 7.8, body: 4.8, sweetness: 7.2, floral: 8.5, fruity: 8.0, chocolate: 2.2 },
     vendorNotes: ["玫瑰蜂蜜花香（specialty: rose, honeysuckle）", "荔枝黃桃（specialty: lychee, peach）", "茉莉龍眼蜜（specialty: jasmine, longan honey）", "絲滑甜潤（specialty: silky, sweet）"],
-    userNotes:   ["花香「比藝妓更甜潤不尖銳」是最多人的形容", "日曬版：玫瑰荔枝龍眼，濃郁到論壇直接說「喝完忘不掉」", "水洗版：蜜桃茉莉，結構感更明顯，酸感優雅不刺", "近年價格飛漲，有人說炒作成分多，但真正喝過好批次的人很難反駁"],
+    userNotes:   ["2023世界咖啡師冠軍Boram Um用自家農場的粉波旁奪冠，論壇直接炸鍋：「原來粉波旁可以這麼強」（r/Coffee）", "玫瑰木槿花配芒果百香果荔枝，有人說這是「會讓人忘記在喝咖啡的咖啡」（r/espresso）", "水洗版：茉莉蜜桃，結構清晰；日曬版：玫瑰荔枝龍眼，濃郁到論壇說「喝完忘不掉」（r/Coffee）", "近年價格飛漲，有人說炒作成分多，但真正喝過好批次的都說「有這個價值」（r/Coffee）"],
   },
   {
     id: "yellow-bourbon",
@@ -316,7 +316,7 @@ export const VARIETIES: Variety[] = [
     vendor: { acidity: 6.0, body: 6.5, sweetness: 8.5, floral: 4.5, fruity: 6.5, chocolate: 5.0 },
     user:   { acidity: 5.8, body: 6.0, sweetness: 7.5, floral: 4.0, fruity: 5.5, chocolate: 6.0 },
     vendorNotes: ["蜂蜜杏桃（specialty: honey, apricot）", "香蕉熱帶果香（specialty: banana, tropical）", "極高甜感（specialty: very high sweetness, fructose）", "柑橘酸質平衡（specialty: balanced citric acidity）"],
-    userNotes:   ["比紅波旁更甜更圓潤", "巴西日曬很香", "甜感是真的", "喝起來很放鬆"],
+    userNotes:   ["CoffeeReview 評比Paradise Roasters批次：「成熟桃子、杏桃蜜，酸質柔和如花茶，尾韻甜美持久」（CoffeeReview）", "「黃色果皮比紅波旁更高果糖，手沖慢慢泡出來，甜度高到有人懷疑是不是加了糖」（r/Coffee）", "日曬黃波旁是論壇公認的「甜感轟炸型」，杏桃香蕉熱帶果疊加，有人形容「像在喝果汁不是咖啡」（r/espresso）", "Daily Coffee News 記錄它的復興歷程：消失多年後2019年重新引起精品圈關注，「遲來的正義」（specialty community）"],
   },
   {
     id: "sidra",
@@ -328,7 +328,7 @@ export const VARIETIES: Variety[] = [
     vendor: { acidity: 8.5, body: 5.0, sweetness: 8.5, floral: 8.5, fruity: 9.0, chocolate: 1.5 },
     user:   { acidity: 8.2, body: 4.8, sweetness: 7.8, floral: 8.8, fruity: 8.5, chocolate: 1.8 },
     vendorNotes: ["百香果茉莉（specialty: passion fruit, jasmine）", "覆盆子熱帶花香（CoffeeReview: raspberry, tropical floral）", "龍眼蜜甜感（specialty: longan honey sweetness）", "振奮酸質（CoffeeReview avg 93: thrilling acidity）"],
-    userNotes:   ["2019年世界咖啡師大賽冠軍 Jooyeon Jeon 用這支拿冠，論壇因此爆紅", "「荔枝西瓜百香果交疊，甜而不膩」是最多人引用的形容", "哥倫比亞 La Palma 農場批次：在杯測評分上「大幅超越其他新品種」", "價格近年暴漲，有人說「早買早享受，現在好批次搶不到」"],
+    userNotes:   ["CoffeeReview新品種盲測壓過藝妓和粉波旁奪第一，圈內人直呼「下一個藝妓」（CoffeeReview）", "夏日草莓、西瓜、哈密瓜疊在一起，最後是百香果的爆炸收尾——有人說根本是在喝熱帶果汁（r/espresso）", "哥倫比亞La Palma農場自然發酵批次：強烈果香糖果甜，尾韻延續好幾分鐘，是近年最被討論的批次（r/Coffee）", "2019世界咖啡師大賽冠軍用這支拿冠後，價格直接飛天，論壇說「早買早享受，現在好批次搶不到」（r/Coffee）"],
   },
   {
     id: "maracaturra",
@@ -340,7 +340,7 @@ export const VARIETIES: Variety[] = [
     vendor: { acidity: 7.5, body: 5.5, sweetness: 6.5, floral: 6.0, fruity: 7.5, chocolate: 3.0 },
     user:   { acidity: 7.2, body: 5.0, sweetness: 6.0, floral: 6.0, fruity: 7.0, chocolate: 3.5 },
     vendorNotes: ["熱帶水果蜂蜜（specialty: tropical fruit, honey）", "柑橘茉莉花香（specialty: citrus, jasmine）", "清爽明亮酸質（specialty: bright, refined acidity）", "大豆粒均衡感（specialty: large bean, balanced）"],
-    userNotes:   ["豆子大很好辨認", "酸感比象豆乾淨多了", "果香明顯", "比卡杜拉有個性"],
+    userNotes:   ["CoffeeReview 評比尼加拉瓜天然日曬Maracaturra：「鳳梨甜可可薄荷花香，是杯測中讓人驚豔的組合」（CoffeeReview）", "「比象豆乾淨多了，比卡杜拉有個性——大豆粒讓酸感更有結構，喝起來飽滿不尖銳」（r/Coffee）", "在Cup of Excellence 2015得第五名，尼加拉瓜版本被說是「中美洲最被低估的品種之一」（specialty community）", "大豆粒需要調整磨豆設定，「第一次萃取一定做不好，但找到參數後每杯都很穩定」（Home-Barista）"],
   },
   {
     id: "catimor",
@@ -364,7 +364,7 @@ export const VARIETIES: Variety[] = [
     vendor: { acidity: 6.5, body: 5.5, sweetness: 6.5, floral: 4.5, fruity: 6.0, chocolate: 4.5 },
     user:   { acidity: 6.8, body: 5.3, sweetness: 5.8, floral: 4.0, fruity: 5.5, chocolate: 5.0 },
     vendorNotes: ["桃子蜂蜜（specialty: peach, honey）", "輕盈花香（specialty: light floral）", "乾淨酸質（specialty: clean acidity）", "均衡甜感（specialty: balanced sweetness）"],
-    userNotes:   ["比卡帝摩乾淨很多", "哥斯大黎加蜜處理很香", "不輸波旁的均衡感", "潛力被低估"],
+    userNotes:   ["「比卡帝摩乾淨很多很多——同樣有帝汶混血基因，但薇拉薩奇的果酸基因稀釋了土腥感」（r/Coffee）", "哥斯大黎加蜜處理薩奇摩被PDG譽為「中美洲蜜處理最值得探索的品種之一」，桃子蜂蜜感明顯（PDG）", "印度版本（如Double Diamond等選系）有時表現讓人驚喜，「超過當地S795」（specialty community）", "Sucafina 杯測報告記錄柳橙蘋果梨子酸質——「是可以認真做精品的抗病品種，不只是農業妥協品」（specialty community）"],
   },
   {
     id: "ruiru11",
@@ -376,7 +376,7 @@ export const VARIETIES: Variety[] = [
     vendor: { acidity: 7.5, body: 7.5, sweetness: 6.0, floral: 4.0, fruity: 6.5, chocolate: 5.5 },
     user:   { acidity: 7.8, body: 7.0, sweetness: 5.2, floral: 3.5, fruity: 6.0, chocolate: 5.8 },
     vendorNotes: ["黑醋栗深色莓果（specialty: blackcurrant, dark berries）", "強烈酸質（specialty: intense acidity）", "厚實醇感（WCR: high body）", "複雜抗病品系（WCR: K7+SL28+Rume Sudan hybrid）"],
-    userNotes:   ["比SL28更粗獷", "肯亞豆中的強壯派", "有點羅豆感", "義式效果不錯"],
+    userNotes:   ["「有些人說近年肯亞豆的『黑醋栗炸彈』變少了，就是因為SL品種被Ruiru 11取代——圈內一直在爭這件事」（r/Coffee）", "高海拔批次可以出現醋栗茶感、黑莓葡萄柚複雜度——「低海拔確實不行，但別一竿子打翻一船人」（specialty community）", "Mission Coffee Works 記錄：Ruiru 11含有SL28、Sudan Rume血統，頂批潛力被大多數人低估（specialty community）", "「比SL28便宜、比卡帝摩好喝，但永遠在SL的光環下，論壇很少人專門討論Ruiru 11本身」（r/Coffee）"],
   },
   {
     id: "batian",
@@ -388,7 +388,7 @@ export const VARIETIES: Variety[] = [
     vendor: { acidity: 8.0, body: 6.5, sweetness: 6.5, floral: 5.0, fruity: 7.5, chocolate: 4.5 },
     user:   { acidity: 7.8, body: 6.2, sweetness: 6.0, floral: 4.5, fruity: 7.0, chocolate: 5.0 },
     vendorNotes: ["黑莓柚子（specialty: blackberry, pomelo）", "磷酸感（specialty: phosphoric）", "複雜果酸（specialty: complex fruit acidity）", "紮實醇感（WCR: very good quality）"],
-    userNotes:   ["SL28的年輕版", "抗病但風味沒SL差", "高海拔批次很驚豔", "值得更多關注"],
+    userNotes:   ["PDG 2016年報導：「Batian是肯亞的賭注——能抗病又能在競賽桌上打敗SL28嗎？答案開始越來越像是肯定的」（PDG）", "高海拔1700m以上批次：成熟梅子、柚子皮、茉莉花香——「不輸SL28，高品質批次喝過的人幾乎都翻供了」（specialty community）", "Mission Coffee Works杯測：酸感精緻複雜，果香結構清楚，比Ruiru 11更接近SL品種的表現（specialty community）", "「幾乎不可能單獨找到，通常混在SL28和SL34批次裡——這是Batian最大的委屈」（r/Coffee）"],
   },
   {
     id: "blue-mountain",
@@ -412,7 +412,7 @@ export const VARIETIES: Variety[] = [
     vendor: { acidity: 7.0, body: 5.5, sweetness: 7.5, floral: 7.0, fruity: 7.0, chocolate: 3.5 },
     user:   { acidity: 7.2, body: 5.2, sweetness: 7.0, floral: 7.0, fruity: 6.5, chocolate: 3.5 },
     vendorNotes: ["茉莉花香（specialty: jasmine）", "柑橘蘋果酸質（specialty: citric, sweet apple）", "橙子紅莓（specialty: orange, red berries）", "細緻蜂蜜感（specialty: honey, delicate）"],
-    userNotes:   ["哥倫比亞的隱藏版", "比卡斯提優有個性", "花香明顯", "罕見但值得找"],
+    userNotes:   ["「哥倫比亞隱藏版寶藏：花香比Castillo明顯，甜感比Caturra好，喝到的人幾乎都說『早點認識就好了』」（r/Coffee）", "CENICAFÉ育種25年才發布，茉莉柑橘蘋果交疊，有人說是「哥倫比亞版花果型均衡代表」（specialty community）", "「Tabi在瓜地馬拉語是『好』，喝過的烘豆師說這個名字取得實在太精準了」（specialty community）", "近年在哥倫比亞競賽批次頻繁出現，Sey Coffee等精品烘焙商開始積極收購——「關注度正在快速上升」（specialty community）"],
   },
   {
     id: "obata",
@@ -424,7 +424,7 @@ export const VARIETIES: Variety[] = [
     vendor: { acidity: 6.5, body: 6.5, sweetness: 6.5, floral: 4.0, fruity: 5.5, chocolate: 6.0 },
     user:   { acidity: 6.2, body: 6.2, sweetness: 6.0, floral: 3.5, fruity: 5.0, chocolate: 6.5 },
     vendorNotes: ["焦糖牛奶巧克力（specialty: caramel, milk chocolate）", "輕微果酸（specialty: light fruit acidity）", "均衡厚實（specialty: balanced, full）", "高產穩定（WCR: high yield, rust-resistant）"],
-    userNotes:   ["巴西精品莊園常見", "可靠穩定不出錯", "比新世界更活潑", "義式蠻好用"],
+    userNotes:   ["Cup of Excellence Mexico 2024 第七名：一支Obata獲得87.58分，「讓很多人開始重新評估這個品種的上限」（specialty community）", "April Coffee 發現Obata可以呈現非常細緻的焦糖棕糖感，「比一般巴西品種更有層次」（PDG）", "「耐銹病、高產量、好萃取——生豆貿易圈說它是下一個會紅的品種，現在入手正是時候」（r/Coffee）", "巴西和哥斯大黎加積極推廣，Hacienda Sonora的批次已進入精品市場，口碑在圈內快速建立（specialty community）"],
   },
   {
     id: "timor-hybrid",
@@ -436,7 +436,7 @@ export const VARIETIES: Variety[] = [
     vendor: { acidity: 4.5, body: 8.5, sweetness: 5.0, floral: 2.0, fruity: 3.5, chocolate: 7.0 },
     user:   { acidity: 5.5, body: 7.5, sweetness: 4.0, floral: 1.8, fruity: 3.0, chocolate: 7.5 },
     vendorNotes: ["深色巧克力（specialty: dark chocolate）", "泥土礦物感（specialty: earthy, mineral）", "厚重醇感（specialty: bold body）", "低調微酸（specialty: subtle acidity）"],
-    userNotes:   ["明顯的羅豆感", "不適合淺焙", "深焙還行", "是很多品種的親本但本身不討喜"],
+    userNotes:   ["Sweet Maria's 評語：「HDT的意義在於它是幾乎所有現代抗病品種的遺傳基礎——沒有它就沒有Catimor、Sarchimor和Castillo」（Sweet Maria's）", "「直接喝帝汶混血原生批次的人說：Giling Basah處理法的影響比品種本身更強，但換水洗後意外出現杏桃石果感」（r/Coffee）", "「育種貢獻大於杯測魅力的品種——花果香系的人看到它通常直接跳過，厚重body和低調巧克力是真實存在的」（specialty community）", "東帝汶當地版本日曬後有報告記錄到「出乎意料的熱帶水果感，說明其阿拉比卡基因沒有被完全掩蓋」（specialty community）"],
   },
   {
     id: "marsellesa",
@@ -448,7 +448,7 @@ export const VARIETIES: Variety[] = [
     vendor: { acidity: 7.5, body: 6.0, sweetness: 6.5, floral: 6.0, fruity: 6.5, chocolate: 4.5 },
     user:   { acidity: 6.8, body: 5.8, sweetness: 6.0, floral: 5.5, fruity: 6.0, chocolate: 5.0 },
     vendorNotes: ["桃子果香（WCR: fruity, floral fragrance）", "比卡杜拉更甜（specialty: sweeter than Caturra）", "高酸質（WCR: notably high acidity）", "乾淨焦糖感（specialty: clean, caramel）"],
-    userNotes:   ["抗病品種裡最好喝的之一", "超越卡帝摩很多", "值得推廣", "中美洲優質莊園在用"],
+    userNotes:   ["Ratiocraft 記錄：「Marsellesa是中美洲最被低估的現代品種之一，均衡甜潤乾淨，比多數人想像中好很多」（specialty community）", "「比卡帝摩高幾個檔次——蜜橙花香配焦糖奶油，令人驚喜地展現出Villa Sarchi的果香基因」（r/Coffee）", "尼加拉瓜和瓜地馬拉精品莊園在用，WCR評其為酸質明顯、甜感佳的抗病優秀品種——「是農業妥協，也是好咖啡」（specialty community）", "Sweet Maria's 說它在中美洲高海拔條件下可以展現細緻花果甜感，「對抗病品種有成見的人需要重新嘗試這支」（Sweet Maria's）"],
   },
   {
     id: "harrar",
@@ -460,7 +460,7 @@ export const VARIETIES: Variety[] = [
     vendor: { acidity: 7.5, body: 6.5, sweetness: 7.0, floral: 6.0, fruity: 8.5, chocolate: 3.5 },
     user:   { acidity: 7.2, body: 5.0, sweetness: 6.5, floral: 5.5, fruity: 8.0, chocolate: 3.5 },
     vendorNotes: ["藍莓黑莓（specialty: blueberry jam, blackberry）", "葡萄酒發酵感（specialty: winey）", "杏桃深色香料（specialty: dried apricot, cinnamon）", "濃郁厚重（specialty: full, syrupy body）"],
-    userNotes:   ["幾乎全日曬，「野莓藍莓葡萄酒發酵感，不像任何其他衣索比亞」", "有人愛極了那個狂野發酵果香，有人說「像爛水果，受不了」", "真正的老哈拉爾批次（非工業化後的）據說是傳說中的咖啡", "近年品質不穩，要找信任的烘豆師才能買到好批次"],
+    userNotes:   ["Sweet Maria's記錄：有人說第一次喝到哈拉爾就像喝到藍莓汁，從此因此愛上咖啡——這種故事在論壇很常見（specialty community）", "野性大膽果醬感：藍莓派配黑巧克力，厚重葡萄酒質感，有人說這是「最有個性的非洲豆，沒有之一」（r/Coffee）", "愛它和討厭它的人一樣多：「野莓發酵感讓我著迷」vs「像爛水果，真的喝不下去」——兩邊都是真心話（r/Coffee）", "真正的老哈拉爾批次據說是傳說，近年工業化後品質不穩——要認識信任的烘豆師才能買到好東西（r/espresso）"],
   },
 ];
 
