@@ -33,3 +33,23 @@ export async function updateOrderStatus(
     throw new Error(data?.error || "UPDATE_ORDER_STATUS_FAILED");
   }
 }
+
+export async function updateOrderPickup(
+  orderId: number,
+  pickupDate: string,
+  pickupTime: string
+): Promise<void> {
+  const res = await fetch(`/api/orders/${orderId}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ pickupDate, pickupTime }),
+  });
+
+  const data = await res.json();
+
+  if (!res.ok || !data?.ok) {
+    throw new Error(data?.error || "UPDATE_ORDER_PICKUP_FAILED");
+  }
+}

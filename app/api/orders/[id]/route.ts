@@ -73,11 +73,48 @@ export async function PATCH(
     }
 
     const body = await req.json();
-    const statusRaw = String(body?.status ?? "").trim();
 
-    if (!isAllowedStatus(statusRaw)) {
+    // Build update data from whichever fields are provided
+    const updateData: Record<string, string> = {};
+
+    if (body?.status !== undefined) {
+      const statusRaw = String(body.status).trim();
+      if (!isAllowedStatus(statusRaw)) {
+        return NextResponse.json(
+          { ok: false, error: "STATUS_INVALID" },
+          { status: 400 }
+        );
+      }
+      updateData.status = statusRaw;
+    }
+
+    if (body?.pickupDate !== undefined) {
+      const pickupDate = String(body.pickupDate).trim();
+      // Expect YYYY-MM-DD
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(pickupDate)) {
+        return NextResponse.json(
+          { ok: false, error: "PICKUP_DATE_INVALID" },
+          { status: 400 }
+        );
+      }
+      updateData.pickupDate = pickupDate;
+    }
+
+    if (body?.pickupTime !== undefined) {
+      const pickupTime = String(body.pickupTime).trim();
+      // Expect HH:MM
+      if (!/^\d{2}:\d{2}$/.test(pickupTime)) {
+        return NextResponse.json(
+          { ok: false, error: "PICKUP_TIME_INVALID" },
+          { status: 400 }
+        );
+      }
+      updateData.pickupTime = pickupTime;
+    }
+
+    if (Object.keys(updateData).length === 0) {
       return NextResponse.json(
-        { ok: false, error: "STATUS_INVALID" },
+        { ok: false, error: "NO_FIELDS_TO_UPDATE" },
         { status: 400 }
       );
     }
@@ -96,13 +133,13 @@ export async function PATCH(
 
     const order = await prisma.order.update({
       where: { id: orderId },
-      data: {
-        status: statusRaw,
-      },
+      data: updateData,
       select: {
         id: true,
         orderNo: true,
         status: true,
+        pickupDate: true,
+        pickupTime: true,
         updatedAt: true,
       },
     });
@@ -115,7 +152,7 @@ export async function PATCH(
     console.error("PATCH /api/orders/[id] error", error);
 
     return NextResponse.json(
-      { ok: false, error: "UPDATE_ORDER_STATUS_FAILED" },
+      { ok: false, error: "UPDATE_ORDER_FAILED" },
       { status: 500 }
     );
   }

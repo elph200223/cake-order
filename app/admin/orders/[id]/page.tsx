@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { use, useEffect, useState } from "react";
-import { fetchOrderDetail, updateOrderStatus } from "@/lib/order-api";
+import { fetchOrderDetail, updateOrderStatus, updateOrderPickup } from "@/lib/order-api";
 import { formatOrderDateTime, formatOrderMoney } from "@/lib/order-format";
 import {
   ORDER_STATUS_OPTIONS,
@@ -35,6 +35,16 @@ export default function AdminOrderDetailPage({ params }: Props) {
     message: "",
   });
 
+  const [pickupDate, setPickupDate] = useState("");
+  const [pickupTime, setPickupTime] = useState("");
+  const [pickupSubmitState, setPickupSubmitState] = useState<{
+    status: "idle" | "submitting" | "success" | "error";
+    message: string;
+  }>({
+    status: "idle",
+    message: "",
+  });
+
   useEffect(() => {
     let mounted = true;
 
@@ -49,6 +59,8 @@ export default function AdminOrderDetailPage({ params }: Props) {
 
         setOrder(detail);
         setStatus(detail.status);
+        setPickupDate(detail.pickupDate || "");
+        setPickupTime(detail.pickupTime || "");
       } catch (error: unknown) {
         if (!mounted) return;
         setSubmitState({
@@ -89,6 +101,8 @@ export default function AdminOrderDetailPage({ params }: Props) {
       const detail = await fetchOrderDetail(parsedOrderId);
       setOrder(detail);
       setStatus(detail.status);
+      setPickupDate(detail.pickupDate || "");
+      setPickupTime(detail.pickupTime || "");
 
       setSubmitState({
         status: "success",
@@ -98,6 +112,37 @@ export default function AdminOrderDetailPage({ params }: Props) {
       setSubmitState({
         status: "error",
         message: error instanceof Error ? error.message : "更新狀態失敗。",
+      });
+    }
+  }
+
+  async function handleUpdatePickup() {
+    if (!parsedOrderId) return;
+
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(pickupDate)) {
+      setPickupSubmitState({ status: "error", message: "日期格式不正確（應為 YYYY-MM-DD）" });
+      return;
+    }
+    if (!/^\d{2}:\d{2}$/.test(pickupTime)) {
+      setPickupSubmitState({ status: "error", message: "時間格式不正確（應為 HH:MM）" });
+      return;
+    }
+
+    setPickupSubmitState({ status: "submitting", message: "更新中…" });
+
+    try {
+      await updateOrderPickup(parsedOrderId, pickupDate, pickupTime);
+
+      const detail = await fetchOrderDetail(parsedOrderId);
+      setOrder(detail);
+      setPickupDate(detail.pickupDate || "");
+      setPickupTime(detail.pickupTime || "");
+
+      setPickupSubmitState({ status: "success", message: "取貨日期已更新。" });
+    } catch (error: unknown) {
+      setPickupSubmitState({
+        status: "error",
+        message: error instanceof Error ? error.message : "更新失敗。",
       });
     }
   }
@@ -190,6 +235,49 @@ export default function AdminOrderDetailPage({ params }: Props) {
 
         {submitState.status === "success" ? (
           <p className="mt-3 text-sm text-green-700">{submitState.message}</p>
+        ) : null}
+      </section>
+
+      <section className="mb-6 rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm">
+        <h2 className="text-lg font-semibold text-neutral-900">修改取貨日期</h2>
+
+        <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-neutral-500">取貨日期</label>
+            <input
+              type="date"
+              value={pickupDate}
+              onChange={(e) => setPickupDate(e.target.value)}
+              className="rounded-xl border border-neutral-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-neutral-900"
+            />
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-neutral-500">取貨時間</label>
+            <input
+              type="time"
+              value={pickupTime}
+              onChange={(e) => setPickupTime(e.target.value)}
+              className="rounded-xl border border-neutral-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-neutral-900"
+            />
+          </div>
+
+          <button
+            type="button"
+            onClick={handleUpdatePickup}
+            disabled={pickupSubmitState.status === "submitting"}
+            className="rounded-xl bg-neutral-900 px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {pickupSubmitState.status === "submitting" ? "更新中…" : "更新取貨日期"}
+          </button>
+        </div>
+
+        {pickupSubmitState.status === "error" ? (
+          <p className="mt-3 text-sm text-red-600">{pickupSubmitState.message}</p>
+        ) : null}
+
+        {pickupSubmitState.status === "success" ? (
+          <p className="mt-3 text-sm text-green-700">{pickupSubmitState.message}</p>
         ) : null}
       </section>
 
