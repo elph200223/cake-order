@@ -15,6 +15,23 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Nostalgia Coffee Roastery",
   description: "Cake ordering website for Nostalgia Coffee Roastery",
+  metadataBase: new URL("https://www.nostalgiacoffeeroastery.com"),
+  openGraph: {
+    title: "Nostalgia Coffee Roastery",
+    description: "Cake ordering website for Nostalgia Coffee Roastery",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "Nostalgia Coffee Roastery",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    images: ["/og-image.png"],
+  },
 };
 
 export default function RootLayout({
