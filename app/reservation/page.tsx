@@ -1,8 +1,10 @@
 import { ReservationForm } from "./ReservationForm";
+import ReservationNav from "./ReservationNav";
 
 export default function ReservationPage() {
   return (
-    <main className="mx-auto max-w-xl px-4 py-12">
+    <main className="mx-auto max-w-xl px-4 py-8">
+      <ReservationNav />
       <div className="mb-8 text-center">
         <h1 className="text-2xl font-bold tracking-tight text-neutral-900">線上訂位</h1>
         <p className="mt-2 text-sm text-neutral-500">

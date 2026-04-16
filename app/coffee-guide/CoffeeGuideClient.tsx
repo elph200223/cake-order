@@ -194,10 +194,31 @@ export default function CoffeeGuideClient() {
           padding: "14px 24px",
           borderBottom: "1px solid rgba(255,255,255,0.07)", gap: 16,
         }}>
-          <div>
-            <div style={{ fontSize: 17, fontWeight: 800 }}>阿拉比卡品種風味分布</div>
-            <div style={{ fontSize: 11, opacity: 0.45, marginTop: 2 }}>
-              顯示 {categoryFiltered.length} / {VARIETIES.length} 個品種
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <a
+              href="/admin"
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 6,
+                padding: "6px 12px", borderRadius: 8,
+                border: "1px solid rgba(255,255,255,0.15)",
+                background: "rgba(255,255,255,0.07)",
+                color: "rgba(240,232,212,0.75)",
+                fontSize: 12, textDecoration: "none", flexShrink: 0,
+                transition: "background 0.15s",
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.14)")}
+              onMouseLeave={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.07)")}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ width: 14, height: 14 }}>
+                <path d="M15 18 9 12l6-6" />
+              </svg>
+              後台
+            </a>
+            <div>
+              <div style={{ fontSize: 17, fontWeight: 800 }}>阿拉比卡品種風味分布</div>
+              <div style={{ fontSize: 11, opacity: 0.45, marginTop: 2 }}>
+                顯示 {categoryFiltered.length} / {VARIETIES.length} 個品種
+              </div>
             </div>
           </div>
 
