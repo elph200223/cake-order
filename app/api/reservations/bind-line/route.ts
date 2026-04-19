@@ -5,7 +5,7 @@ const ACCESS_TOKEN = process.env.LINE_CHANNEL_ACCESS_TOKEN ?? "";
 const GROUP_ID = process.env.LINE_GROUP_ID ?? "";
 
 async function linePost(path: string, body: unknown) {
-  await fetch(`https://api.line.me/v2/bot/${path}`, {
+  const res = await fetch(`https://api.line.me/v2/bot/${path}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -13,6 +13,10 @@ async function linePost(path: string, body: unknown) {
     },
     body: JSON.stringify(body),
   });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`LINE API ${res.status}: ${text}`);
+  }
 }
 
 function pushText(to: string, text: string) {
@@ -101,15 +105,24 @@ export async function POST(req: NextRequest) {
       data: { lineUserId },
     });
 
-    // 推送確認訊息給客人
-    await pushText(
-      lineUserId,
-      `您好 ${reservation.customerName}！\n\n已收到您的訂位申請：\n📅 ${reservation.requestDate} ${reservation.requestTime}\n👥 ${reservation.adults} 大人${reservation.children > 0 ? ` / ${reservation.children} 小孩` : ""}\n\n我們會盡快確認並回覆您，感謝您的耐心等候 🙏`
-    );
+    // 推送確認訊息給客人：失敗時回傳 ok: false 讓 LIFF 端切到 error 畫面
+    try {
+      await pushText(
+        lineUserId,
+        `您好 ${reservation.customerName}！\n\n已收到您的訂位申請：\n📅 ${reservation.requestDate} ${reservation.requestTime}\n👥 ${reservation.adults} 大人${reservation.children > 0 ? ` / ${reservation.children} 小孩` : ""}\n\n我們會盡快確認並回覆您，感謝您的耐心等候 🙏`
+      );
+    } catch (err) {
+      console.error("push to customer failed", err);
+      return NextResponse.json({ ok: false, error: "push failed" });
+    }
 
-    // 推送 Flex Message 到群組（含確認／拒絕按鈕）
+    // 推送 Flex Message 到群組：失敗不影響客人端體驗
     if (GROUP_ID) {
-      await pushFlexToAdmin(reservation);
+      try {
+        await pushFlexToAdmin(reservation);
+      } catch (err) {
+        console.error("push to admin group failed", err);
+      }
     }
 
     return NextResponse.json({ ok: true });
