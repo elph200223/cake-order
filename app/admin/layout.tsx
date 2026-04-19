@@ -1,8 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect } from "react";
-import { usePathname } from "next/navigation";
+import { useState } from "react";
 
 const NAV_ITEMS = [
   { title: "後台首頁", href: "/admin" },
@@ -20,12 +19,6 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
-  const pathname = usePathname();
-
-  // 路由切換時自動關閉抽屜
-  useEffect(() => {
-    setOpen(false);
-  }, [pathname]);
 
   return (
     <div className="flex min-h-screen">
@@ -70,6 +63,7 @@ export default function AdminLayout({
             <Link
               key={item.href}
               href={item.href}
+              onClick={() => setOpen(false)}
               className="rounded-lg px-3 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-200 hover:text-neutral-900"
             >
               {item.title}
