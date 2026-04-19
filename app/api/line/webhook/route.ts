@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createHmac } from "crypto";
 import { prisma } from "@/lib/prisma";
+import { buildCustomerMessage, pushFlexToAdmin } from "@/lib/reservation-messages";
 
 const CHANNEL_SECRET = process.env.LINE_CHANNEL_SECRET ?? "";
 const ACCESS_TOKEN = process.env.LINE_CHANNEL_ACCESS_TOKEN ?? "";
@@ -9,7 +10,7 @@ const GROUP_ID = process.env.LINE_GROUP_ID ?? "";
 // ── LINE API helpers ────────────────────────────────────────────
 
 async function linePost(path: string, body: unknown) {
-  await fetch(`https://api.line.me/v2/bot/${path}`, {
+  const res = await fetch(`https://api.line.me/v2/bot/${path}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -17,6 +18,10 @@ async function linePost(path: string, body: unknown) {
     },
     body: JSON.stringify(body),
   });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`LINE API ${res.status}: ${text}`);
+  }
 }
 
 function replyText(replyToken: string, text: string) {
@@ -80,6 +85,32 @@ export async function POST(req: NextRequest) {
   };
 
   for (const event of payload.events) {
+    // ── 客人加好友（follow event）──
+    if (event.type === "follow") {
+      const userId = event.source.userId;
+
+      const pending = await prisma.reservation.findMany({
+        where: { lineUserId: userId, pendingFollowPush: true },
+        orderBy: { createdAt: "desc" },
+      });
+
+      for (const r of pending) {
+        try {
+          await pushText(userId, buildCustomerMessage(r));
+          if (GROUP_ID) {
+            await pushFlexToAdmin(r, ACCESS_TOKEN, GROUP_ID);
+          }
+          await prisma.reservation.update({
+            where: { id: r.id },
+            data: { pendingFollowPush: false },
+          });
+        } catch (err) {
+          console.error(`follow push failed for reservation ${r.id}`, err);
+        }
+      }
+      continue;
+    }
+
     // ── 客人傳訊（message event）──
     if (event.type === "message" && event.message?.type === "text") {
       const text = event.message.text;

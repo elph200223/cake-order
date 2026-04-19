@@ -35,9 +35,10 @@ model Reservation {
   title         String            @default("")        // 先生 / 小姐 / ""
   arrivalStatus String            @default("pending") // pending / arrived / noShow
   preorderItems String            @default("[]")      // JSON
-  source        String            @default("web")     // web / pos
-  createdAt     DateTime          @default(now())
-  updatedAt     DateTime          @updatedAt
+  source             String            @default("web")     // web / pos
+  pendingFollowPush  Boolean           @default(false)
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
 }
 
 model ReservationSetting {

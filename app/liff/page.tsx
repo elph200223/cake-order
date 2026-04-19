@@ -4,24 +4,40 @@ import { useEffect, useRef, useState } from "react";
 import type { Liff } from "@line/liff";
 
 const LIFF_ID = process.env.NEXT_PUBLIC_LIFF_ID ?? "";
-const OA_URL = "https://line.me/R/ti/p/@482fsits";
+const OA_CHAT_URL = "https://line.me/R/oaMessage/%40482fsits/?";
+const OA_ADD_FRIEND_URL = "https://line.me/R/ti/p/@482fsits";
 
 type Status = "loading" | "need-friend" | "success" | "error";
 
 export default function LiffPage() {
   const [status, setStatus] = useState<Status>("loading");
   const [errorMsg, setErrorMsg] = useState("");
-  const statusRef = useRef<Status>("loading");
   const liffRef = useRef<Liff | null>(null);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const rid = params.get("rid") ?? "";
+    const debug = params.get("debug");
 
-    const updateStatus = (s: Status) => {
-      statusRef.current = s;
-      setStatus(s);
-    };
+    // debug 模式（僅 development）
+    if (process.env.NODE_ENV === "development" && debug) {
+      if (debug === "notfriend") {
+        setStatus("need-friend");
+        return;
+      }
+      if (debug === "error") {
+        setErrorMsg("測試錯誤");
+        setStatus("error");
+        return;
+      }
+      if (debug === "success") {
+        setStatus("success");
+        setTimeout(() => {
+          console.log("[debug] would openWindow OA_CHAT_URL then closeWindow");
+        }, 1000);
+        return;
+      }
+    }
 
     const checkFriendshipAndBind = async () => {
       try {
@@ -35,23 +51,20 @@ export default function LiffPage() {
 
         if (!liff.isInClient()) {
           setErrorMsg("請在手機 LINE 中開啟此頁面");
-          updateStatus("error");
+          setStatus("error");
           return;
         }
 
-        const { friendFlag } = await liff.getFriendship();
-        if (!friendFlag) {
-          updateStatus("need-friend");
-          return;
-        }
-
+        // 先拿 userId（無論是否好友都能取得）
         const profile = await liff.getProfile();
         const lineUserId = profile.userId;
+
+        const { friendFlag } = await liff.getFriendship();
 
         const res = await fetch("/api/reservations/bind-line", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ rid: Number(rid), lineUserId }),
+          body: JSON.stringify({ rid: Number(rid), lineUserId, isFriend: friendFlag }),
         });
 
         const data = (await res.json()) as { ok: boolean; error?: string };
@@ -60,30 +73,24 @@ export default function LiffPage() {
           throw new Error(data.error ?? "綁定失敗");
         }
 
-        updateStatus("success");
-
-        // 先 openWindow 導向 OA 對話框，再 closeWindow 關閉 LIFF
-        setTimeout(() => {
-          liff.openWindow({ url: OA_URL, external: false });
-          liff.closeWindow();
-        }, 1000);
+        if (friendFlag) {
+          setStatus("success");
+          // 先 openWindow 導向 OA 對話框，再 closeWindow 關閉 LIFF
+          setTimeout(() => {
+            liff.openWindow({ url: OA_CHAT_URL, external: false });
+            liff.closeWindow();
+          }, 1000);
+        } else {
+          setStatus("need-friend");
+        }
       } catch (e: unknown) {
         const msg = e instanceof Error ? e.message : String(e);
         setErrorMsg(msg);
-        updateStatus("error");
+        setStatus("error");
       }
     };
 
     checkFriendshipAndBind();
-
-    const onVisibilityChange = () => {
-      if (document.visibilityState === "visible" && statusRef.current === "need-friend") {
-        checkFriendshipAndBind();
-      }
-    };
-
-    document.addEventListener("visibilitychange", onVisibilityChange);
-    return () => document.removeEventListener("visibilitychange", onVisibilityChange);
   }, []);
 
   if (status === "loading") {
@@ -101,18 +108,19 @@ export default function LiffPage() {
         <div className="mb-3 text-5xl">💬</div>
         <h1 className="text-lg font-bold text-neutral-900">還差一步！</h1>
         <p className="mt-3 text-sm text-neutral-500">
-          為了讓我們能傳送訂位確認訊息給您，請先將『眷鳥咖啡商行』加為 LINE 好友。
-          <br />
-          加好友完成後會自動送出訂位並帶您到對話框。
+          為了讓我們能傳送訂位確認訊息，請將『眷鳥咖啡商行』加為 LINE 好友，加入後訂位資料會自動送達您的對話框。
         </p>
         <button
           className="mt-6 rounded-full bg-[#06C755] px-8 py-3 text-sm font-bold text-white"
           onClick={() => {
-            if (liffRef.current) liffRef.current.openWindow({ url: OA_URL, external: false });
+            if (liffRef.current) {
+              liffRef.current.openWindow({ url: OA_ADD_FRIEND_URL, external: false });
+            }
           }}
         >
           加入好友
         </button>
+        <p className="mt-3 text-xs text-neutral-400">加好友後訂位即自動完成，您可直接在對話框查看訊息。</p>
       </div>
     );
   }
