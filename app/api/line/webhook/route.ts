@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createHmac } from "crypto";
 import { prisma } from "@/lib/prisma";
-import { buildCustomerMessage, pushFlexToAdmin } from "@/lib/reservation-messages";
+import { buildCustomerFlex, pushFlexToAdmin, buildSuccessFlex } from "@/lib/reservation-messages";
 
 const CHANNEL_SECRET = process.env.LINE_CHANNEL_SECRET ?? "";
 const ACCESS_TOKEN = process.env.LINE_CHANNEL_ACCESS_TOKEN ?? "";
@@ -35,6 +35,20 @@ function pushText(to: string, text: string) {
   return linePost("message/push", {
     to,
     messages: [{ type: "text", text }],
+  });
+}
+
+function replyFlex(replyToken: string, flex: unknown) {
+  return linePost("message/reply", {
+    replyToken,
+    messages: [flex],
+  });
+}
+
+function pushFlex(to: string, flex: unknown) {
+  return linePost("message/push", {
+    to,
+    messages: [flex],
   });
 }
 
@@ -96,7 +110,7 @@ export async function POST(req: NextRequest) {
 
       for (const r of pending) {
         try {
-          await pushText(userId, buildCustomerMessage(r));
+          await pushFlex(userId, buildCustomerFlex(r));
           if (GROUP_ID) {
             await pushFlexToAdmin(r, ACCESS_TOKEN, GROUP_ID);
           }
@@ -148,7 +162,43 @@ export async function POST(req: NextRequest) {
       if (!reservation) {
         // 找不到對應記錄，還是回覆一下
         if (event.replyToken) {
-          await replyText(event.replyToken, "感謝您的訂位申請！我們會盡快確認並回覆您 🙏");
+          await replyFlex(event.replyToken, {
+            type: "flex",
+            altText: "訂位審核中",
+            contents: {
+              type: "bubble",
+              size: "mega",
+              body: {
+                type: "box",
+                layout: "vertical",
+                backgroundColor: "#FFFFFF",
+                paddingAll: "20px",
+                contents: [
+                  {
+                    type: "text",
+                    text: "訂位審核中",
+                    weight: "bold",
+                    size: "xxl",
+                    color: "#222222",
+                    align: "center"
+                  },
+                  {
+                    type: "separator",
+                    margin: "md",
+                    color: "#DDDDDD"
+                  },
+                  {
+                    type: "text",
+                    text: "感謝您的訂位申請！我們會盡快確認並回覆您 🙏",
+                    wrap: true,
+                    size: "md",
+                    color: "#555555",
+                    margin: "lg"
+                  }
+                ]
+              }
+            }
+          });
         }
         continue;
       }
@@ -161,14 +211,48 @@ export async function POST(req: NextRequest) {
 
       // 立即回覆客人
       if (event.replyToken) {
-        await replyText(event.replyToken, "感謝您的訂位申請！我們會盡快確認並回覆您 🙏");
+        await replyFlex(event.replyToken, {
+          type: "flex",
+          altText: "訂位審核中",
+          contents: {
+            type: "bubble",
+            size: "mega",
+            body: {
+              type: "box",
+              layout: "vertical",
+              backgroundColor: "#FFFFFF",
+              paddingAll: "20px",
+              contents: [
+                {
+                  type: "text",
+                  text: "訂位審核中",
+                  weight: "bold",
+                  size: "xxl",
+                  color: "#222222",
+                  align: "center"
+                },
+                {
+                  type: "separator",
+                  margin: "md",
+                  color: "#DDDDDD"
+                },
+                {
+                  type: "text",
+                  text: "已收到您的申請，請稍候店家審核完成後會再通知您。",
+                  wrap: true,
+                  size: "md",
+                  color: "#555555",
+                  margin: "lg"
+                }
+              ]
+            }
+          }
+        });
       }
     }
 
     // ── 店主按確認／拒絕按鈕（postback event）──
     if (event.type === "postback" && event.postback?.data) {
-      const userId = event.source.userId;
-
       // 只接受從群組來的 postback
       if (GROUP_ID && event.source.groupId !== GROUP_ID) continue;
 
@@ -200,7 +284,11 @@ export async function POST(req: NextRequest) {
       // 推送回覆給客人
       if (reservation.lineUserId) {
         const message = action === "confirm" ? confirmMessage : rejectMessage;
-        await pushText(reservation.lineUserId, message);
+        if (action === "confirm") {
+          await pushFlex(reservation.lineUserId, buildSuccessFlex(reservation, message));
+        } else {
+          await pushText(reservation.lineUserId, message);  // 拒絕還是用文字
+        }
       }
 
       // 告知店主已送出
