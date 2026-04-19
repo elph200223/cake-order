@@ -27,7 +27,7 @@ export function buildCustomerFlex(r: ReservationData) {
     altText: "訂位審核中",
     contents: {
       type: "bubble",
-      size: "mega",
+      size: "kilo",
       body: {
         type: "box",
         layout: "vertical",
@@ -67,7 +67,7 @@ export function buildSuccessFlex(r: ReservationData, successText: string) {
     altText: "訂位成功",
     contents: {
       type: "bubble",
-      size: "mega",
+      size: "kilo",
       body: {
         type: "box",
         layout: "vertical",

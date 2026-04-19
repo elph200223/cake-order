@@ -167,7 +167,7 @@ export async function POST(req: NextRequest) {
             altText: "訂位審核中",
             contents: {
               type: "bubble",
-              size: "mega",
+              size: "kilo",
               body: {
                 type: "box",
                 layout: "vertical",
@@ -216,7 +216,7 @@ export async function POST(req: NextRequest) {
           altText: "訂位審核中",
           contents: {
             type: "bubble",
-            size: "mega",
+            size: "kilo",
             body: {
               type: "box",
               layout: "vertical",
