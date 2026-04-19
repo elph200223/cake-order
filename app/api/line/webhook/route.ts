@@ -216,33 +216,24 @@ export async function POST(req: NextRequest) {
           altText: "訂位審核中",
           contents: {
             type: "bubble",
-            size: "kilo",
             body: {
               type: "box",
               layout: "vertical",
-              backgroundColor: "#FFFFFF",
-              paddingAll: "20px",
               contents: [
                 {
                   type: "text",
                   text: "訂位審核中",
                   weight: "bold",
-                  size: "xxl",
-                  color: "#222222",
-                  align: "center"
+                  size: "xl"
                 },
                 {
                   type: "separator",
-                  margin: "md",
-                  color: "#DDDDDD"
+                  margin: "md"
                 },
                 {
                   type: "text",
                   text: "已收到您的申請，請稍候店家審核完成後會再通知您。",
-                  wrap: true,
-                  size: "md",
-                  color: "#555555",
-                  margin: "lg"
+                  wrap: true
                 }
               ]
             }

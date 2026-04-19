@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { buildCustomerMessage, pushFlexToAdmin } from "@/lib/reservation-messages";
+import { buildCustomerFlex, pushFlexToAdmin } from "@/lib/reservation-messages";
 
 const ACCESS_TOKEN = process.env.LINE_CHANNEL_ACCESS_TOKEN ?? "";
 const GROUP_ID = process.env.LINE_GROUP_ID ?? "";
@@ -20,8 +20,8 @@ async function linePost(path: string, body: unknown) {
   }
 }
 
-function pushText(to: string, text: string) {
-  return linePost("message/push", { to, messages: [{ type: "text", text }] });
+function pushFlex(to: string, flex: unknown) {
+  return linePost("message/push", { to, messages: [flex] });
 }
 
 export async function POST(req: NextRequest) {
@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
       // 立即 push 客人訊息；失敗時設 pendingFollowPush 備援
       let pushed = false;
       try {
-        await pushText(lineUserId, buildCustomerMessage(reservation));
+        await pushFlex(lineUserId, buildCustomerFlex(reservation));
         pushed = true;
       } catch (err) {
         console.error("push to customer failed", err);

@@ -27,33 +27,24 @@ export function buildCustomerFlex(r: ReservationData) {
     altText: "訂位審核中",
     contents: {
       type: "bubble",
-      size: "kilo",
       body: {
         type: "box",
         layout: "vertical",
-        backgroundColor: "#FFFFFF",
-        paddingAll: "20px",
         contents: [
           {
             type: "text",
             text: "訂位審核中",
             weight: "bold",
-            size: "xxl",
-            color: "#222222",
-            align: "center"
+            size: "xl"
           },
           {
             type: "separator",
-            margin: "md",
-            color: "#DDDDDD"
+            margin: "md"
           },
           {
             type: "text",
             text: `您好 ${r.customerName}！\n\n已收到您的訂位申請：\n📅 ${r.requestDate} ${r.requestTime}\n👥 ${r.children > 0 ? `${r.adults} 大人 / ${r.children} 小孩` : `${r.adults} 大人`}\n\n我們會盡快確認並回覆您，感謝您的耐心等候 🙏`,
-            wrap: true,
-            size: "md",
-            color: "#555555",
-            margin: "lg"
+            wrap: true
           }
         ]
       }
@@ -67,33 +58,25 @@ export function buildSuccessFlex(r: ReservationData, successText: string) {
     altText: "訂位成功",
     contents: {
       type: "bubble",
-      size: "kilo",
       body: {
         type: "box",
         layout: "vertical",
-        backgroundColor: "#FFFFFF",
-        paddingAll: "20px",
         contents: [
           {
             type: "text",
             text: "訂位成功",
             weight: "bold",
-            size: "xxl",
-            color: "#1DB446",
-            align: "center"
+            size: "xl",
+            color: "#1DB446"
           },
           {
             type: "separator",
-            margin: "md",
-            color: "#DDDDDD"
+            margin: "md"
           },
           {
             type: "text",
             text: successText,
-            wrap: true,
-            size: "md",
-            color: "#333333",
-            margin: "lg"
+            wrap: true
           }
         ]
       }
