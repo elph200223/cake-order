@@ -135,6 +135,37 @@ export default function LiffPage() {
     );
   }
 
+  // 若是「需在 LINE 開啟」的錯誤，提供一鍵跳轉按鈕
+  const isNotInClient = errorMsg === "請在手機 LINE 中開啟此頁面";
+
+  if (isNotInClient) {
+    const params = new URLSearchParams(
+      typeof window !== "undefined" ? window.location.search : ""
+    );
+    const rid = params.get("rid") ?? "";
+    const liffUrl = `https://liff.line.me/${LIFF_ID}${rid ? `?rid=${rid}` : ""}`;
+
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center bg-white px-6 text-center">
+        <div className="mb-3 text-5xl">📱</div>
+        <h1 className="text-lg font-bold text-neutral-900">請用 LINE 開啟</h1>
+        <p className="mt-3 text-sm text-neutral-500">
+          此頁面需要在 LINE app 中開啟，<br />
+          請點下方按鈕繼續完成訂位。
+        </p>
+        <a
+          href={liffUrl}
+          className="mt-6 inline-block rounded-full bg-[#06C755] px-8 py-3 text-sm font-bold text-white"
+        >
+          用 LINE 開啟
+        </a>
+        <p className="mt-4 text-xs text-neutral-400">
+          點擊後請選擇「在 LINE 中開啟」
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-white px-6 text-center">
       <div className="mb-3 text-4xl">⚠️</div>
