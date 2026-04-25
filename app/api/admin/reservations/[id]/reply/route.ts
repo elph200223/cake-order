@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { buildSuccessFlex } from "@/lib/reservation-messages";
+import { buildSuccessFlex, buildRejectFlex } from "@/lib/reservation-messages";
 import { sendReservationConfirmEmail, sendReservationRejectEmail } from "@/lib/mailer";
 
 const ACCESS_TOKEN = process.env.LINE_CHANNEL_ACCESS_TOKEN ?? "";
@@ -93,7 +93,7 @@ export async function PATCH(
     if (action === "confirm") {
       await pushFlex(reservation.lineUserId, buildSuccessFlex(reservation, message));
     } else {
-      await pushText(reservation.lineUserId, message);
+      await pushFlex(reservation.lineUserId, buildRejectFlex(message));
     }
   }
 

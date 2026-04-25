@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createHmac } from "crypto";
 import { prisma } from "@/lib/prisma";
-import { buildCustomerFlex, pushFlexToAdmin, buildSuccessFlex } from "@/lib/reservation-messages";
+import { buildCustomerFlex, pushFlexToAdmin, buildSuccessFlex, buildRejectFlex } from "@/lib/reservation-messages";
 import { sendReservationConfirmEmail, sendReservationRejectEmail } from "@/lib/mailer";
 
 const CHANNEL_SECRET = process.env.LINE_CHANNEL_SECRET ?? "";
@@ -307,7 +307,7 @@ export async function POST(req: NextRequest) {
         if (action === "confirm") {
           await pushFlex(reservation.lineUserId, buildSuccessFlex(reservation, message));
         } else {
-          await pushText(reservation.lineUserId, message);
+          await pushFlex(reservation.lineUserId, buildRejectFlex(message));
         }
       }
 

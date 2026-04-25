@@ -84,6 +84,38 @@ export function buildSuccessFlex(r: ReservationData, successText: string) {
   };
 }
 
+export function buildRejectFlex(rejectText: string) {
+  return {
+    type: "flex",
+    altText: "訂位未能成立",
+    contents: {
+      type: "bubble",
+      body: {
+        type: "box",
+        layout: "vertical",
+        contents: [
+          {
+            type: "text",
+            text: "訂位未能成立",
+            weight: "bold",
+            size: "xl",
+            color: "#E53E3E"
+          },
+          {
+            type: "separator",
+            margin: "md"
+          },
+          {
+            type: "text",
+            text: rejectText,
+            wrap: true
+          }
+        ]
+      }
+    }
+  };
+}
+
 async function linePostWithToken(
   accessToken: string,
   path: string,
