@@ -164,7 +164,11 @@ type ReservationEmailArgs = {
 };
 
 function buildPeopleText(adults: number, children: number) {
-  return children > 0 ? `${adults} 大人 / ${children} 小孩` : `${adults} 大人`;
+  return children > 0 ? `${adults} 位大人 / ${children} 位小孩` : `${adults} 位大人`;
+}
+
+function nl2br(text: string) {
+  return escapeHtml(text).replace(/\n/g, "<br />");
 }
 
 export async function sendReservationConfirmEmail(args: ReservationEmailArgs & { confirmMessage: string }) {
@@ -192,7 +196,7 @@ export async function sendReservationConfirmEmail(args: ReservationEmailArgs & {
   const html = `
     <div style="font-family: Arial, 'Noto Sans TC', sans-serif; line-height: 1.8; color: #222;">
       <p>${escapeHtml(args.customerName)} 您好：</p>
-      <p>${escapeHtml(args.confirmMessage)}</p>
+      <p>${nl2br(args.confirmMessage)}</p>
       <p>
         <strong>日期時間：</strong>${escapeHtml(args.requestDate)} ${escapeHtml(args.requestTime)}<br />
         <strong>人數：</strong>${escapeHtml(peopleText)}

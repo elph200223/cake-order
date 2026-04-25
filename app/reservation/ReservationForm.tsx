@@ -417,7 +417,7 @@ export function ReservationForm() {
 
           {/* 通知方式 */}
           <div style={S.fieldFull}>
-            <label style={S.label}>通知方式 *</label>
+            <label style={S.label}>希望接收訂位結果的方式 *</label>
             <div style={{ display: "flex", gap: 12 }}>
               <label style={{
                 flex: 1,
