@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createHmac } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { buildCustomerFlex, pushFlexToAdmin, buildSuccessFlex } from "@/lib/reservation-messages";
+import { sendReservationConfirmEmail, sendReservationRejectEmail } from "@/lib/mailer";
 
 const CHANNEL_SECRET = process.env.LINE_CHANNEL_SECRET ?? "";
 const ACCESS_TOKEN = process.env.LINE_CHANNEL_ACCESS_TOKEN ?? "";
@@ -273,12 +274,40 @@ export async function POST(req: NextRequest) {
       });
 
       // 推送回覆給客人
-      if (reservation.lineUserId) {
+      if (reservation.notifyMethod === "EMAIL" && reservation.customerEmail) {
+        try {
+          if (action === "confirm") {
+            await sendReservationConfirmEmail({
+              to: reservation.customerEmail,
+              customerName: reservation.customerName,
+              requestDate: reservation.requestDate,
+              requestTime: reservation.requestTime,
+              adults: reservation.adults,
+              children: reservation.children,
+              note: reservation.note || undefined,
+              confirmMessage,
+            });
+          } else {
+            await sendReservationRejectEmail({
+              to: reservation.customerEmail,
+              customerName: reservation.customerName,
+              requestDate: reservation.requestDate,
+              requestTime: reservation.requestTime,
+              adults: reservation.adults,
+              children: reservation.children,
+              note: reservation.note || undefined,
+              rejectMessage,
+            });
+          }
+        } catch (err) {
+          console.error("reservation email send failed (webhook)", err);
+        }
+      } else if (reservation.lineUserId) {
         const message = action === "confirm" ? confirmMessage : rejectMessage;
         if (action === "confirm") {
           await pushFlex(reservation.lineUserId, buildSuccessFlex(reservation, message));
         } else {
-          await pushText(reservation.lineUserId, message);  // 拒絕還是用文字
+          await pushText(reservation.lineUserId, message);
         }
       }
 
