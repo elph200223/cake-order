@@ -176,6 +176,7 @@ function buildCardHtml(opts: {
   title: string;
   customerName: string;
   bodyHtml: string;
+  uniqueId: string;
 }) {
   return `
 <!DOCTYPE html>
@@ -201,6 +202,7 @@ function buildCardHtml(opts: {
       </table>
     </td></tr>
   </table>
+  <!-- ${opts.uniqueId} -->
 </body>
 </html>`;
 }
@@ -240,6 +242,7 @@ export async function sendReservationConfirmEmail(args: ReservationEmailArgs & {
     title: "訂位已確認",
     customerName: args.customerName,
     bodyHtml,
+    uniqueId: `confirm-${Date.now()}-${Math.random().toString(36).slice(2)}`,
   });
 
   return transporter.sendMail({
@@ -275,6 +278,7 @@ export async function sendReservationRejectEmail(args: ReservationEmailArgs & { 
     title: "訂位未能成立",
     customerName: args.customerName,
     bodyHtml,
+    uniqueId: `reject-${Date.now()}-${Math.random().toString(36).slice(2)}`,
   });
 
   return transporter.sendMail({
