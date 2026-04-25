@@ -66,7 +66,7 @@ export default async function AdminReservationsPage() {
                   <th className="border-b border-neutral-200 px-4 py-3 font-semibold text-neutral-700">人數</th>
                   <th className="border-b border-neutral-200 px-4 py-3 font-semibold text-neutral-700">希望時間</th>
                   <th className="border-b border-neutral-200 px-4 py-3 font-semibold text-neutral-700">備註</th>
-                  <th className="border-b border-neutral-200 px-4 py-3 font-semibold text-neutral-700">LINE 綁定</th>
+                  <th className="border-b border-neutral-200 px-4 py-3 font-semibold text-neutral-700">通知方式</th>
                   <th className="border-b border-neutral-200 px-4 py-3 font-semibold text-neutral-700">狀態</th>
                   <th className="border-b border-neutral-200 px-4 py-3 font-semibold text-neutral-700">建立時間</th>
                   <th className="border-b border-neutral-200 px-4 py-3 font-semibold text-neutral-700">操作</th>
@@ -86,10 +86,12 @@ export default async function AdminReservationsPage() {
                     <td className="border-b border-neutral-100 px-4 py-3 text-neutral-500">
                       {r.note || "—"}
                     </td>
-                    <td className="border-b border-neutral-100 px-4 py-3">
-                      {r.lineUserId
-                        ? <span className="text-green-600">已綁定</span>
-                        : <span className="text-neutral-400">未綁定</span>}
+                    <td className="border-b border-neutral-100 px-4 py-3 whitespace-nowrap">
+                      {r.notifyMethod === "EMAIL"
+                        ? <span className="text-blue-600">Email</span>
+                        : r.lineUserId
+                          ? <span className="text-green-600">LINE 已綁定</span>
+                          : <span className="text-neutral-400">LINE 未綁定</span>}
                     </td>
                     <td className="border-b border-neutral-100 px-4 py-3">
                       <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLOR[r.status]}`}>

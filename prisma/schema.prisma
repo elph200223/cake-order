@@ -36,6 +36,8 @@ model Reservation {
   arrivalStatus String            @default("pending") // pending / arrived / noShow
   preorderItems String            @default("[]")      // JSON
   source             String            @default("web")     // web / pos
+  notifyMethod       String            @default("LINE")    // LINE | EMAIL
+  customerEmail      String            @default("")
   pendingFollowPush  Boolean           @default(false)
   createdAt          DateTime          @default(now())
   updatedAt          DateTime          @updatedAt

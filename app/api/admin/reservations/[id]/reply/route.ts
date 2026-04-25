@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { buildSuccessFlex } from "@/lib/reservation-messages";
+import { sendReservationConfirmEmail, sendReservationRejectEmail } from "@/lib/mailer";
 
 const ACCESS_TOKEN = process.env.LINE_CHANNEL_ACCESS_TOKEN ?? "";
 
@@ -11,6 +13,17 @@ async function pushText(to: string, text: string) {
       Authorization: `Bearer ${ACCESS_TOKEN}`,
     },
     body: JSON.stringify({ to, messages: [{ type: "text", text }] }),
+  });
+}
+
+async function pushFlex(to: string, flex: unknown) {
+  await fetch("https://api.line.me/v2/bot/message/push", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${ACCESS_TOKEN}`,
+    },
+    body: JSON.stringify({ to, messages: [flex] }),
   });
 }
 
@@ -41,14 +54,47 @@ export async function PATCH(
     data: { status: newStatus },
   });
 
-  if (reservation.lineUserId) {
-    const setting = await prisma.reservationSetting.findFirst();
-    const message =
-      action === "confirm"
-        ? (setting?.confirmMessage ?? DEFAULTS.confirmMessage)
-        : (setting?.rejectMessage ?? DEFAULTS.rejectMessage);
+  const setting = await prisma.reservationSetting.findFirst();
+  const confirmMessage = setting?.confirmMessage ?? DEFAULTS.confirmMessage;
+  const rejectMessage = setting?.rejectMessage ?? DEFAULTS.rejectMessage;
 
-    await pushText(reservation.lineUserId, message);
+  if (reservation.notifyMethod === "EMAIL" && reservation.customerEmail) {
+    // Email 通知
+    try {
+      if (action === "confirm") {
+        await sendReservationConfirmEmail({
+          to: reservation.customerEmail,
+          customerName: reservation.customerName,
+          requestDate: reservation.requestDate,
+          requestTime: reservation.requestTime,
+          adults: reservation.adults,
+          children: reservation.children,
+          note: reservation.note || undefined,
+          confirmMessage,
+        });
+      } else {
+        await sendReservationRejectEmail({
+          to: reservation.customerEmail,
+          customerName: reservation.customerName,
+          requestDate: reservation.requestDate,
+          requestTime: reservation.requestTime,
+          adults: reservation.adults,
+          children: reservation.children,
+          note: reservation.note || undefined,
+          rejectMessage,
+        });
+      }
+    } catch (err) {
+      console.error("reservation email send failed", err);
+    }
+  } else if (reservation.lineUserId) {
+    // LINE 通知
+    const message = action === "confirm" ? confirmMessage : rejectMessage;
+    if (action === "confirm") {
+      await pushFlex(reservation.lineUserId, buildSuccessFlex(reservation, message));
+    } else {
+      await pushText(reservation.lineUserId, message);
+    }
   }
 
   return NextResponse.json({ ok: true });

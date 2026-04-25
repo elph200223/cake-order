@@ -168,6 +168,8 @@ export function ReservationForm() {
   const [requestDate, setRequestDate] = useState(tomorrowString());
   const [requestTime, setRequestTime] = useState("18:00");
   const [note, setNote] = useState("");
+  const [notifyMethod, setNotifyMethod] = useState<"LINE" | "EMAIL">("LINE");
+  const [customerEmail, setCustomerEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [lineUrl, setLineUrl] = useState("");
@@ -193,7 +195,7 @@ export function ReservationForm() {
       const res = await fetch("/api/reservations/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ customerName, phone, adults, children, requestDate, requestTime, note }),
+        body: JSON.stringify({ customerName, phone, adults, children, requestDate, requestTime, note, notifyMethod, customerEmail }),
       });
       const data = (await res.json()) as { ok: boolean; reservation?: { id: number }; error?: string };
 
@@ -202,13 +204,18 @@ export function ReservationForm() {
         return;
       }
 
-      const liffUrl = `https://liff.line.me/${LIFF_ID}?rid=${data.reservation?.id ?? ""}`;
+      // Email 通知：直接顯示審核中畫面
+      if (notifyMethod === "EMAIL") {
+        setSubmitted(true);
+        return;
+      }
 
+      // LINE 通知：導向 LIFF
+      const liffUrl = `https://liff.line.me/${LIFF_ID}?rid=${data.reservation?.id ?? ""}`;
       if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
         window.location.href = liffUrl;
         return;
       }
-
       setLineUrl(liffUrl);
       setSubmitted(true);
     } catch {
@@ -220,6 +227,35 @@ export function ReservationForm() {
 
   // ── Submitted view ──────────────────────────────────────────────────────────
   if (submitted) {
+    // Email 通知的等待畫面
+    if (notifyMethod === "EMAIL") {
+      return (
+        <div style={S.card}>
+          <h1 style={S.title}>訂位審核中</h1>
+          <div style={S.divider} />
+          <p style={S.subtitle}>
+            您的訂位申請已送出，店家審核後將寄送通知至您的信箱，請耐心等候。
+          </p>
+          <div style={{
+            marginTop: 24,
+            background: "#faf7f2",
+            border: "1px solid #e8d9c4",
+            padding: "14px 18px",
+            fontSize: 13,
+            color: "#8d6b40",
+            lineHeight: 1.9,
+          }}>
+            <div><strong>通知信箱：</strong>{customerEmail}</div>
+            <div><strong>希望時間：</strong>{requestDate} {requestTime}</div>
+          </div>
+          <p style={{ ...S.hint, marginTop: 16 }}>
+            請記得確認垃圾信件夾，以免通知被誤判
+          </p>
+        </div>
+      );
+    }
+
+    // LINE 通知的 QR / 按鈕畫面
     return (
       <div style={S.card}>
         <h1 style={S.title}>訂位資料已送出</h1>
@@ -254,14 +290,7 @@ export function ReservationForm() {
             <p style={{ fontSize: 13, color: "#8d877f", marginBottom: 18, lineHeight: 1.8 }}>
               用手機掃描 QR Code，自動在 LINE 送出訂位申請
             </p>
-            <div
-              style={{
-                display: "inline-block",
-                padding: 16,
-                background: "#faf7f2",
-                border: "1px solid #ddd4c8",
-              }}
-            >
+            <div style={{ display: "inline-block", padding: 16, background: "#faf7f2", border: "1px solid #ddd4c8" }}>
               <QRCodeSVG value={lineUrl} size={192} />
             </div>
           </div>
@@ -279,7 +308,7 @@ export function ReservationForm() {
     <div style={S.card}>
       <h1 style={S.title}>線上訂位</h1>
       <p style={S.subtitle}>
-        填寫以下資料後，系統將透過 LINE 與您確認訂位。
+        填寫以下資料後，系統將確認您的訂位並通知您。
       </p>
       <div style={S.divider} />
 
@@ -385,6 +414,72 @@ export function ReservationForm() {
               style={{ ...S.input, resize: "vertical" }}
             />
           </div>
+
+          {/* 通知方式 */}
+          <div style={S.fieldFull}>
+            <label style={S.label}>通知方式 *</label>
+            <div style={{ display: "flex", gap: 12 }}>
+              <label style={{
+                flex: 1,
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                padding: "10px 14px",
+                border: `1px solid ${notifyMethod === "LINE" ? "#06C755" : "#ddd4c8"}`,
+                background: notifyMethod === "LINE" ? "#f0faf3" : "#faf7f2",
+                cursor: "pointer",
+                fontSize: 14,
+                color: "#4d4a46",
+              }}>
+                <input
+                  type="radio"
+                  name="notifyMethod"
+                  value="LINE"
+                  checked={notifyMethod === "LINE"}
+                  onChange={() => setNotifyMethod("LINE")}
+                  style={{ accentColor: "#06C755" }}
+                />
+                LINE 通知
+              </label>
+              <label style={{
+                flex: 1,
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                padding: "10px 14px",
+                border: `1px solid ${notifyMethod === "EMAIL" ? "#8d6b40" : "#ddd4c8"}`,
+                background: notifyMethod === "EMAIL" ? "#faf4ec" : "#faf7f2",
+                cursor: "pointer",
+                fontSize: 14,
+                color: "#4d4a46",
+              }}>
+                <input
+                  type="radio"
+                  name="notifyMethod"
+                  value="EMAIL"
+                  checked={notifyMethod === "EMAIL"}
+                  onChange={() => setNotifyMethod("EMAIL")}
+                  style={{ accentColor: "#8d6b40" }}
+                />
+                Email 通知
+              </label>
+            </div>
+          </div>
+
+          {/* Email 輸入（僅 Email 通知時顯示） */}
+          {notifyMethod === "EMAIL" && (
+            <div style={S.fieldFull}>
+              <label style={S.label}>Email *</label>
+              <input
+                type="email"
+                required
+                value={customerEmail}
+                onChange={(e) => setCustomerEmail(e.target.value)}
+                placeholder="example@email.com"
+                style={S.input}
+              />
+            </div>
+          )}
         </div>
 
         {error && (
@@ -396,10 +491,12 @@ export function ReservationForm() {
           disabled={submitting}
           style={submitting ? S.submitBtnDisabled : S.submitBtn}
         >
-          {submitting ? "送出中…" : "送出並用 LINE 確認"}
+          {submitting ? "送出中…" : notifyMethod === "EMAIL" ? "送出訂位申請" : "送出並用 LINE 確認"}
         </button>
 
-        <p style={S.hint}>送出後會自動開啟 LINE，請在對話框中按送出完成申請</p>
+        {notifyMethod === "LINE" && (
+          <p style={S.hint}>送出後會自動開啟 LINE，請在對話框中按送出完成申請</p>
+        )}
       </form>
     </div>
   );

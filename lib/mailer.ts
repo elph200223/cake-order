@@ -150,3 +150,98 @@ export async function sendPaidOrderEmail(args: SendPaidOrderEmailArgs) {
     replyTo: smtp.user,
   });
 }
+
+// ── 訂位通知 email ─────────────────────────────────────────────────────────────
+
+type ReservationEmailArgs = {
+  to: string;
+  customerName: string;
+  requestDate: string;
+  requestTime: string;
+  adults: number;
+  children: number;
+  note?: string;
+};
+
+function buildPeopleText(adults: number, children: number) {
+  return children > 0 ? `${adults} 大人 / ${children} 小孩` : `${adults} 大人`;
+}
+
+export async function sendReservationConfirmEmail(args: ReservationEmailArgs & { confirmMessage: string }) {
+  const smtp = getSmtpConfig();
+  const to = args.to.trim();
+  if (!to) throw new Error("EMAIL_RECIPIENT_REQUIRED");
+
+  const transporter = createTransporter();
+  const subject = "【眷鳥咖啡】您的訂位已確認";
+  const peopleText = buildPeopleText(args.adults, args.children);
+
+  const text = [
+    `${args.customerName} 您好：`,
+    "",
+    args.confirmMessage,
+    "",
+    "訂位資訊：",
+    `日期時間：${args.requestDate} ${args.requestTime}`,
+    `人數：${peopleText}`,
+    ...(args.note ? [`備註：${args.note}`] : []),
+    "",
+    "眷鳥咖啡 敬上",
+  ].join("\n");
+
+  const html = `
+    <div style="font-family: Arial, 'Noto Sans TC', sans-serif; line-height: 1.8; color: #222;">
+      <p>${escapeHtml(args.customerName)} 您好：</p>
+      <p>${escapeHtml(args.confirmMessage)}</p>
+      <p>
+        <strong>日期時間：</strong>${escapeHtml(args.requestDate)} ${escapeHtml(args.requestTime)}<br />
+        <strong>人數：</strong>${escapeHtml(peopleText)}
+        ${args.note ? `<br /><strong>備註：</strong>${escapeHtml(args.note)}` : ""}
+      </p>
+      <p>眷鳥咖啡 敬上</p>
+    </div>
+  `;
+
+  return transporter.sendMail({
+    from: `"${smtp.fromName}" <${smtp.user}>`,
+    to,
+    subject,
+    text,
+    html,
+    replyTo: smtp.user,
+  });
+}
+
+export async function sendReservationRejectEmail(args: ReservationEmailArgs & { rejectMessage: string }) {
+  const smtp = getSmtpConfig();
+  const to = args.to.trim();
+  if (!to) throw new Error("EMAIL_RECIPIENT_REQUIRED");
+
+  const transporter = createTransporter();
+  const subject = "【眷鳥咖啡】訂位申請通知";
+
+  const text = [
+    `${args.customerName} 您好：`,
+    "",
+    args.rejectMessage,
+    "",
+    "眷鳥咖啡 敬上",
+  ].join("\n");
+
+  const html = `
+    <div style="font-family: Arial, 'Noto Sans TC', sans-serif; line-height: 1.8; color: #222;">
+      <p>${escapeHtml(args.customerName)} 您好：</p>
+      <p>${escapeHtml(args.rejectMessage)}</p>
+      <p>眷鳥咖啡 敬上</p>
+    </div>
+  `;
+
+  return transporter.sendMail({
+    from: `"${smtp.fromName}" <${smtp.user}>`,
+    to,
+    subject,
+    text,
+    html,
+    replyTo: smtp.user,
+  });
+}

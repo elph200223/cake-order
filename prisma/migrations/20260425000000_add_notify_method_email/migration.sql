@@ -1,0 +1,2 @@
+ALTER TABLE "Reservation" ADD COLUMN "notifyMethod" TEXT NOT NULL DEFAULT 'LINE';
+ALTER TABLE "Reservation" ADD COLUMN "customerEmail" TEXT NOT NULL DEFAULT '';
