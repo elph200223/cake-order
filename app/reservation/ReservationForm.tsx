@@ -7,9 +7,9 @@ const WEEKDAYS = ["日", "一", "二", "三", "四", "五", "六"];
 
 function generateTimes() {
   const times: string[] = [];
-  for (let h = 11; h <= 20; h++) {
+  for (let h = 11; h <= 19; h++) {
     times.push(`${String(h).padStart(2, "0")}:00`);
-    if (h < 20) times.push(`${String(h).padStart(2, "0")}:30`);
+    if (h < 19) times.push(`${String(h).padStart(2, "0")}:30`);
   }
   return times;
 }
@@ -237,6 +237,20 @@ export function ReservationForm() {
           </a>
         ) : (
           <div style={{ textAlign: "center" }}>
+            <div style={{
+              background: "#fff3f3",
+              border: "1px solid #e8b4b4",
+              padding: "14px 18px",
+              marginBottom: 22,
+              textAlign: "center",
+            }}>
+              <p style={{ margin: 0, fontSize: 17, fontWeight: 700, color: "#c0392b", letterSpacing: "0.03em" }}>
+                掃描後必須完成加好友步驟
+              </p>
+              <p style={{ margin: "6px 0 0", fontSize: 13, color: "#9a5f5a", lineHeight: 1.7 }}>
+                跳過此步驟，訂位將自動作廢
+              </p>
+            </div>
             <p style={{ fontSize: 13, color: "#8d877f", marginBottom: 18, lineHeight: 1.8 }}>
               用手機掃描 QR Code，自動在 LINE 送出訂位申請
             </p>

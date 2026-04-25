@@ -7,6 +7,12 @@ function authOk(req: NextRequest): boolean {
   return token === process.env.POS_API_KEY;
 }
 
+async function findReservationByPosId(posId: string) {
+  return prisma.reservation.findFirst({
+    where: { posId: { equals: posId.toLowerCase(), mode: "insensitive" } },
+  });
+}
+
 // PATCH /api/pos/reservations/[posId]  (更新訂位)
 export async function PATCH(
   req: NextRequest,
@@ -24,9 +30,14 @@ export async function PATCH(
   const r = body.reservation;
   if (!r) return NextResponse.json({ ok: false, error: "MISSING_DATA" }, { status: 400 });
 
+  const reservation = await findReservationByPosId(posId);
+  if (!reservation) {
+    return NextResponse.json({ ok: false, error: "NOT_FOUND" }, { status: 404 });
+  }
+
   try {
     await prisma.reservation.update({
-      where: { posId },
+      where: { id: reservation.id },
       data: {
         ...(r.name !== undefined && { customerName: r.name }),
         ...(r.phone !== undefined && { phone: r.phone }),
@@ -54,9 +65,13 @@ export async function DELETE(
   if (!authOk(req)) return NextResponse.json({ ok: false, error: "UNAUTHORIZED" }, { status: 401 });
 
   const { posId } = await params;
+  const reservation = await findReservationByPosId(posId);
+  if (!reservation) {
+    return NextResponse.json({ ok: false, error: "NOT_FOUND" }, { status: 404 });
+  }
 
   try {
-    await prisma.reservation.delete({ where: { posId } });
+    await prisma.reservation.delete({ where: { id: reservation.id } });
     return NextResponse.json({ ok: true });
   } catch {
     return NextResponse.json({ ok: false, error: "NOT_FOUND" }, { status: 404 });

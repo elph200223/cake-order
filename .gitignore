@@ -62,3 +62,4 @@ next
 # macOS / editor noise
 *.swp
 *.swo
+.env*.local

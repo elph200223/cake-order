@@ -65,10 +65,19 @@ export async function GET(req: NextRequest) {
   // 為沒有 posId 的訂位補上 UUID
   const withIds = await Promise.all(
     reservations.map(async (r) => {
-      if (r.posId) return r;
-      const posId = randomUUID();
-      await prisma.reservation.update({ where: { id: r.id }, data: { posId } });
-      return { ...r, posId };
+      if (!r.posId) {
+        const posId = randomUUID();
+        await prisma.reservation.update({ where: { id: r.id }, data: { posId } });
+        return { ...r, posId };
+      }
+
+      if (r.posId !== r.posId.toLowerCase()) {
+        const lower = r.posId.toLowerCase();
+        await prisma.reservation.update({ where: { id: r.id }, data: { posId: lower } });
+        return { ...r, posId: lower };
+      }
+
+      return r;
     })
   );
 
@@ -90,7 +99,7 @@ export async function POST(req: NextRequest) {
 
   const created = await prisma.reservation.create({
     data: {
-      posId: r.id,
+      posId: r.id.toLowerCase(),
       customerName: r.name,
       phone: r.phone,
       adults: r.adults,

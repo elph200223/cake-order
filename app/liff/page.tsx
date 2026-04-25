@@ -105,22 +105,26 @@ export default function LiffPage() {
   if (status === "need-friend") {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center bg-white px-6 text-center">
-        <div className="mb-3 text-5xl">💬</div>
-        <h1 className="text-lg font-bold text-neutral-900">還差一步！</h1>
-        <p className="mt-3 text-sm text-neutral-500">
-          為了讓我們能傳送訂位確認訊息，請將『眷鳥咖啡商行』加為 LINE 好友，加入後訂位資料會自動送達您的對話框。
+        <h1 className="text-lg font-bold text-neutral-900">訂位尚未完成</h1>
+        <p className="mt-3 text-sm text-neutral-600">
+          需要加入『眷鳥咖啡商行』為 LINE 好友，才能完成訂位送出。
+        </p>
+        <p className="mt-2 text-sm text-red-500 font-medium">
+          若未加入好友，店家將不會收到您的訂位，訂位視為未成立。
+        </p>
+        <p className="mt-4 text-xs text-neutral-400 bg-neutral-50 rounded-lg px-4 py-3 text-left">
+          加入後我們<strong>只會傳送訂位確認及相關通知</strong>，不會發送任何廣告或促銷訊息，請放心加入。
         </p>
         <button
-          className="mt-6 rounded-full bg-[#06C755] px-8 py-3 text-sm font-bold text-white"
+          className="mt-5 rounded-full bg-[#06C755] px-8 py-3 text-sm font-bold text-white"
           onClick={() => {
             if (liffRef.current) {
               liffRef.current.openWindow({ url: OA_ADD_FRIEND_URL, external: false });
             }
           }}
         >
-          加入好友
+          加入好友以完成訂位
         </button>
-        <p className="mt-3 text-xs text-neutral-400">加好友後訂位即自動完成，您可直接在對話框查看訊息。</p>
       </div>
     );
   }
