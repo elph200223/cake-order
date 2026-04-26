@@ -220,6 +220,13 @@ export async function POST(req: Request) {
         quantity: number;
       }>;
     } | null = null;
+    // 訂單詳細資料（供 GAS 帳務用）
+    let orderDetailsForGas: {
+      totalAmount: number;
+      pickupDate: string;
+      customer: string;
+      items: Array<{ name: string; quantity: number; price: number }>;
+    } | null = null;
 
     if (sig.tranStatus === "S") {
       try {
@@ -304,6 +311,18 @@ export async function POST(req: Request) {
               })),
             };
           }
+
+          // 儲存訂單詳細資料供 GAS 帳務使用
+          orderDetailsForGas = {
+            totalAmount: existingOrder.totalAmount,
+            pickupDate:  existingOrder.pickupDate,
+            customer:    existingOrder.customer,
+            items:       existingOrder.items.map((item) => ({
+              name:     item.name,
+              quantity: item.quantity,
+              price:    item.price,
+            })),
+          };
         }
       } catch (error: unknown) {
         prismaOrderUpdate = {
@@ -349,11 +368,18 @@ export async function POST(req: Request) {
 
     const payload = {
       apiKey,
-      orderId: orderNo,
+      orderId:         orderNo,
       paymentProvider: "paynow",
       paymentStatus,
-      transactionId: (p.BuysafeNo || "").trim(),
-      note: `paynow_callback ${paymentStatus}`,
+      transactionId:   (p.BuysafeNo || "").trim(),
+      note:            `paynow_callback ${paymentStatus}`,
+      // 帳務用訂單詳細資料（付款成功時才有）
+      ...(orderDetailsForGas && {
+        totalAmount: orderDetailsForGas.totalAmount,
+        pickupDate:  orderDetailsForGas.pickupDate,
+        customer:    orderDetailsForGas.customer,
+        items:       orderDetailsForGas.items,
+      }),
     };
 
     const r = await fetch(gasUrl, {
