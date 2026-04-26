@@ -404,6 +404,33 @@ export async function POST(req: Request) {
     console.log("[paynow-callback] gasStatus=", r.status);
     console.log("[paynow-callback] gasBody=", gasBody);
 
+    // 傳送帳務資料給月結 GAS（獨立的 WebApp）
+    const accountingGasUrl = (process.env.GAS_ACCOUNTING_URL || "").trim();
+    const accountingApiKey  = (process.env.GAS_ACCOUNTING_KEY || "").trim();
+    if (accountingGasUrl && accountingApiKey && orderDetailsForGas) {
+      try {
+        const accountingPayload = {
+          apiKey:        accountingApiKey,
+          orderId:       orderNo,
+          paymentStatus: "PAID",
+          totalAmount:   orderDetailsForGas.totalAmount,
+          pickupDate:    orderDetailsForGas.pickupDate,
+          customer:      orderDetailsForGas.customer,
+          items:         orderDetailsForGas.items,
+        };
+        const ar = await fetch(accountingGasUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          cache: "no-store",
+          body: JSON.stringify(accountingPayload),
+        });
+        const aText = await ar.text();
+        console.log("[paynow-callback] accountingGas status=", ar.status, "body=", aText);
+      } catch (err: unknown) {
+        console.log("[paynow-callback] accountingGas ERROR", err);
+      }
+    }
+
     if (shouldNotifyLine && lineMessage) {
       try {
         const lineResult = await pushLineOrderPaidMessage(lineMessage);
