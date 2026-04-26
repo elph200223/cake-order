@@ -8,6 +8,7 @@ type PickupBlockDateRow = {
   id: number;
   date: string;
   reason: string;
+  orderOnly: boolean;
 };
 
 type PickupBlockDateDelegate = {
@@ -22,6 +23,7 @@ type PickupBlockDateDelegate = {
       id?: boolean;
       date?: boolean;
       reason?: boolean;
+      orderOnly?: boolean;
     };
   }) => Promise<PickupBlockDateRow[]>;
 };
@@ -52,6 +54,7 @@ export async function GET() {
         id: true,
         date: true,
         reason: true,
+        orderOnly: true,
       },
     });
 
@@ -59,6 +62,7 @@ export async function GET() {
       id: row.id,
       date: row.date,
       reason: row.reason,
+      orderOnly: row.orderOnly,
     }));
 
     const leadBlockedDates = getLeadBlockedDateStrings();

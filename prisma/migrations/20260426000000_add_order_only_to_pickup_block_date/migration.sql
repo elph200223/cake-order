@@ -1,0 +1,1 @@
+ALTER TABLE "PickupBlockDate" ADD COLUMN "orderOnly" BOOLEAN NOT NULL DEFAULT false;

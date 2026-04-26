@@ -10,6 +10,7 @@ type RouteContext = {
 type PickupBlockDatePatchBody = {
   isActive?: unknown;
   reason?: unknown;
+  orderOnly?: unknown;
 };
 
 type PickupBlockDateDelegate = {
@@ -22,6 +23,7 @@ type PickupBlockDateDelegate = {
     data: {
       isActive?: boolean;
       reason?: string;
+      orderOnly?: boolean;
     };
   }) => Promise<unknown>;
 };
@@ -82,6 +84,7 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
     const data: {
       isActive?: boolean;
       reason?: string;
+      orderOnly?: boolean;
     } = {};
 
     if (body.isActive !== undefined) {
@@ -90,6 +93,10 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
 
     if (body.reason !== undefined) {
       data.reason = String(body.reason ?? "").trim();
+    }
+
+    if (body.orderOnly !== undefined) {
+      data.orderOnly = Boolean(body.orderOnly);
     }
 
     if (Object.keys(data).length === 0) {

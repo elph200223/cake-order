@@ -5,6 +5,7 @@ type PickupBlockDatePostBody = {
   date?: unknown;
   reason?: unknown;
   isActive?: unknown;
+  orderOnly?: unknown;
 };
 
 type PickupBlockDateDelegate = {
@@ -20,6 +21,7 @@ type PickupBlockDateDelegate = {
       date: string;
       reason: string;
       isActive: boolean;
+      orderOnly: boolean;
     };
   }) => Promise<unknown>;
 };
@@ -108,6 +110,7 @@ export async function POST(req: NextRequest) {
     const date = normalizeDate(body.date);
     const reason = normalizeReason(body.reason);
     const isActive = body.isActive === undefined ? true : Boolean(body.isActive);
+    const orderOnly = body.orderOnly === undefined ? false : Boolean(body.orderOnly);
 
     if (!date) {
       return NextResponse.json(
@@ -140,6 +143,7 @@ export async function POST(req: NextRequest) {
         date,
         reason,
         isActive,
+        orderOnly,
       },
     });
 

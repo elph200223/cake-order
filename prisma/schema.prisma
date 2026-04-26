@@ -195,6 +195,7 @@ model PickupBlockDate {
   date      String   @unique
   reason    String   @default("")
   isActive  Boolean  @default(true)
+  orderOnly Boolean  @default(false) // true = 蛋糕接滿（只擋訂單，不擋訂位）
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

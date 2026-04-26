@@ -17,9 +17,10 @@ function generateTimes() {
 async function fetchBlockedDates(): Promise<string[]> {
   try {
     const res = await fetch("/api/pickup-block-dates");
-    const data = await res.json() as { ok: boolean; blockedDates?: { date: string }[] };
+    const data = await res.json() as { ok: boolean; blockedDates?: { date: string; orderOnly?: boolean }[] };
     if (!data.ok || !data.blockedDates) return [];
-    return data.blockedDates.map((d) => d.date);
+    // orderOnly=true 表示蛋糕接滿，只擋訂單不擋訂位，所以訂位這邊過濾掉
+    return data.blockedDates.filter((d) => !d.orderOnly).map((d) => d.date);
   } catch {
     return [];
   }
