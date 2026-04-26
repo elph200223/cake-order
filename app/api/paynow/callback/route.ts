@@ -246,6 +246,7 @@ export async function POST(req: Request) {
               select: {
                 name: true,
                 quantity: true,
+                price: true,
               },
               orderBy: { id: "asc" },
             },
