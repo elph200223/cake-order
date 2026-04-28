@@ -63,7 +63,8 @@ export async function POST(req: Request) {
     const itemDesc = String(body.itemDesc ?? "").trim() || "Order";
 
     const baseUrl = mustEnv("BASE_URL");
-    const notifyUrl = `${baseUrl}/api/paynow/callback`;
+    const notifyUrl  = `${baseUrl}/api/paynow/callback`;
+    const returnApiUrl = `${baseUrl}/api/paynow/3d-return`;
 
     const returnLookupId = dbOrderId || orderId;
     const returnUrl =
@@ -71,15 +72,14 @@ export async function POST(req: Request) {
 
     console.log("[paynow-create] baseUrl =", baseUrl);
     console.log(
-      "[paynow-create] notifyUrl =",
-      notifyUrl,
-      "returnUrl =",
-      returnUrl
+      "[paynow-create] notifyUrl =", notifyUrl,
+      "returnApiUrl =", returnApiUrl,
     );
 
     const customerIn = body.customer ?? {};
 
-    await upsertOrderToGAS({
+    // fire-and-forget：GAS 失敗不影響付款建立
+    upsertOrderToGAS({
       orderId,
       customerName: String(customerIn.name ?? ""),
       customerPhone: String(customerIn.phone ?? ""),
@@ -88,11 +88,13 @@ export async function POST(req: Request) {
       paymentProvider: "paynow",
       paymentStatus: "PENDING",
       note: String(body.note ?? "created"),
-    });
+    }).catch((err: unknown) =>
+      console.error("[paynow-create] GAS upsert error (non-fatal):", err)
+    );
 
-    const action = mustEnv("PAYNOW_PAYMENT_ACTION");
-    const webNo = mustEnv("PAYNOW_WEB_NO");
-    const tradeCode = mustEnv("PAYNOW_MEM_CHECKPW");
+    const action    = mustEnv("PAYNOW_PAYMENT_ACTION");
+    const webNo     = mustEnv("PAYNOW_WEBNO", "PAYNOW_WEB_NO");
+    const tradeCode = mustEnv("PAYNOW_SECRET", "PAYNOW_MEM_CHECKPW");
 
     const passCode = sha1Upper(webNo + orderId + String(amount) + tradeCode);
 
@@ -113,7 +115,7 @@ export async function POST(req: Request) {
       PayEN: "0",
       EPT: "1",
       NotifyURL: notifyUrl,
-      ReturnURL: returnUrl,
+      ReturnURL: returnApiUrl,
     };
 
     return NextResponse.json(
@@ -175,10 +177,12 @@ async function upsertOrderToGAS(payload: GasUpsertPayload) {
   }
 }
 
-function mustEnv(k: string) {
-  const v = process.env[k];
-  if (!v) throw new Error("Missing env: " + k);
-  return v;
+function mustEnv(...keys: string[]) {
+  for (const k of keys) {
+    const v = process.env[k];
+    if (v) return v;
+  }
+  throw new Error("Missing env: " + keys.join(" / "));
 }
 
 function sha1Upper(raw: string) {

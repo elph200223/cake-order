@@ -131,28 +131,30 @@ async function syncGas(
   console.log("[paynow-3d-return] gasBody=", gasBody);
 }
 
-export async function POST(req: Request) {
+export async function GET(req: Request) {
   const origin = new URL(req.url).origin;
+  const url    = new URL(req.url);
+  const p: Record<string, string> = {};
+  url.searchParams.forEach((v, k) => { p[k] = v; });
 
+  console.log("[paynow-3d-return] GET HIT AT", new Date().toISOString());
+  console.log("[paynow-3d-return] params=", p);
+
+  return handleReturn(origin, p);
+}
+
+async function handleReturn(origin: string, p: Record<string, string>) {
   try {
-    const contentType = req.headers.get("content-type") || "";
-    const raw = await req.text();
-    const p = parsePayload(raw, contentType);
-
-    console.log("[paynow-3d-return] HIT AT", new Date().toISOString());
-    console.log("[paynow-3d-return] contentType=", contentType);
-    console.log("[paynow-3d-return] raw=", raw);
-
     const sig = verifyPassCode(p);
     console.log("[paynow-3d-return] sig=", sig);
 
-    const orderNo = (p.OrderNo || "").trim();
-    const tranStatus = (p.TranStatus || "").trim().toUpperCase();
-    const transactionId = (p.BuysafeNo || "").trim();
+    const orderNo       = (p.OrderNo   || "").trim();
+    const tranStatus    = (p.TranStatus || "").trim().toUpperCase();
+    const transactionId = (p.BuysafeNo  || "").trim();
 
     let dbOrderId = "";
-    const paymentStatus: "PAID" | "FAILED" = tranStatus === "S" ? "PAID" : "FAILED";
-    const prismaStatus: "PAID" | "CANCELLED" = tranStatus === "S" ? "PAID" : "CANCELLED";
+    const paymentStatus: "PAID" | "FAILED"      = tranStatus === "S" ? "PAID" : "FAILED";
+    const prismaStatus:  "PAID" | "CANCELLED"    = tranStatus === "S" ? "PAID" : "CANCELLED";
 
     if (orderNo) {
       const order = await prisma.order.findUnique({
@@ -167,17 +169,9 @@ export async function POST(req: Request) {
           try {
             await prisma.order.update({
               where: { orderNo },
-              data: {
-                status: prismaStatus,
-              },
+              data: { status: prismaStatus },
             });
-
-            console.log(
-              "[paynow-3d-return] prisma updated",
-              orderNo,
-              "=>",
-              prismaStatus
-            );
+            console.log("[paynow-3d-return] prisma updated", orderNo, "=>", prismaStatus);
           } catch (error: unknown) {
             console.log("[paynow-3d-return] prisma update error", error);
           }
@@ -206,4 +200,17 @@ export async function POST(req: Request) {
     console.log("[paynow-3d-return] ERROR", error);
     return NextResponse.redirect(`${origin}/pay/result`, { status: 303 });
   }
+}
+
+export async function POST(req: Request) {
+  const origin = new URL(req.url).origin;
+  const contentType = req.headers.get("content-type") || "";
+  const raw = await req.text();
+  const p = parsePayload(raw, contentType);
+
+  console.log("[paynow-3d-return] POST HIT AT", new Date().toISOString());
+  console.log("[paynow-3d-return] contentType=", contentType);
+  console.log("[paynow-3d-return] raw=", raw);
+
+  return handleReturn(origin, p);
 }
