@@ -110,7 +110,7 @@ export async function POST(req: Request) {
       ReceiverEmail: String(customerIn.email ?? ""),
       ReceiverID: String(customerIn.phone ?? "").replace(/\D/g, "") || orderId,
       PayType: "01",
-      AtmRespost: "0",
+      AtmRespost: "1",  // 1 = 付款後 redirect 回設定網址（含 3D 驗證完成後）
       DeadLine: "0",
       PayEN: "0",
       EPT: "1",
