@@ -107,9 +107,10 @@ export async function sendPaidOrderEmail(args: SendPaidOrderEmailArgs) {
   const subject = `【眷鳥咖啡】訂單付款成功通知 ${args.orderNo}`;
   const pickupText = buildPickupText(args.pickupDate, args.pickupTime);
   const itemsText = buildItemsText(args.items);
+  const customerName = args.customer.trim() || "顧客";
 
   const text = [
-    `${args.customer.trim() || "顧客"} 您好：`,
+    `${customerName} 您好：`,
     "",
     "我們已收到您的付款，這筆訂單已成立。",
     "",
@@ -125,21 +126,44 @@ export async function sendPaidOrderEmail(args: SendPaidOrderEmailArgs) {
     "眷鳥咖啡 敬上",
   ].join("\n");
 
-  const html = `
-    <div style="font-family: Arial, 'Noto Sans TC', sans-serif; line-height: 1.8; color: #222;">
-      <p>${escapeHtml(args.customer.trim() || "顧客")} 您好：</p>
-      <p>我們已收到您的付款，這筆訂單已成立。</p>
-      <p>
-        <strong>訂單編號：</strong>${escapeHtml(args.orderNo)}<br />
-        <strong>取貨時間：</strong>${escapeHtml(pickupText)}<br />
-        <strong>訂單金額：</strong>${escapeHtml(formatCurrency(args.totalAmount))}
-      </p>
-      <p><strong>訂單內容：</strong></p>
-      <pre style="white-space: pre-wrap; font-family: inherit; margin: 0;">${escapeHtml(itemsText)}</pre>
-      <p>如需調整訂單內容，請盡快直接回覆此信與我們聯繫。</p>
-      <p>眷鳥咖啡 敬上</p>
-    </div>
-  `;
+  const itemRows = args.items.length
+    ? args.items.map((item) =>
+        `<tr>
+          <td style="padding:4px 0;color:#555555;">・${escapeHtml(item.name)}</td>
+          <td style="padding:4px 0;color:#555555;text-align:right;white-space:nowrap;">× ${item.quantity}</td>
+        </tr>`
+      ).join("")
+    : `<tr><td colspan="2" style="color:#999999;">（無品項資料）</td></tr>`;
+
+  const bodyHtml = `
+    <p style="margin:0 0 16px;">我們已收到您的付款，這筆訂單已成立。</p>
+    <table cellpadding="0" cellspacing="0" style="background:#f9f6f2;border-radius:4px;padding:14px 18px;font-size:13px;line-height:2;color:#555555;width:100%;">
+      <tr>
+        <td style="white-space:nowrap;"><strong style="color:#333;">訂單編號</strong></td>
+        <td style="padding-left:16px;">${escapeHtml(args.orderNo)}</td>
+      </tr>
+      <tr>
+        <td style="white-space:nowrap;"><strong style="color:#333;">取貨時間</strong></td>
+        <td style="padding-left:16px;">${escapeHtml(pickupText)}</td>
+      </tr>
+      <tr>
+        <td style="white-space:nowrap;"><strong style="color:#333;">訂單金額</strong></td>
+        <td style="padding-left:16px;">${escapeHtml(formatCurrency(args.totalAmount))}</td>
+      </tr>
+    </table>
+    <p style="margin:16px 0 8px;font-size:13px;font-weight:700;color:#333333;">訂單內容</p>
+    <table cellpadding="0" cellspacing="0" style="background:#f9f6f2;border-radius:4px;padding:14px 18px;font-size:13px;width:100%;">
+      ${itemRows}
+    </table>
+    <p style="margin:16px 0 0;font-size:13px;color:#666666;">如需調整訂單內容，請盡快直接回覆此信與我們聯繫。</p>`;
+
+  const html = buildCardHtml({
+    accentColor: "#8B5E3C",
+    title: "訂單付款成功",
+    customerName,
+    bodyHtml,
+    uniqueId: `order-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+  });
 
   return transporter.sendMail({
     from: `"${smtp.fromName}" <${smtp.user}>`,
