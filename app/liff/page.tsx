@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { Liff } from "@line/liff";
 
 const LIFF_ID = process.env.NEXT_PUBLIC_LIFF_ID ?? "";
-const OA_CHAT_URL = "https://line.me/R/oaMessage/%40482fsits/?";
+const OA_CHAT_URL = "https://line.me/R/oaMessage/%40482fsits";
 const OA_ADD_FRIEND_URL = "https://line.me/R/ti/p/@482fsits";
 
 type Status = "loading" | "need-friend" | "success" | "error";
@@ -75,9 +75,9 @@ export default function LiffPage() {
 
         if (friendFlag) {
           setStatus("success");
-          // 先 openWindow 導向 OA 對話框，再 closeWindow 關閉 LIFF
+          // external:true 讓 LINE app 正確處理 deep link，開啟 OA 對話框後客人點確認按鈕即完成
           setTimeout(() => {
-            liff.openWindow({ url: OA_CHAT_URL, external: false });
+            liff.openWindow({ url: OA_CHAT_URL, external: true });
             liff.closeWindow();
           }, 1000);
         } else {
@@ -134,7 +134,7 @@ export default function LiffPage() {
       <div className="flex min-h-screen flex-col items-center justify-center bg-white px-6 text-center">
         <div className="mb-3 text-5xl">✅</div>
         <h1 className="text-lg font-bold text-neutral-900">訂位申請已送出</h1>
-        <p className="mt-2 text-sm text-neutral-500">即將為您開啟 LINE 對話框，請查看確認訊息…</p>
+        <p className="mt-2 text-sm text-neutral-500">即將開啟 LINE 對話框，請確認訂位資訊後點按鈕送出申請。</p>
       </div>
     );
   }

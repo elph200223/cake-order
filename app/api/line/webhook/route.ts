@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createHmac } from "crypto";
 import { prisma } from "@/lib/prisma";
-import { buildCustomerFlex, pushFlexToAdmin, buildSuccessFlex, buildRejectFlex } from "@/lib/reservation-messages";
+import { buildCustomerFlex, buildReviewingFlex, pushFlexToAdmin, buildSuccessFlex, buildRejectFlex } from "@/lib/reservation-messages";
 import { sendReservationConfirmEmail, sendReservationRejectEmail } from "@/lib/mailer";
 
 const CHANNEL_SECRET = process.env.LINE_CHANNEL_SECRET ?? "";
@@ -144,6 +144,14 @@ export async function POST(req: NextRequest) {
         const groupId = event.source.groupId ?? event.source.roomId ?? "（非群組環境）";
         if (event.replyToken) {
           await replyText(event.replyToken, `群組 ID 是：\n${groupId}\n來源類型：${event.source.type}`);
+        }
+        continue;
+      }
+
+      // 客人點「確認訂位資訊無誤」按鈕送出的確認訊息
+      if (text.startsWith("【訂位確認】")) {
+        if (event.replyToken) {
+          await replyFlex(event.replyToken, buildReviewingFlex());
         }
         continue;
       }
