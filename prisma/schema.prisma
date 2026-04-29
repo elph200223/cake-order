@@ -20,12 +20,25 @@ enum ReservationStatus {
   REJECTED
 }
 
+model Customer {
+  id           Int           @id @default(autoincrement())
+  phone        String        @unique
+  name         String        @default("")
+  note         String        @default("")
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  orders       Order[]
+  reservations Reservation[]
+}
+
 model Reservation {
   id            Int               @id @default(autoincrement())
   posId         String?           @unique  // UUID from POS app
   lineUserId    String?
   customerName  String
   phone         String
+  customerId    Int?
+  customerRef   Customer?         @relation(fields: [customerId], references: [id])
   adults        Int               @default(1)
   children      Int               @default(0)
   requestDate   String
@@ -71,6 +84,8 @@ model Order {
   totalAmount Int
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
+  customerId  Int?
+  customerRef Customer?   @relation(fields: [customerId], references: [id])
 
   items OrderItem[]
 }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createHmac } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { buildCustomerFlex, buildReviewingFlex, pushFlexToAdmin, buildSuccessFlex, buildRejectFlex } from "@/lib/reservation-messages";
+import { upsertCustomer } from "@/lib/customer";
 import { sendReservationConfirmEmail, sendReservationRejectEmail } from "@/lib/mailer";
 
 const CHANNEL_SECRET = process.env.LINE_CHANNEL_SECRET ?? "";
@@ -111,9 +112,10 @@ export async function POST(req: NextRequest) {
 
       for (const r of pending) {
         try {
+          const { isMember } = await upsertCustomer(r.phone, r.customerName);
           await pushFlex(userId, buildCustomerFlex(r));
           if (GROUP_ID) {
-            await pushFlexToAdmin(r, ACCESS_TOKEN, GROUP_ID);
+            await pushFlexToAdmin(r, ACCESS_TOKEN, GROUP_ID, isMember);
           }
           await prisma.reservation.update({
             where: { id: r.id },

@@ -408,7 +408,12 @@ export async function POST(req: Request) {
     // 傳送帳務資料給月結 GAS（獨立的 WebApp）
     const accountingGasUrl = (process.env.GAS_ACCOUNTING_URL || "").trim();
     const accountingApiKey  = (process.env.GAS_ACCOUNTING_KEY || "").trim();
-    if (accountingGasUrl && accountingApiKey && orderDetailsForGas) {
+    if (
+      accountingGasUrl &&
+      accountingApiKey &&
+      orderDetailsForGas &&
+      prismaOrderUpdate?.previousStatus !== OrderStatus.PAID
+    ) {
       try {
         const accountingPayload = {
           apiKey:        accountingApiKey,

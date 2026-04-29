@@ -210,16 +210,21 @@ async function linePostWithToken(
 export async function pushFlexToAdmin(
   reservation: ReservationData,
   accessToken: string,
-  groupId: string
+  groupId: string,
+  isMember = false
 ): Promise<void> {
   const people =
     reservation.children > 0
       ? `${reservation.adults} 大人 / ${reservation.children} 小孩`
       : `${reservation.adults} 大人`;
 
+  const nameText = isMember
+    ? `姓名：${reservation.customerName}　⭐ 會員`
+    : `姓名：${reservation.customerName}`;
+
   const bodyContents = [
     { type: "text", text: "📋 新訂位申請", weight: "bold", size: "lg" },
-    { type: "text", text: `姓名：${reservation.customerName}`, margin: "md" },
+    { type: "text", text: nameText, margin: "md" },
     { type: "text", text: `電話：${reservation.phone}` },
     { type: "text", text: `人數：${people}` },
     { type: "text", text: `時間：${reservation.requestDate} ${reservation.requestTime}` },

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { upsertCustomer } from "@/lib/customer";
 
 async function generateOrderNo() {
   const now = new Date();
@@ -115,6 +116,7 @@ export async function POST(req: NextRequest) {
     );
 
     const orderNo = await generateOrderNo();
+    const { id: customerId } = await upsertCustomer(phone, customerName);
 
     const order = await prisma.order.create({
       data: {
@@ -127,6 +129,7 @@ export async function POST(req: NextRequest) {
         note,
         totalAmount,
         status: "PAID",
+        customerId,
         items: {
           create: items.map((item) => ({
             name: item.name.trim(),

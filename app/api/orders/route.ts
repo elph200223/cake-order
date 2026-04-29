@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { type CheckoutOrderPayload } from "@/lib/checkout";
+import { upsertCustomer } from "@/lib/customer";
 import { isPickupSelectionValid } from "@/lib/pickup-rules";
 
 type PickupBlockDateRow = {
@@ -193,6 +194,8 @@ export async function POST(req: NextRequest) {
 
     const orderNo = await generateOrderNo();
 
+    const { id: customerId } = await upsertCustomer(payload.phone, payload.customerName);
+
     const order = await prisma.order.create({
       data: {
         orderNo,
@@ -203,6 +206,7 @@ export async function POST(req: NextRequest) {
         pickupTime: payload.pickupTime,
         note: payload.note,
         totalAmount: payload.totalAmount,
+        customerId,
         items: {
           create: payload.items.map((item) => ({
             name: buildOrderItemName(item),

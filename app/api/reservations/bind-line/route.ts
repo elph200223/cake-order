@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { buildCustomerFlex, pushFlexToAdmin } from "@/lib/reservation-messages";
+import { upsertCustomer } from "@/lib/customer";
 
 const ACCESS_TOKEN = process.env.LINE_CHANNEL_ACCESS_TOKEN ?? "";
 const GROUP_ID = process.env.LINE_GROUP_ID ?? "";
@@ -41,6 +42,11 @@ export async function POST(req: NextRequest) {
       data: { lineUserId },
     });
 
+    const { id: customerId, isMember } = await upsertCustomer(reservation.phone, reservation.customerName);
+    if (!reservation.customerId) {
+      await prisma.reservation.update({ where: { id: rid }, data: { customerId } });
+    }
+
     if (isFriend) {
       // 立即 push 客人訊息；失敗時設 pendingFollowPush 備援
       let pushed = false;
@@ -59,7 +65,7 @@ export async function POST(req: NextRequest) {
       // admin group push 失敗不影響客人端體驗
       if (GROUP_ID) {
         try {
-          await pushFlexToAdmin(reservation, ACCESS_TOKEN, GROUP_ID);
+          await pushFlexToAdmin(reservation, ACCESS_TOKEN, GROUP_ID, isMember);
         } catch (err) {
           console.error("push to admin group failed", err);
         }

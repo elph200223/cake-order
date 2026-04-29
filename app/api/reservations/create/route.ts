@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { pushFlexToAdmin } from "@/lib/reservation-messages";
+import { upsertCustomer } from "@/lib/customer";
 
 const ACCESS_TOKEN = process.env.LINE_CHANNEL_ACCESS_TOKEN ?? "";
 const GROUP_ID = process.env.LINE_GROUP_ID ?? "";
@@ -42,6 +43,9 @@ export async function POST(req: NextRequest) {
     const reservation = await prisma.reservation.create({
       data: { customerName, phone, adults, children, requestDate, requestTime, note, notifyMethod, customerEmail },
     });
+
+    const { id: customerId } = await upsertCustomer(phone, customerName);
+    await prisma.reservation.update({ where: { id: reservation.id }, data: { customerId } });
 
     // Email 通知模式：訂位建立後直接推送通知給店家
     if (notifyMethod === "EMAIL" && GROUP_ID) {
