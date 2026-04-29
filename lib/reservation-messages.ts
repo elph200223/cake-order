@@ -105,10 +105,10 @@ export function buildReviewingFlex() {
         contents: [
           {
             type: "text",
-            text: "訂位申請已送出 ✓",
+            text: "訂位審核中",
             weight: "bold",
             size: "lg",
-            color: "#1DB446",
+            color: "#F5A623",
           },
           { type: "separator" },
           {
