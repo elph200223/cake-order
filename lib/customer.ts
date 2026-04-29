@@ -5,7 +5,7 @@ export async function upsertCustomer(phone: string, name: string): Promise<{ id:
     where: { phone },
     select: {
       id: true,
-      _count: { select: { orders: true, reservations: true } },
+      _count: { select: { orders: { where: { status: "PAID" } }, reservations: true } },
     },
   });
 

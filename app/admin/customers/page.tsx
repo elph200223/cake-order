@@ -12,7 +12,7 @@ export default async function CustomersPage() {
       name: true,
       note: true,
       createdAt: true,
-      _count: { select: { orders: true, reservations: true } },
+      _count: { select: { orders: { where: { status: "PAID" } }, reservations: true } },
     },
   });
 
